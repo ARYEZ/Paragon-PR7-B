@@ -67,9 +67,10 @@ Unzip it and copy `Paragon X1.vst3` to your VST3 folder:
 
 1. Set the new version in `CMakeLists.txt` (`project(ParagonX1 VERSION x.y.z)`).
 2. Add a `## x.y.z` section to `CHANGELOG.md`.
-3. Commit, then push a tag: `git tag vx.y.z && git push origin vx.y.z`.
+3. Commit and push.
 
-GitHub Actions builds all three platforms and publishes the release with notes from the changelog.
+When a push carries a version that hasn't been released yet, GitHub Actions builds all three
+platforms, tags the commit `vx.y.z` and publishes the release with notes from the changelog.
 
 ## Building from source
 

@@ -75,60 +75,81 @@ jobs:
           name: ParagonX1-VST3-${{ matrix.name }}
           path: build/ParagonX1_artefacts/Release/VST3
 
-  # Publishes a GitHub Release when a version tag (e.g. v0.4.0) is pushed:
-  # the three builds above, zipped, with notes from CHANGELOG.md.
+  # Publishes a GitHub Release whenever a push carries a version number
+  # (in CMakeLists.txt) that hasn't been released yet: bump the version and
+  # add a CHANGELOG.md section, push, and the release appears. Pushing a
+  # matching vX.Y.Z tag works too. The release holds the three builds
+  # above, zipped, with notes from CHANGELOG.md.
   release:
     name: Release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push'
     needs: build
     runs-on: ubuntu-24.04
     permissions:
-      contents: write   # needed to create the release
+      contents: write   # needed to create the tag and release
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v5
 
-      - name: Check the tag matches the plugin version
+      - name: Is this version already released?
+        id: version
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          if ! grep -q "project(ParagonX1 VERSION ${VERSION}" CMakeLists.txt; then
-            echo "Tag ${GITHUB_REF_NAME} doesn't match the VERSION in CMakeLists.txt" >&2
+          VERSION=$(sed -n 's/^project(ParagonX1 VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+          TAG="v${VERSION}"
+          if [[ "$GITHUB_REF" == refs/tags/* && "$GITHUB_REF_NAME" != "$TAG" ]]; then
+            echo "Tag ${GITHUB_REF_NAME} doesn't match the VERSION in CMakeLists.txt (${VERSION})" >&2
             exit 1
           fi
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "${TAG} is already released; nothing to do."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - uses: actions/download-artifact@v8
+        if: steps.version.outputs.publish == 'true'
         with:
           path: artifacts
 
       - name: Zip each platform's plugin
+        if: steps.version.outputs.publish == 'true'
         run: |
+          TAG="${{ steps.version.outputs.tag }}"
           mkdir release
           # Artifact storage drops file permissions; put the executable flag
           # back on the macOS and Linux binaries so every host will load them.
           chmod -R a+x "artifacts/ParagonX1-VST3-macOS/Paragon X1.vst3/Contents/MacOS" \
                        "artifacts/ParagonX1-VST3-Linux/Paragon X1.vst3/Contents/x86_64-linux"
           for os in Windows macOS Linux; do
-            (cd "artifacts/ParagonX1-VST3-${os}" && zip -qr "../../release/ParagonX1-${GITHUB_REF_NAME}-${os}-VST3.zip" "Paragon X1.vst3")
+            (cd "artifacts/ParagonX1-VST3-${os}" && zip -qr "../../release/ParagonX1-${TAG}-${os}-VST3.zip" "Paragon X1.vst3")
           done
           ls -l release
 
       - name: Write the release notes
+        if: steps.version.outputs.publish == 'true'
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
           # This version's section of CHANGELOG.md: from its heading to the next one.
-          awk -v version="$VERSION" '
+          awk -v version="${{ steps.version.outputs.version }}" '
             /^## / { printing = ($2 == version) ; next }
             printing { print }
           ' CHANGELOG.md > notes.md
           if [ ! -s notes.md ]; then
-            echo "CHANGELOG.md has no section for ${VERSION}" >&2
+            echo "CHANGELOG.md has no section for ${{ steps.version.outputs.version }}" >&2
             exit 1
           fi
           cat .github/release-install.md >> notes.md
 
       - name: Publish the release
-        env:
-          GH_TOKEN: ${{ github.token }}
+        if: steps.version.outputs.publish == 'true'
         run: |
-          gh release create "$GITHUB_REF_NAME" release/*.zip \
-            --title "Paragon X1 ${GITHUB_REF_NAME}" \
+          TAG="${{ steps.version.outputs.tag }}"
+          # --target creates the tag on this exact commit if it doesn't exist yet.
+          gh release create "$TAG" release/*.zip \
+            --target "$GITHUB_SHA" \
+            --title "Paragon X1 ${TAG}" \
             --notes-file notes.md
