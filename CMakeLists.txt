@@ -1,0 +1,69 @@
+cmake_minimum_required(VERSION 3.24)
+
+# macOS: build one universal binary for Apple Silicon and Intel Macs.
+# These must be set before project().
+set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
+set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "macOS architectures")
+
+project(ParagonX1 VERSION 0.1.0 LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+option(PARAGON_BUILD_TESTS "Build the unit tests" ON)
+
+include(cmake/Dependencies.cmake)
+
+juce_add_plugin(ParagonX1
+    PRODUCT_NAME             "Paragon X1"
+    COMPANY_NAME             "Paragon"
+    BUNDLE_ID                "com.paragon.paragonx1"
+    PLUGIN_MANUFACTURER_CODE Prgn     # four characters, at least one upper case
+    PLUGIN_CODE              Px1a     # four characters, exactly one upper case
+    FORMATS                  VST3
+    IS_SYNTH                 FALSE
+    NEEDS_MIDI_INPUT         FALSE
+    NEEDS_MIDI_OUTPUT        FALSE
+    IS_MIDI_EFFECT           FALSE
+    VST3_CATEGORIES          Fx Distortion
+    COPY_PLUGIN_AFTER_BUILD  FALSE)
+
+target_sources(ParagonX1
+    PRIVATE
+        source/Parameters.cpp
+        source/PluginProcessor.cpp
+        source/PluginEditor.cpp
+        source/ui/LevelMeter.cpp
+        source/ui/ParagonLookAndFeel.cpp)
+
+target_include_directories(ParagonX1 PUBLIC source)
+
+target_compile_definitions(ParagonX1
+    PUBLIC
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0
+        JUCE_VST3_CAN_REPLACE_VST2=0)
+
+target_link_libraries(ParagonX1
+    PRIVATE
+        juce::juce_audio_utils
+        juce::juce_dsp
+        juce::juce_recommended_warning_flags   # strict warnings for our code only
+    PUBLIC
+        # NAM registers each model architecture (WaveNet, LSTM, ...) from a
+        # static initialiser that nothing references directly. A normal static
+        # link drops those objects and NAM then can't load any model, so the
+        # whole library must be linked in.
+        $<LINK_LIBRARY:WHOLE_ARCHIVE,nam_core>
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_lto_flags)
+
+if(PARAGON_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
