@@ -27,7 +27,7 @@ juce_add_plugin(ParagonX1
     PLUGIN_CODE              Px1a     # four characters, exactly one upper case
     FORMATS                  VST3
     IS_SYNTH                 FALSE
-    NEEDS_MIDI_INPUT         FALSE
+    NEEDS_MIDI_INPUT         TRUE    # MIDI CC 11 for the expression pedal
     NEEDS_MIDI_OUTPUT        FALSE
     IS_MIDI_EFFECT           FALSE
     VST3_CATEGORIES          Fx Distortion
@@ -41,11 +41,13 @@ target_sources(ParagonX1
         source/dsp/AmpModel.cpp
         source/dsp/AmpStage.cpp
         source/dsp/CabStage.cpp
+        source/dsp/PitchDetector.cpp
         source/dsp/effects/CompGate.cpp
         source/dsp/effects/Delay.cpp
         source/dsp/effects/Drive.cpp
         source/dsp/effects/Modulation.cpp
         source/dsp/effects/Reverb.cpp
+        source/dsp/effects/Wah.cpp
         source/rigs/Rig.cpp
         source/rigs/FactoryRigs.cpp
         source/rigs/RigLibrary.cpp

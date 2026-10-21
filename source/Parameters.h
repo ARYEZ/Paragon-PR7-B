@@ -51,8 +51,25 @@ namespace ParamIDs
     // Phase 5
     inline constexpr auto bypass         = "bypass";
 
+    // Phase 6
+    inline constexpr auto tunerOn          = "tunerOn";
+    inline constexpr auto tunerMute        = "tunerMute";
+    inline constexpr auto expression       = "expression";        // the pedal's position, 0 heel to 1 toe
+    inline constexpr auto expressionTarget = "expressionTarget";  // what the pedal controls
+    inline constexpr auto expressionMin    = "expressionMin";     // the target's setting at the heel...
+    inline constexpr auto expressionMax    = "expressionMax";     // ...and at the toe
+
     // Global settings: kept when switching rigs. Everything else is part of a rig.
-    inline const juce::StringArray notInRigs { inputGain, outputGain, bypass };
+    // The expression pedal's position is global for the same reason a real
+    // pedal's is: it's where your foot is, not part of the sound. What the
+    // pedal is assigned to, and its range, are saved with each rig.
+    inline const juce::StringArray notInRigs { inputGain, outputGain, bypass, tunerOn, tunerMute, expression };
+}
+
+namespace ExpressionTargets
+{
+    enum { off, volume, wah, morph };
+    inline const juce::StringArray names { "Off", "Volume", "Wah / Filter", "Morph FX" };
 }
 
 namespace ParamRanges

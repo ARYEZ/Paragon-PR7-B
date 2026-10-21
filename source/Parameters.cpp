@@ -110,5 +110,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     // Added in plugin version 5 (Phase 5): the pedal's BYPASS button. It's
     // also the plugin's official bypass, so the DAW's bypass uses it too.
     layout.add (makeSwitch (ParamIDs::bypass, "Bypass", 5, false));
+
+    // Added in plugin version 6 (Phase 6): the tuner and the expression pedal.
+    constexpr int v6 = 6;
+    layout.add (makeSwitch (ParamIDs::tunerOn, "Tuner", v6, false));
+    layout.add (makeSwitch (ParamIDs::tunerMute, "Tuner Mutes Output", v6, true));
+    // Toe down by default, so assigning the pedal to VOLUME doesn't silence the rig.
+    layout.add (makeFloat (ParamIDs::expression, "Expression", { 0.0f, 1.0f, 0.001f }, 1.0f, v6, asPercent));
+    layout.add (makeChoice (ParamIDs::expressionTarget, "Expression Target", v6, ExpressionTargets::names, ExpressionTargets::off));
+    layout.add (makeFloat (ParamIDs::expressionMin, "Expression Min", { 0.0f, 1.0f, 0.01f }, 0.0f, v6, asPercent));
+    layout.add (makeFloat (ParamIDs::expressionMax, "Expression Max", { 0.0f, 1.0f, 0.01f }, 1.0f, v6, asPercent));
     return layout;
 }

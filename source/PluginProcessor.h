@@ -5,13 +5,17 @@
 #include "LevelMeterSource.h"
 #include "dsp/AmpStage.h"
 #include "dsp/CabStage.h"
+#include "dsp/InputTap.h"
+#include "dsp/TapTempo.h"
 #include "dsp/effects/CompGate.h"
 #include "dsp/effects/Delay.h"
 #include "dsp/effects/Drive.h"
 #include "dsp/effects/Modulation.h"
 #include "dsp/effects/Presence.h"
 #include "dsp/effects/Reverb.h"
+#include "dsp/effects/Wah.h"
 #include "rigs/RigLibrary.h"
+#include "rigs/UndoHistory.h"
 
 // What the editor shows for the amp or cabinet slot.
 struct SlotStatus
@@ -29,11 +33,17 @@ struct CurrentRig
     juce::File file;              // set for the user's own rigs
     juce::String factoryName;     // set for factory rigs
     bool isUserRig() const { return file != juce::File(); }
+
+    bool operator== (const CurrentRig& other) const
+    {
+        return name == other.name && file == other.file && factoryName == other.factoryName;
+    }
 };
 
 class ParagonX1AudioProcessor final : public juce::AudioProcessor,
                                       private juce::Timer,
-                                      private juce::AudioProcessorValueTreeState::Listener
+                                      private juce::AudioProcessorValueTreeState::Listener,
+                                      private juce::AudioProcessorParameter::Listener
 {
 public:
     ParagonX1AudioProcessor();
@@ -49,7 +59,7 @@ public:
     bool hasEditor() const override { return true; }
 
     const juce::String getName() const override { return JucePlugin_Name; }
-    bool acceptsMidi() const override { return false; }
+    bool acceptsMidi() const override { return true; }   // MIDI CC 11 moves the expression pedal
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return 0.0; }
@@ -117,8 +127,34 @@ public:
     juce::ChangeBroadcaster rigBroadcaster;
 
     //==========================================================================
+    // UNDO / REDO (message thread only)
+    bool canUndo() const { return history.canUndo(); }
+    bool canRedo() const { return history.canRedo(); }
+    void undo();
+    void redo();
+
+    // Records a finished edit now instead of on the next timer tick. For tests.
+    void flushUndoStep() { recordCheckpointIfReady(); }
+
+    //==========================================================================
+    // Tempo
+
     // The DAW's tempo, as last seen by the audio thread (120 if it hasn't said).
     double getHostBpm() const noexcept { return hostBpm.load(); }
+
+    // TAP: each call is one tap (message thread). Once tapped, the tapped
+    // tempo is used instead of the DAW's until clearTappedTempo().
+    void tapTempo();
+    void clearTappedTempo();
+    double getTappedBpm() const noexcept { return tappedBpm.load(); }   // 0 when following the DAW
+    double getTempoBpm() const noexcept;                                 // whichever is in use
+
+    //==========================================================================
+    // Tuner: the guitar signal, for the editor's tuner to measure.
+    const InputTap& getInputTap() const noexcept { return inputTap; }
+
+    // The expression pedal's position after MIDI (0 heel to 1 toe), for the UI.
+    float getExpressionPosition() const noexcept;
 
     juce::AudioProcessorValueTreeState& getParameters() noexcept { return parameters; }
     LevelMeterSource& getInputMeter() noexcept { return inputMeter; }
@@ -135,6 +171,33 @@ private:
     void parameterChanged (const juce::String& parameterId, float newValue) override;
     void markModified() noexcept;
     void applyRig (const Rig& rig);
+
+    // Undo snapshots: the sound and which rig it is.
+    struct Snapshot
+    {
+        Rig rig;
+        CurrentRig current;
+        bool modified = false;   // restored too, but doesn't count as a change
+
+        bool operator== (const Snapshot& other) const
+        {
+            return rig.parameters == other.rig.parameters && rig.ampModelPath == other.rig.ampModelPath
+                && rig.cabIrPath == other.rig.cabIrPath && current == other.current;
+        }
+    };
+    Snapshot takeSnapshot() const;
+    void restoreSnapshot (const Snapshot&);
+    void requestCheckpoint() noexcept { checkpointWanted = true; }
+    void recordCheckpointIfReady();
+
+    // Knob drags and button clicks start and end "gestures"; an edit is
+    // finished (and worth an undo step) when its gesture ends.
+    void parameterValueChanged (int, float) override {}
+    void parameterGestureChanged (int parameterIndex, bool gestureIsStarting) override;
+
+    void readMidiExpression (const juce::MidiBuffer&) noexcept;
+    void syncMidiExpressionToParameter();
+    float expressionAmount() const noexcept;   // position mapped through MIN/MAX
 
     juce::AudioProcessorValueTreeState parameters;
     std::atomic<float>* inputGainDb = nullptr;
@@ -158,6 +221,7 @@ private:
     effects::Modulation modulation;
     effects::Delay delay;
     effects::Reverb reverb;
+    effects::Wah wah;   // the expression pedal's WAH, first in the chain as on a pedalboard
 
     std::unique_ptr<RigLibrary> rigLibrary;
     CurrentRig currentRig;
@@ -170,8 +234,21 @@ private:
     juce::AudioBuffer<float> bypassDry;
     juce::SmoothedValue<float> bypassAmount;
 
+    // The expression pedal's VOLUME, and the tuner's mute.
+    juce::SmoothedValue<float> expressionVolume, tunerOpen;
+
+    // The last MIDI CC 11 value not yet copied into the expression parameter (-1 = none).
+    std::atomic<float> pendingMidiExpression { -1.0f };
+
+    InputTap inputTap { 32768 };   // enough for the tuner's window at 192 kHz
+
+    UndoHistory<Snapshot> history;
+    std::atomic<int> activeGestures { 0 };
+    std::atomic<bool> checkpointWanted { true };
+
     int preparedBlockSize = 512;
-    std::atomic<double> hostBpm { 120.0 };
+    std::atomic<double> hostBpm { 120.0 }, tappedBpm { 0.0 };
+    TapTempo tapCounter;
 
     juce::CriticalSection statusLock;
     SlotStatus ampStatus, cabStatus;

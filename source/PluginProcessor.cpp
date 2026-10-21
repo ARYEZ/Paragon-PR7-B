@@ -14,6 +14,7 @@ namespace
     const juce::Identifier rigFileKey { "rigFile" };
     const juce::Identifier rigFactoryKey { "rigFactory" };
     const juce::Identifier rigModifiedKey { "rigModified" };
+    const juce::Identifier tappedBpmKey { "tappedBpm" };
 
     juce::String describeModel (const AmpStage::ModelInfo& info)
     {
@@ -43,22 +44,34 @@ ParagonX1AudioProcessor::ParagonX1AudioProcessor()
 
     rigLibrary = std::make_unique<RigLibrary>();
 
-    // Any change to a parameter that rigs store marks the rig as modified.
+    // Any change to a parameter that rigs store marks the rig as modified,
+    // and finishing an edit to one records an undo step.
     for (auto* parameter : AudioProcessor::getParameters())
         if (auto* withId = dynamic_cast<juce::AudioProcessorParameterWithID*> (parameter))
             if (! ParamIDs::notInRigs.contains (withId->paramID))
+            {
                 parameters.addParameterListener (withId->paramID, this);
+                parameter->addListener (this);
+            }
 
-    // Housekeeping off the audio thread: free swapped-out models and keep the
-    // host's latency figure up to date.
-    startTimerHz (4);
+    // Housekeeping off the audio thread: free swapped-out models, keep the
+    // host's latency figure up to date, show MIDI pedal moves and record
+    // undo steps. 30 Hz so a MIDI expression pedal moves smoothly on screen.
+    startTimerHz (30);
+
+    // The starting point, so the first edit can be undone.
+    history.record (takeSnapshot());
+    checkpointWanted = false;
 }
 
 ParagonX1AudioProcessor::~ParagonX1AudioProcessor()
 {
     for (auto* parameter : AudioProcessor::getParameters())
         if (auto* withId = dynamic_cast<juce::AudioProcessorParameterWithID*> (parameter))
+        {
             parameters.removeParameterListener (withId->paramID, this);
+            parameter->removeListener (this);
+        }
 
     stopTimer();
     loader.removeAllJobs (true, 10000);
@@ -84,6 +97,12 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     modulation.prepare (sampleRate, preparedBlockSize);
     delay.prepare (sampleRate, preparedBlockSize);
     reverb.prepare (sampleRate, preparedBlockSize);
+    wah.prepare (sampleRate, preparedBlockSize);
+
+    expressionVolume.reset (sampleRate, gainRampSeconds);
+    expressionVolume.setCurrentAndTargetValue (1.0f);
+    tunerOpen.reset (sampleRate, gainRampSeconds);
+    tunerOpen.setCurrentAndTargetValue (isOn (ParamIDs::tunerOn) && isOn (ParamIDs::tunerMute) ? 0.0f : 1.0f);
     setLatencySamples (amp.getLatencySamples());
 }
 
@@ -118,9 +137,63 @@ bool ParagonX1AudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts
         && isMonoOrStereo (layouts.getMainOutputChannelSet());
 }
 
-void ParagonX1AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
+double ParagonX1AudioProcessor::getTempoBpm() const noexcept
+{
+    const auto tapped = tappedBpm.load();
+    return tapped > 0.0 ? tapped : hostBpm.load();
+}
+
+void ParagonX1AudioProcessor::readMidiExpression (const juce::MidiBuffer& midi) noexcept
+{
+    // CC 11 is "expression" in the MIDI spec, and what most MIDI expression
+    // pedals send. Only the latest value in the block matters.
+    for (const auto metadata : midi)
+    {
+        const auto message = metadata.getMessage();
+        if (message.isControllerOfType (11))
+            pendingMidiExpression = (float) message.getControllerValue() / 127.0f;
+    }
+}
+
+float ParagonX1AudioProcessor::getExpressionPosition() const noexcept
+{
+    // A MIDI pedal move is used straight away, before the timer has copied it
+    // into the parameter, so the pedal responds without the timer's delay.
+    const auto midi = pendingMidiExpression.load();
+    return midi >= 0.0f ? midi : param (ParamIDs::expression);
+}
+
+float ParagonX1AudioProcessor::expressionAmount() const noexcept
+{
+    // MIN and MAX set where the heel and toe land, so the pedal can, say,
+    // sweep only the top half of the wah, or never quite reach silence.
+    const auto heel = param (ParamIDs::expressionMin), toe = param (ParamIDs::expressionMax);
+    return heel + (toe - heel) * getExpressionPosition();
+}
+
+void ParagonX1AudioProcessor::syncMidiExpressionToParameter()
+{
+    auto midi = pendingMidiExpression.load();
+    if (midi < 0.0f)
+        return;
+
+    if (auto* pedal = parameters.getParameter (ParamIDs::expression))
+    {
+        pedal->beginChangeGesture();
+        pedal->setValueNotifyingHost (pedal->convertTo0to1 (midi));
+        pedal->endChangeGesture();
+    }
+
+    // Only clear it if no newer MIDI value arrived meanwhile; that one is
+    // picked up on the next tick.
+    pendingMidiExpression.compare_exchange_strong (midi, -1.0f);
+}
+
+void ParagonX1AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     juce::ScopedNoDenormals noDenormals;
+
+    readMidiExpression (midi);
 
     if (buffer.getNumChannels() == 0 || buffer.getNumSamples() == 0)
         return;
@@ -153,9 +226,16 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
         dry[i] = bypassDelay.popSample (0, latency);
     }
 
+    // The tuner listens to the guitar itself, before anything changes it.
+    inputTap.write (mono, numSamples);
+
     inputGain.setTargetValue (juce::Decibels::decibelsToGain (inputGainDb->load()));
     inputGain.applyGain (mono, numSamples);
     inputMeter.pushSamples (mono, numSamples);
+
+    const auto expressionTarget = (int) param (ParamIDs::expressionTarget);
+    const auto pedal = expressionAmount();
+    wah.process (monoBlock, expressionTarget == ExpressionTargets::wah, pedal);
 
     compGate.process (monoBlock, { isOn (ParamIDs::compOn), param (ParamIDs::compThreshold), param (ParamIDs::compRatio),
                                    param (ParamIDs::compLevel), param (ParamIDs::gateThreshold) });
@@ -175,20 +255,33 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
                                  .getSubBlock ((size_t) start, (size_t) numSamples)
                                  .getSubsetChannelBlock (0, (size_t) juce::jmin (numOutputChannels, effects::maxChannels));
 
-    modulation.process (stereoBlock, { isOn (ParamIDs::modOn), (effects::Modulation::Type) (int) param (ParamIDs::modType),
-                                       param (ParamIDs::modRate), param (ParamIDs::modDepth), param (ParamIDs::modMix) });
-    delay.process (stereoBlock, { isOn (ParamIDs::delayOn), param (ParamIDs::delayTime), (int) param (ParamIDs::delaySync),
-                                  param (ParamIDs::delayFeedback), param (ParamIDs::delayTone), param (ParamIDs::delayMix),
-                                  isOn (ParamIDs::delayPingPong) },
-                   hostBpm.load());
-    reverb.process (stereoBlock, { isOn (ParamIDs::reverbOn), param (ParamIDs::reverbSize), param (ParamIDs::reverbTone),
-                                   param (ParamIDs::reverbMix) });
+    // MORPH FX: the pedal blends the time effects in, from dry at the heel
+    // to each effect's own MIX setting at the toe. (The effects smooth their
+    // mix, so sweeping the pedal doesn't click.)
+    const auto morph = expressionTarget == ExpressionTargets::morph ? pedal : 1.0f;
 
-    // The master OUTPUT knob plus the rig's own OUTPUT LEVEL.
+    // Tremolo has no dry/wet mix (it's a volume effect), so morph its depth instead.
+    const auto modType = (effects::Modulation::Type) (int) param (ParamIDs::modType);
+    const auto isTremolo = modType == effects::Modulation::Type::tremolo;
+    modulation.process (stereoBlock, { isOn (ParamIDs::modOn), modType, param (ParamIDs::modRate),
+                                       param (ParamIDs::modDepth) * (isTremolo ? morph : 1.0f),
+                                       param (ParamIDs::modMix) * (isTremolo ? 1.0f : morph) });
+    delay.process (stereoBlock, { isOn (ParamIDs::delayOn), param (ParamIDs::delayTime), (int) param (ParamIDs::delaySync),
+                                  param (ParamIDs::delayFeedback), param (ParamIDs::delayTone), param (ParamIDs::delayMix) * morph,
+                                  isOn (ParamIDs::delayPingPong) },
+                   getTempoBpm());
+    reverb.process (stereoBlock, { isOn (ParamIDs::reverbOn), param (ParamIDs::reverbSize), param (ParamIDs::reverbTone),
+                                   param (ParamIDs::reverbMix) * morph });
+
+    // The master OUTPUT knob plus the rig's own OUTPUT LEVEL, and the
+    // expression pedal when it's a VOLUME pedal. Squaring the position gives
+    // the "audio taper" of a real volume pedal: half way down is about
+    // -12 dB rather than -6 dB, so the quiet end of the travel is usable.
     outputGain.setTargetValue (juce::Decibels::decibelsToGain (outputGainDb->load() + param (ParamIDs::rigLevel)));
+    expressionVolume.setTargetValue (expressionTarget == ExpressionTargets::volume ? pedal * pedal : 1.0f);
     for (int i = 0; i < numSamples; ++i)
     {
-        const auto gain = outputGain.getNextValue();
+        const auto gain = outputGain.getNextValue() * expressionVolume.getNextValue();
         for (size_t channel = 0; channel < stereoBlock.getNumChannels(); ++channel)
             stereoBlock.getChannelPointer (channel)[i] *= gain;
     }
@@ -207,6 +300,19 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
                 auto& sample = stereoBlock.getChannelPointer (channel)[i];
                 sample += (dry[i] - sample) * amount;
             }
+        }
+    }
+
+    // The tuner mutes everything (bypassed or not), as a pedal tuner does,
+    // so you can tune on stage silently. Faded to avoid a click.
+    tunerOpen.setTargetValue (isOn (ParamIDs::tunerOn) && isOn (ParamIDs::tunerMute) ? 0.0f : 1.0f);
+    if (tunerOpen.isSmoothing() || tunerOpen.getTargetValue() < 0.5f)
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            const auto open = tunerOpen.getNextValue();
+            for (size_t channel = 0; channel < stereoBlock.getNumChannels(); ++channel)
+                stereoBlock.getChannelPointer (channel)[i] *= open;
         }
     }
 
@@ -239,6 +345,7 @@ SlotStatus ParagonX1AudioProcessor::getCabStatus() const
 void ParagonX1AudioProcessor::loadAmpModel (const juce::File& file)
 {
     markModified();
+    requestCheckpoint();
     auto loading = getAmpStatus();
     loading.loading = true;
     setStatus (ampStatus, loading);
@@ -280,6 +387,7 @@ void ParagonX1AudioProcessor::loadAmpModel (const juce::File& file)
 void ParagonX1AudioProcessor::clearAmpModel()
 {
     markModified();
+    requestCheckpoint();
     loader.addJob ([this]
     {
         amp.stage (nullptr);
@@ -290,6 +398,7 @@ void ParagonX1AudioProcessor::clearAmpModel()
 void ParagonX1AudioProcessor::loadCabinetIR (const juce::File& file)
 {
     markModified();
+    requestCheckpoint();
     auto loading = getCabStatus();
     loading.loading = true;
     setStatus (cabStatus, loading);
@@ -327,6 +436,7 @@ void ParagonX1AudioProcessor::loadCabinetIR (const juce::File& file)
 void ParagonX1AudioProcessor::clearCabinetIR()
 {
     markModified();
+    requestCheckpoint();
     loader.addJob ([this]
     {
         cab.clear();
@@ -352,6 +462,79 @@ void ParagonX1AudioProcessor::timerCallback()
 
     if (const auto latency = amp.getLatencySamples(); latency != getLatencySamples())
         setLatencySamples (latency);
+
+    syncMidiExpressionToParameter();
+    recordCheckpointIfReady();
+}
+
+//==============================================================================
+void ParagonX1AudioProcessor::parameterGestureChanged (int, bool gestureIsStarting)
+{
+    if (gestureIsStarting)
+    {
+        ++activeGestures;
+    }
+    else
+    {
+        // Never below zero, even if a host sends an unmatched "end".
+        auto active = activeGestures.load();
+        while (active > 0 && ! activeGestures.compare_exchange_weak (active, active - 1)) {}
+        requestCheckpoint();
+    }
+}
+
+ParagonX1AudioProcessor::Snapshot ParagonX1AudioProcessor::takeSnapshot() const
+{
+    return { captureRig(), currentRig, rigModified.load() };
+}
+
+void ParagonX1AudioProcessor::recordCheckpointIfReady()
+{
+    // Wait until the edit is really finished: no knob still held, and no
+    // amp or IR still loading (a rig change records once, after its files
+    // have loaded, rather than as two half-steps).
+    if (! checkpointWanted.load() || activeGestures.load() > 0 || loader.getNumJobs() > 0)
+        return;
+
+    checkpointWanted = false;
+    history.record (takeSnapshot());
+}
+
+void ParagonX1AudioProcessor::restoreSnapshot (const Snapshot& snapshot)
+{
+    applyRig (snapshot.rig);
+    currentRig = snapshot.current;
+    rigModified = snapshot.modified;
+    rigBroadcaster.sendChangeMessage();
+}
+
+void ParagonX1AudioProcessor::undo()
+{
+    // Record anything not yet recorded (a file still loading, say) first, so
+    // undo takes back the latest edit rather than the one before it.
+    recordCheckpointIfReady();
+    if (const auto snapshot = history.undo())
+        restoreSnapshot (*snapshot);
+}
+
+void ParagonX1AudioProcessor::redo()
+{
+    recordCheckpointIfReady();
+    if (const auto snapshot = history.redo())
+        restoreSnapshot (*snapshot);
+}
+
+//==============================================================================
+void ParagonX1AudioProcessor::tapTempo()
+{
+    if (const auto bpm = tapCounter.tap (juce::Time::getMillisecondCounterHiRes()))
+        tappedBpm = std::round (*bpm * 10.0) / 10.0;   // to 0.1 BPM, as displayed
+}
+
+void ParagonX1AudioProcessor::clearTappedTempo()
+{
+    tappedBpm = 0.0;
+    tapCounter = {};
 }
 
 //==============================================================================
@@ -435,6 +618,7 @@ void ParagonX1AudioProcessor::loadRig (const RigLibrary::Entry& entry)
     const auto rig = entry.rig;
     currentRig = { rig.name, entry.file, entry.isFactory ? rig.name : juce::String() };
     applyRig (rig);
+    requestCheckpoint();
     rigBroadcaster.sendChangeMessage();
 }
 
@@ -466,6 +650,7 @@ bool ParagonX1AudioProcessor::saveCurrentRig()
         return false;
 
     rigModified = false;
+    history.replaceCurrent (takeSnapshot());
     rigBroadcaster.sendChangeMessage();
     return true;
 }
@@ -490,6 +675,8 @@ bool ParagonX1AudioProcessor::saveCurrentRigAs (const juce::String& name)
     const auto* saved = rigLibrary->find (file);
     currentRig = { saved != nullptr ? saved->rig.name : name, file, {} };
     rigModified = false;
+    // Saving isn't an edit to undo, but undo shouldn't bring back the old name either.
+    history.replaceCurrent (takeSnapshot());
     rigBroadcaster.sendChangeMessage();
     return true;
 }
@@ -517,7 +704,10 @@ bool ParagonX1AudioProcessor::updateRigDetails (const RigLibrary::Entry& entry, 
         return false;
 
     if (isCurrent)
+    {
         currentRig.name = rig.name;
+        history.replaceCurrent (takeSnapshot());
+    }
     rigBroadcaster.sendChangeMessage();
     return true;
 }
@@ -536,6 +726,7 @@ bool ParagonX1AudioProcessor::deleteRig (const RigLibrary::Entry& entry)
     {
         currentRig.file = juce::File();
         rigModified = true;
+        history.replaceCurrent (takeSnapshot());
     }
     rigBroadcaster.sendChangeMessage();
     return true;
@@ -556,6 +747,7 @@ void ParagonX1AudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.setProperty (rigFileKey, currentRig.file.getFullPathName(), nullptr);
     state.setProperty (rigFactoryKey, currentRig.factoryName, nullptr);
     state.setProperty (rigModifiedKey, rigModified.load(), nullptr);
+    state.setProperty (tappedBpmKey, tappedBpm.load(), nullptr);
 
     if (auto xml = state.createXml())
         copyXmlToBinary (*xml, destData);
@@ -588,6 +780,11 @@ void ParagonX1AudioProcessor::setStateInformation (const void* data, int sizeInB
                    rigFile.isNotEmpty() ? juce::File (rigFile) : juce::File(),
                    state[rigFactoryKey].toString() };
     rigModified = (bool) state.getProperty (rigModifiedKey, false);
+    tappedBpm = (double) state.getProperty (tappedBpmKey, 0.0);
+
+    // A different project or preset: start the undo history afresh from it.
+    history.clear();
+    requestCheckpoint();
     rigBroadcaster.sendChangeMessage();
 }
 
