@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.24)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "macOS architectures")
 
-project(ParagonX1 VERSION 0.1.0 LANGUAGES C CXX)
+project(ParagonX1 VERSION 0.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -38,7 +38,11 @@ target_sources(ParagonX1
         source/Parameters.cpp
         source/PluginProcessor.cpp
         source/PluginEditor.cpp
+        source/dsp/AmpModel.cpp
+        source/dsp/AmpStage.cpp
+        source/dsp/CabStage.cpp
         source/ui/LevelMeter.cpp
+        source/ui/ModelSlot.cpp
         source/ui/ParagonLookAndFeel.cpp)
 
 target_include_directories(ParagonX1 PUBLIC source)
@@ -60,6 +64,7 @@ target_link_libraries(ParagonX1
         # link drops those objects and NAM then can't load any model, so the
         # whole library must be linked in.
         $<LINK_LIBRARY:WHOLE_ARCHIVE,nam_core>
+        nam_headers
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags)
 

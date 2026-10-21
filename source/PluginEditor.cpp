@@ -56,13 +56,30 @@ void GainColumn::resized()
 //==============================================================================
 ParagonX1AudioProcessorEditor::ParagonX1AudioProcessorEditor (ParagonX1AudioProcessor& processorToEdit)
     : AudioProcessorEditor (processorToEdit),
+      audioProcessor (processorToEdit),
       inputColumn ("INPUT", processorToEdit.getParameters(), ParamIDs::inputGain, processorToEdit.getInputMeter()),
-      outputColumn ("OUTPUT", processorToEdit.getParameters(), ParamIDs::outputGain, processorToEdit.getOutputMeter())
+      outputColumn ("OUTPUT", processorToEdit.getParameters(), ParamIDs::outputGain, processorToEdit.getOutputMeter()),
+      ampSlot ("AMP", "*.nam", "Click or drop a .nam model",
+               processorToEdit.getParameters(), ParamIDs::ampOn),
+      cabSlot ("CABINET", "*.wav;*.aif;*.aiff;*.flac", "Click or drop an IR (.wav)",
+               processorToEdit.getParameters(), ParamIDs::cabOn),
+      normaliseAttachment (processorToEdit.getParameters(), ParamIDs::ampNormalise, normaliseButton)
 {
     setLookAndFeel (&lookAndFeel);
 
-    addAndMakeVisible (inputColumn);
-    addAndMakeVisible (outputColumn);
+    ampSlot.onLoad = [this] (const juce::File& file) { audioProcessor.loadAmpModel (file); };
+    ampSlot.onClear = [this] { audioProcessor.clearAmpModel(); };
+    cabSlot.onLoad = [this] (const juce::File& file) { audioProcessor.loadCabinetIR (file); };
+    cabSlot.onClear = [this] { audioProcessor.clearCabinetIR(); };
+
+    normaliseButton.setTooltip ("Level-match models to the same loudness, like the official NAM plugin's "
+                                "\"Normalized\" output. Needs loudness data in the model.");
+
+    for (auto* component : std::initializer_list<juce::Component*> { &inputColumn, &outputColumn, &ampSlot, &cabSlot, &normaliseButton })
+        addAndMakeVisible (component);
+
+    audioProcessor.statusBroadcaster.addChangeListener (this);
+    changeListenerCallback (nullptr);
 
     // Keep the mockup's 16:9 shape at any size the user drags to.
     setResizable (true, true);
@@ -73,7 +90,14 @@ ParagonX1AudioProcessorEditor::ParagonX1AudioProcessorEditor (ParagonX1AudioProc
 
 ParagonX1AudioProcessorEditor::~ParagonX1AudioProcessorEditor()
 {
+    audioProcessor.statusBroadcaster.removeChangeListener (this);
     setLookAndFeel (nullptr);
+}
+
+void ParagonX1AudioProcessorEditor::changeListenerCallback (juce::ChangeBroadcaster*)
+{
+    ampSlot.setStatus (audioProcessor.getAmpStatus());
+    cabSlot.setStatus (audioProcessor.getCabStatus());
 }
 
 void ParagonX1AudioProcessorEditor::paint (juce::Graphics& g)
@@ -97,12 +121,12 @@ void ParagonX1AudioProcessorEditor::paint (juce::Graphics& g)
     g.setColour (ParagonColours::panelEdge);
     g.drawHorizontalLine (headerArea.getBottom() - 1, 0.0f, (float) getWidth());
 
-    // Placeholder for the pedalboard, which arrives in later phases.
-    drawPanel (g, centreArea.toFloat());
+    // Placeholder for the effect footswitches, which arrive in Phase 3.
+    drawPanel (g, effectsArea.toFloat());
     g.setColour (ParagonColours::textDim);
     g.setFont (juce::FontOptions (16.0f));
-    g.drawText ("Amp, cabinet and effects arrive in the next phases",
-                centreArea, juce::Justification::centred, false);
+    g.drawText ("Comp / gate, drive, modulation, delay and reverb arrive in the next phase",
+                effectsArea, juce::Justification::centred, false);
 }
 
 void ParagonX1AudioProcessorEditor::resized()
@@ -113,5 +137,16 @@ void ParagonX1AudioProcessorEditor::resized()
 
     inputColumn.setBounds (area.removeFromLeft (columnWidth));
     outputColumn.setBounds (area.removeFromRight (columnWidth));
-    centreArea = area.reduced (margin, 0);
+    auto centre = area.reduced (margin, 0);
+
+    // Top row: amp and cabinet side by side, as in the mockup.
+    auto slots = centre.removeFromTop (centre.getHeight() * 45 / 100);
+    const auto slotWidth = (slots.getWidth() - margin) / 2;
+    auto ampColumn = slots.removeFromLeft (slotWidth);
+    normaliseButton.setBounds (ampColumn.removeFromBottom (28).withSizeKeepingCentre (130, 24));
+    ampColumn.removeFromBottom (4);
+    ampSlot.setBounds (ampColumn);
+    cabSlot.setBounds (slots.withTrimmedLeft (margin).withTrimmedBottom (32));
+
+    effectsArea = centre.withTrimmedTop (margin);
 }

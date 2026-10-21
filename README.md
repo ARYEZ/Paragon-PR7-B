@@ -12,11 +12,26 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 | Phase | Scope | Status |
 |---|---|---|
 | 1 | Project skeleton, CI builds for Windows/macOS/Linux, input/output gain, level meters | ✅ Done |
-| 2 | Load `.nam` amp models and cabinet IRs | Planned |
+| 2 | Load `.nam` amp models and cabinet IRs | ✅ Done |
 | 3 | Effect blocks: comp/gate, overdrive, modulation, delay, reverb, with footswitches | Planned |
 | 4 | Rigs, presets, banks, tags | Planned |
 | 5 | Full pedalboard UI from the mockup | Planned |
 | 6 | Expression pedal/morph, tap tempo, undo/redo, tuner | Planned |
+
+## Using it
+
+- **Amp:** click the amp display (or drag a `.nam` file onto it) to load a model. The ◀ ▶ arrows step
+  through the other models in the same folder. The LED turns the amp on and off.
+- **NORMALISE** levels every model to the same loudness, like the official NAM plugin's "Normalized"
+  output. It needs loudness data in the model; older models without it play at their raw level.
+- **Cabinet:** load a `.wav`, `.aiff` or `.flac` impulse response the same way. Like the official
+  plugin, IRs are turned down by a fixed 18 dB and not trimmed or normalised.
+- Models and IRs load in the background and crossfade in, so switching while playing doesn't click.
+- **Sample rate:** NAM models are captured at a fixed rate (almost always 48 kHz). At other rates the
+  plugin resamples with the same resampler as the official plugin and reports the small added
+  latency to your DAW.
+- The paths of the loaded files are saved in your DAW project. If a file is missing when the project
+  opens, the slot says so and keeps the path, so moving the file back fixes it.
 
 ## Download
 
@@ -64,6 +79,7 @@ It uses:
 - [JUCE](https://github.com/juce-framework/JUCE): AGPLv3
 - [NeuralAmpModelerCore](https://github.com/sdatkinson/NeuralAmpModelerCore): MIT
 - [Eigen](https://eigen.tuxfamily.org): MPL 2.0
+- [AudioDSPTools](https://github.com/sdatkinson/AudioDSPTools) (resampler): MIT, with parts from iPlug2 under the zlib-style iPlug2 licence
 
 "Neural Amp Modeler" is Steven Atkinson's project. Paragon X1 is an independent player for `.nam`
 files and isn't affiliated with or endorsed by it.

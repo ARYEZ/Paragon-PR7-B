@@ -10,6 +10,54 @@ ParagonLookAndFeel::ParagonLookAndFeel()
     setColour (juce::Slider::textBoxHighlightColourId, ParagonColours::accentDim);
     setColour (juce::TextEditor::textColourId, ParagonColours::accent);
     setColour (juce::CaretComponent::caretColourId, ParagonColours::accent);
+    setColour (juce::TextButton::textColourOffId, ParagonColours::text);
+    setColour (juce::ToggleButton::textColourId, ParagonColours::text);
+    setColour (juce::TooltipWindow::backgroundColourId, ParagonColours::panel);
+    setColour (juce::TooltipWindow::textColourId, ParagonColours::text);
+    setColour (juce::TooltipWindow::outlineColourId, ParagonColours::panelEdge);
+}
+
+void ParagonLookAndFeel::drawToggleButton (juce::Graphics& g, juce::ToggleButton& button, bool highlighted, bool)
+{
+    auto bounds = button.getLocalBounds().toFloat();
+    const auto ledSize = juce::jmin (12.0f, bounds.getHeight() - 4.0f);
+    const auto led = bounds.removeFromLeft (bounds.getHeight()).withSizeKeepingCentre (ledSize, ledSize);
+    const auto on = button.getToggleState();
+
+    if (on)
+    {
+        // Soft glow behind a lit LED.
+        g.setColour (ParagonColours::accent.withAlpha (0.25f));
+        g.fillEllipse (led.expanded (3.0f));
+    }
+
+    g.setColour (on ? ParagonColours::accent : ParagonColours::accentDim.darker (0.6f));
+    g.fillEllipse (led);
+    g.setColour (highlighted ? ParagonColours::text : juce::Colours::black);
+    g.drawEllipse (led, 1.0f);
+
+    if (button.getButtonText().isNotEmpty())
+    {
+        g.setColour (on ? ParagonColours::text : ParagonColours::textDim);
+        g.setFont (juce::FontOptions (12.0f, juce::Font::bold));
+        g.drawText (button.getButtonText(), bounds.withTrimmedLeft (2.0f), juce::Justification::centredLeft, true);
+    }
+}
+
+void ParagonLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& button, const juce::Colour&,
+                                               bool highlighted, bool down)
+{
+    const auto bounds = button.getLocalBounds().toFloat().reduced (0.5f);
+    auto fill = juce::Colour (0xff1c1c20);
+    if (down)
+        fill = ParagonColours::accentDim;
+    else if (highlighted)
+        fill = fill.brighter (0.1f);
+
+    g.setColour (button.isEnabled() ? fill : fill.withAlpha (0.4f));
+    g.fillRoundedRectangle (bounds, 4.0f);
+    g.setColour (ParagonColours::panelEdge);
+    g.drawRoundedRectangle (bounds, 4.0f, 1.0f);
 }
 
 void ParagonLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height,

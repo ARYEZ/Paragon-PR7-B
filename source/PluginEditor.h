@@ -4,6 +4,7 @@
 
 #include "PluginProcessor.h"
 #include "ui/LevelMeter.h"
+#include "ui/ModelSlot.h"
 #include "ui/ParagonLookAndFeel.h"
 
 // One side column of the mockup: a title, a gain knob with its value
@@ -24,7 +25,8 @@ private:
     LevelMeter meter;
 };
 
-class ParagonX1AudioProcessorEditor final : public juce::AudioProcessorEditor
+class ParagonX1AudioProcessorEditor final : public juce::AudioProcessorEditor,
+                                            private juce::ChangeListener
 {
 public:
     explicit ParagonX1AudioProcessorEditor (ParagonX1AudioProcessor&);
@@ -37,9 +39,16 @@ public:
     static constexpr int defaultHeight = 675;
 
 private:
+    void changeListenerCallback (juce::ChangeBroadcaster*) override;
+
+    ParagonX1AudioProcessor& audioProcessor;
     ParagonLookAndFeel lookAndFeel;
     GainColumn inputColumn, outputColumn;
-    juce::Rectangle<int> headerArea, centreArea;
+    ModelSlot ampSlot, cabSlot;
+    juce::ToggleButton normaliseButton { "NORMALISE" };
+    juce::AudioProcessorValueTreeState::ButtonAttachment normaliseAttachment;
+    juce::TooltipWindow tooltips { this };
+    juce::Rectangle<int> headerArea, effectsArea;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParagonX1AudioProcessorEditor)
 };

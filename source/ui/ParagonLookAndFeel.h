@@ -24,4 +24,10 @@ public:
     void drawRotarySlider (juce::Graphics&, int x, int y, int width, int height,
                            float sliderPosProportional, float rotaryStartAngle,
                            float rotaryEndAngle, juce::Slider&) override;
+
+    // Toggle buttons are drawn as the mockup's red/orange status LEDs.
+    void drawToggleButton (juce::Graphics&, juce::ToggleButton&, bool highlighted, bool down) override;
+
+    void drawButtonBackground (juce::Graphics&, juce::Button&, const juce::Colour& background,
+                               bool highlighted, bool down) override;
 };

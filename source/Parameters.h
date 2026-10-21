@@ -6,8 +6,11 @@
 // once it has shipped. Add new parameters with a new ID instead.
 namespace ParamIDs
 {
-    inline constexpr auto inputGain  = "inputGain";
-    inline constexpr auto outputGain = "outputGain";
+    inline constexpr auto inputGain    = "inputGain";
+    inline constexpr auto outputGain   = "outputGain";
+    inline constexpr auto ampOn        = "ampOn";
+    inline constexpr auto ampNormalise = "ampNormalise";
+    inline constexpr auto cabOn        = "cabOn";
 }
 
 namespace ParamRanges
