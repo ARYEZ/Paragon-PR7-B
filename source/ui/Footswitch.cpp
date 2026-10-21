@@ -58,53 +58,63 @@ void Footswitch::refresh()
 
 void Footswitch::resized()
 {
-    auto area = getLocalBounds().reduced (8);
+    // LED bar on top, then the big pad with the number to its left, then
+    // the name and summary printed on the metal underneath.
+    auto area = getLocalBounds().reduced (6);
     ledArea = area.removeFromTop (12);
-    area.removeFromTop (4);
+    area.removeFromTop (6);
     nameArea = area.removeFromBottom (36);
-    switchArea = area.withSizeKeepingCentre (juce::jmin (area.getWidth() - 20, 150), juce::jmin (area.getHeight(), 70));
+    area.removeFromBottom (4);
+    switchArea = area.withSizeKeepingCentre (juce::jmin (area.getWidth() - 70, 170), area.getHeight());
 }
 
 void Footswitch::paint (juce::Graphics& g)
 {
-    const auto bounds = getLocalBounds().toFloat();
-    g.setColour (ParagonColours::panel);
-    g.fillRoundedRectangle (bounds, 8.0f);
-    g.setColour (selected ? ParagonColours::accent : ParagonColours::panelEdge);
-    g.drawRoundedRectangle (bounds.reduced (0.5f), 8.0f, selected ? 2.0f : 1.0f);
-
-    // Status LED: a short bar, like the mockup's red lights above each switch.
-    const auto led = ledArea.toFloat().withSizeKeepingCentre (28.0f, 4.0f);
+    // Status LED: a short bar above the pad, glowing red-orange when on.
+    const auto led = ledArea.toFloat().withSizeKeepingCentre (30.0f, 5.0f);
     if (lastOn)
     {
-        g.setColour (ParagonColours::accent.withAlpha (0.3f));
-        g.fillRoundedRectangle (led.expanded (3.0f), 4.0f);
+        g.setColour (ParagonColours::glow.withAlpha (0.35f));
+        g.fillRoundedRectangle (led.expanded (5.0f, 4.0f), 6.0f);
     }
-    g.setColour (lastOn ? ParagonColours::accent : ParagonColours::accentDim.darker (0.6f));
-    g.fillRoundedRectangle (led, 2.0f);
+    g.setColour (lastOn ? ParagonColours::glow : ParagonColours::glow.withAlpha (0.2f));
+    g.fillRoundedRectangle (led, 2.5f);
 
-    // The switch itself: a dark rubber pad.
-    const auto pad = switchArea.toFloat();
+    // The pad: chunky black rubber with a soft shadow and a lit top edge.
     const auto pressed = isMouseButtonDown() && switchArea.contains (getMouseXYRelative());
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2a2a2e), pad.getTopLeft(),
-                                             juce::Colour (0xff0a0a0b), pad.getBottomLeft(), false));
-    g.fillRoundedRectangle (pressed ? pad.reduced (2.0f) : pad, 6.0f);
-    g.setColour (isMouseOver() && switchArea.contains (getMouseXYRelative()) ? ParagonColours::textDim : juce::Colours::black);
-    g.drawRoundedRectangle (pad, 6.0f, 1.0f);
+    auto pad = switchArea.toFloat();
+    g.setColour (juce::Colours::black.withAlpha (0.35f));
+    g.fillRoundedRectangle (pad.translated (0.0f, pressed ? 2.0f : 5.0f), 8.0f);
+    if (pressed)
+        pad = pad.translated (0.0f, 2.0f);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff302f34), pad.getTopLeft(),
+                                             juce::Colour (0xff060607), pad.getBottomLeft(), false));
+    g.fillRoundedRectangle (pad, 8.0f);
+    g.setColour (juce::Colours::white.withAlpha (0.12f));
+    g.drawHorizontalLine ((int) pad.getY() + 2, pad.getX() + 8.0f, pad.getRight() - 8.0f);
+    const auto hover = isMouseOver() && switchArea.contains (getMouseXYRelative());
+    g.setColour (hover ? ParagonColours::glow.withAlpha (0.7f) : juce::Colours::black);
+    g.drawRoundedRectangle (pad, 8.0f, 1.0f);
 
-    // Number to the left of the pad, as on the mockup.
-    g.setColour (ParagonColours::text);
-    g.setFont (juce::FontOptions (22.0f, juce::Font::bold));
-    g.drawText (juce::String (number), switchArea.withX (getLocalBounds().getX()).withWidth (switchArea.getX() - 2),
-                juce::Justification::centred, false);
+    // Number printed to the left of the pad, as on the mockup.
+    g.setColour (ParagonColours::ink);
+    g.setFont (juce::FontOptions (30.0f, juce::Font::bold));
+    g.drawText (juce::String (number), switchArea.withX (0).withWidth (switchArea.getX() - 6),
+                juce::Justification::centredRight, false);
 
     auto nameText = nameArea;
-    g.setFont (juce::FontOptions (13.0f, juce::Font::bold));
-    g.setColour (selected ? ParagonColours::accent : ParagonColours::text);
+    g.setFont (juce::FontOptions (14.0f, juce::Font::bold));
+    g.setColour (selected ? ParagonColours::glow : ParagonColours::ink);
     g.drawText (name, nameText.removeFromTop (18), juce::Justification::centred, true);
+    if (selected)
+    {
+        g.setColour (ParagonColours::glow);
+        const auto width = (float) juce::GlyphArrangement::getStringWidthInt (juce::FontOptions (14.0f, juce::Font::bold), name);
+        g.fillRect (juce::Rectangle<float> (width, 2.0f).withCentre ({ (float) nameArea.getCentreX(), (float) nameText.getY() + 1.0f }));
+    }
     g.setFont (juce::FontOptions (11.0f));
-    g.setColour (ParagonColours::textDim);
-    g.drawText (summary, nameText, juce::Justification::centred, true);
+    g.setColour (ParagonColours::inkDim);
+    g.drawText (summary, nameText.withTrimmedTop (3), juce::Justification::centred, true);
 }
 
 void Footswitch::mouseUp (const juce::MouseEvent& event)

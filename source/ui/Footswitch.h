@@ -2,9 +2,9 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
-// One of the four footswitches along the bottom of the mockup's pedalboard:
-// a status LED, a big switch, and the block's name. Pressing the switch
-// turns the block on or off; clicking the name selects the block so its
+// One of the four footswitches along the bottom of the pedal: a status LED,
+// a big rubber pad, and the block's name printed on the metal. Pressing the
+// pad turns the block on or off; clicking the name selects the block so its
 // knobs show in the edit panel.
 //
 // A footswitch can control several on/off parameters at once (footswitch 4

@@ -3,82 +3,28 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include "PluginProcessor.h"
-#include "ui/EffectPanel.h"
-#include "ui/Footswitch.h"
-#include "ui/LevelMeter.h"
-#include "ui/ModelSlot.h"
-#include "ui/RigBrowser.h"
+#include "ui/MainView.h"
 #include "ui/ParagonLookAndFeel.h"
 
-// One side column of the mockup: a title, a gain knob with its value
-// underneath, and a level meter.
-class GainColumn final : public juce::Component
-{
-public:
-    GainColumn (const juce::String& title, juce::AudioProcessorValueTreeState& parameters,
-                const juce::String& parameterId, LevelMeterSource& meterSource);
-
-    void paint (juce::Graphics&) override;
-    void resized() override;
-
-private:
-    juce::Label titleLabel;
-    juce::Slider knob { juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::TextBoxBelow };
-    juce::AudioProcessorValueTreeState::SliderAttachment attachment;
-    LevelMeter meter;
-};
-
-class ParagonX1AudioProcessorEditor final : public juce::AudioProcessorEditor,
-                                            private juce::ChangeListener,
-                                            private juce::Timer
+// The plugin window. All the content lives in MainView, laid out on a fixed
+// 1600 x 900 canvas; the editor just scales it to whatever size the window
+// is, keeping the mockup's 16:9 shape.
+class ParagonX1AudioProcessorEditor final : public juce::AudioProcessorEditor
 {
 public:
     explicit ParagonX1AudioProcessorEditor (ParagonX1AudioProcessor&);
     ~ParagonX1AudioProcessorEditor() override;
 
-    void paint (juce::Graphics&) override;
     void resized() override;
 
-    static constexpr int defaultWidth = 1200;
-    static constexpr int defaultHeight = 675;
+    // Opens at 1280 x 720 so it fits on laptop screens; drag to resize.
+    static constexpr int defaultWidth = 1280;
+    static constexpr int defaultHeight = 720;
 
 private:
-    void changeListenerCallback (juce::ChangeBroadcaster*) override;
-    void timerCallback() override;
-    void selectBlock (int index);
-    void showPage (bool presets);
-    void updateRigName();
-    void saveRig();
-    juce::String valueText (const char* parameterId) const;
-
-    ParagonX1AudioProcessor& audioProcessor;
     ParagonLookAndFeel lookAndFeel;
-    GainColumn inputColumn, outputColumn;
-    ModelSlot ampSlot, cabSlot;
-    juce::ToggleButton normaliseButton { "NORMALISE" };
-    juce::AudioProcessorValueTreeState::ButtonAttachment normaliseAttachment;
-    juce::Slider presenceKnob { juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::TextBoxRight };
-    juce::Label presenceLabel { {}, "PRESENCE" };
-    juce::AudioProcessorValueTreeState::SliderAttachment presenceAttachment;
-    juce::Slider rigLevelKnob { juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::TextBoxRight };
-    juce::Label rigLevelLabel { {}, "OUTPUT LEVEL" };
-    juce::AudioProcessorValueTreeState::SliderAttachment rigLevelAttachment;
-
-    // Header: PROCESSOR / PRESETS tabs and the current rig with < > and SAVE.
-    juce::TextButton processorTab { "PROCESSOR" }, presetsTab { "PRESETS" };
-    juce::TextButton previousRig { "<" }, nextRig { ">" }, rigNameButton, saveButton { "SAVE" };
-    RigBrowser rigBrowser;
-    std::vector<juce::Component*> processorPage;   // everything shown on the PROCESSOR tab
-    bool showingPresets = false;
-
-    // The four effect blocks: a footswitch each, plus the edit panel of the
-    // selected one.
-    std::array<std::unique_ptr<Footswitch>, 4> footswitches;
-    std::array<std::unique_ptr<EffectPanel>, 4> panels;
-    int selectedBlock = 0;
-
+    MainView view;
     juce::TooltipWindow tooltips { this };
-    juce::Rectangle<int> headerArea;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParagonX1AudioProcessorEditor)
 };

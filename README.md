@@ -5,7 +5,8 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 
 ![Paragon X1 mockup](Paragon%20x1.png)
 
-*Design mockup. The plugin doesn't look like this yet; see the roadmap.*
+*The design mockup. Version 0.5 builds this pedalboard; the expression pedal, tap tempo, tuner and
+undo arrive in the next phase (see the roadmap).*
 
 ## Roadmap
 
@@ -15,7 +16,7 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 | 2 | Load `.nam` amp models and cabinet IRs | ✅ Done |
 | 3 | Effect blocks: comp/gate, overdrive, modulation, delay, reverb, with footswitches | ✅ Done |
 | 4 | Rigs, presets, banks, tags | ✅ Done |
-| 5 | Full pedalboard UI from the mockup | Planned |
+| 5 | Full pedalboard UI from the mockup | ✅ Done |
 | 6 | Expression pedal/morph, tap tempo, undo/redo, tuner | Planned |
 
 ## Using it

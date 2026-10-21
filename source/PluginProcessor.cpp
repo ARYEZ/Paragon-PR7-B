@@ -72,6 +72,10 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     outputGain.setCurrentAndTargetValue (juce::Decibels::decibelsToGain (outputGainDb->load() + param (ParamIDs::rigLevel)));
 
     preparedBlockSize = juce::jmax (1, samplesPerBlock);
+    bypassDelay.prepare ({ sampleRate, (juce::uint32) preparedBlockSize, 1 });
+    bypassDry.setSize (1, preparedBlockSize);
+    bypassAmount.reset (sampleRate, gainRampSeconds);
+    bypassAmount.setCurrentAndTargetValue (isOn (ParamIDs::bypass) ? 1.0f : 0.0f);
     amp.prepare (sampleRate, preparedBlockSize);
     cab.prepare (sampleRate, preparedBlockSize);
     compGate.prepare (sampleRate, preparedBlockSize);
@@ -81,6 +85,11 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     delay.prepare (sampleRate, preparedBlockSize);
     reverb.prepare (sampleRate, preparedBlockSize);
     setLatencySamples (amp.getLatencySamples());
+}
+
+juce::AudioProcessorParameter* ParagonX1AudioProcessor::getBypassParameter() const
+{
+    return parameters.getParameter (ParamIDs::bypass);
 }
 
 float ParagonX1AudioProcessor::param (const char* id) const
@@ -135,6 +144,15 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     auto* mono = buffer.getWritePointer (0, start);
     juce::dsp::AudioBlock<float> monoBlock (&mono, 1, (size_t) numSamples);
 
+    // Keep the clean input, delayed to line up with the processed sound, for BYPASS.
+    const auto latency = (float) juce::jlimit (0, bypassDelay.getMaximumDelayInSamples() - 1, getLatencySamples());
+    auto* dry = bypassDry.getWritePointer (0);
+    for (int i = 0; i < numSamples; ++i)
+    {
+        bypassDelay.pushSample (0, mono[i]);
+        dry[i] = bypassDelay.popSample (0, latency);
+    }
+
     inputGain.setTargetValue (juce::Decibels::decibelsToGain (inputGainDb->load()));
     inputGain.applyGain (mono, numSamples);
     inputMeter.pushSamples (mono, numSamples);
@@ -173,6 +191,23 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
         const auto gain = outputGain.getNextValue();
         for (size_t channel = 0; channel < stereoBlock.getNumChannels(); ++channel)
             stereoBlock.getChannelPointer (channel)[i] *= gain;
+    }
+
+    // BYPASS crossfades to the clean input. The chain keeps running underneath
+    // so delay and reverb tails, and the amp's state, are ready when it's
+    // switched back on.
+    bypassAmount.setTargetValue (isOn (ParamIDs::bypass) ? 1.0f : 0.0f);
+    if (bypassAmount.isSmoothing() || bypassAmount.getTargetValue() > 0.5f)
+    {
+        for (int i = 0; i < numSamples; ++i)
+        {
+            const auto amount = bypassAmount.getNextValue();
+            for (size_t channel = 0; channel < stereoBlock.getNumChannels(); ++channel)
+            {
+                auto& sample = stereoBlock.getChannelPointer (channel)[i];
+                sample += (dry[i] - sample) * amount;
+            }
+        }
     }
 
     for (size_t channel = 0; channel < stereoBlock.getNumChannels(); ++channel)
