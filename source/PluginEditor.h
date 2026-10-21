@@ -7,6 +7,7 @@
 #include "ui/Footswitch.h"
 #include "ui/LevelMeter.h"
 #include "ui/ModelSlot.h"
+#include "ui/RigBrowser.h"
 #include "ui/ParagonLookAndFeel.h"
 
 // One side column of the mockup: a title, a gain knob with its value
@@ -28,7 +29,8 @@ private:
 };
 
 class ParagonX1AudioProcessorEditor final : public juce::AudioProcessorEditor,
-                                            private juce::ChangeListener
+                                            private juce::ChangeListener,
+                                            private juce::Timer
 {
 public:
     explicit ParagonX1AudioProcessorEditor (ParagonX1AudioProcessor&);
@@ -42,7 +44,11 @@ public:
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
+    void timerCallback() override;
     void selectBlock (int index);
+    void showPage (bool presets);
+    void updateRigName();
+    void saveRig();
     juce::String valueText (const char* parameterId) const;
 
     ParagonX1AudioProcessor& audioProcessor;
@@ -54,6 +60,16 @@ private:
     juce::Slider presenceKnob { juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::TextBoxRight };
     juce::Label presenceLabel { {}, "PRESENCE" };
     juce::AudioProcessorValueTreeState::SliderAttachment presenceAttachment;
+    juce::Slider rigLevelKnob { juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::TextBoxRight };
+    juce::Label rigLevelLabel { {}, "OUTPUT LEVEL" };
+    juce::AudioProcessorValueTreeState::SliderAttachment rigLevelAttachment;
+
+    // Header: PROCESSOR / PRESETS tabs and the current rig with < > and SAVE.
+    juce::TextButton processorTab { "PROCESSOR" }, presetsTab { "PRESETS" };
+    juce::TextButton previousRig { "<" }, nextRig { ">" }, rigNameButton, saveButton { "SAVE" };
+    RigBrowser rigBrowser;
+    std::vector<juce::Component*> processorPage;   // everything shown on the PROCESSOR tab
+    bool showingPresets = false;
 
     // The four effect blocks: a footswitch each, plus the edit panel of the
     // selected one.

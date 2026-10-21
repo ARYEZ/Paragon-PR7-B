@@ -8,13 +8,19 @@
 //   PARAGON_SNAPSHOT=editor.png ./ParagonX1Tests "[snapshot]"
 // Optionally set PARAGON_SNAPSHOT_MODEL and PARAGON_SNAPSHOT_IR to file paths
 // to show the amp and cabinet slots loaded, and PARAGON_SNAPSHOT_EFFECTS=1 to
-// switch on the drive, delay and reverb.
+// switch on the drive, delay and reverb. PARAGON_SNAPSHOT_PAGE=presets shows
+// the rig browser, with a couple of example user rigs.
 TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
 {
     const auto path = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT", "editor.png");
 
     ParagonX1AudioProcessor processor;
     processor.prepareToPlay (48000.0, 256);
+
+    const auto showPresets = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_PAGE", {}) == "presets";
+    const auto rigFolder = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("ParagonX1SnapshotRigs");
+    rigFolder.deleteRecursively();
+    processor.useRigFolder (rigFolder);
 
     if (const auto model = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_MODEL", {}); model.isNotEmpty())
         processor.loadAmpModel (juce::File (model));
@@ -26,7 +32,19 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
         for (const auto* id : { "driveOn", "delayOn", "reverbOn" })
             processor.getParameters().getParameter (id)->setValueNotifyingHost (1.0f);
 
+    if (showPresets)
+    {
+        processor.saveCurrentRigAs ("Cyber Drive");
+        processor.saveCurrentRigAs ("Sunday Worship Clean");
+        processor.loadRig (*processor.getRigLibrary().find (rigFolder.getChildFile ("Cyber Drive.x1rig")));
+        processor.getParameters().getParameter ("driveGain")->setValueNotifyingHost (0.8f);   // shows the * marker
+    }
+
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
+    if (showPresets)
+        if (auto* tab = dynamic_cast<juce::Button*> (editor->findChildWithID ("presetsTab")))
+            tab->onClick();
+    editor->resized();
     const auto image = editor->createComponentSnapshot (editor->getLocalBounds());
 
     juce::File file (juce::File::getCurrentWorkingDirectory().getChildFile (path));

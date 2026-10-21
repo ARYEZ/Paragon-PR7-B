@@ -74,3 +74,61 @@ jobs:
         with:
           name: ParagonX1-VST3-${{ matrix.name }}
           path: build/ParagonX1_artefacts/Release/VST3
+
+  # Publishes a GitHub Release when a version tag (e.g. v0.4.0) is pushed:
+  # the three builds above, zipped, with notes from CHANGELOG.md.
+  release:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write   # needed to create the release
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check the tag matches the plugin version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if ! grep -q "project(ParagonX1 VERSION ${VERSION}" CMakeLists.txt; then
+            echo "Tag ${GITHUB_REF_NAME} doesn't match the VERSION in CMakeLists.txt" >&2
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+
+      - name: Zip each platform's plugin
+        run: |
+          mkdir release
+          # Artifact storage drops file permissions; put the executable flag
+          # back on the macOS and Linux binaries so every host will load them.
+          chmod -R a+x "artifacts/ParagonX1-VST3-macOS/Paragon X1.vst3/Contents/MacOS" \
+                       "artifacts/ParagonX1-VST3-Linux/Paragon X1.vst3/Contents/x86_64-linux"
+          for os in Windows macOS Linux; do
+            (cd "artifacts/ParagonX1-VST3-${os}" && zip -qr "../../release/ParagonX1-${GITHUB_REF_NAME}-${os}-VST3.zip" "Paragon X1.vst3")
+          done
+          ls -l release
+
+      - name: Write the release notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # This version's section of CHANGELOG.md: from its heading to the next one.
+          awk -v version="$VERSION" '
+            /^## / { printing = ($2 == version) ; next }
+            printing { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "CHANGELOG.md has no section for ${VERSION}" >&2
+            exit 1
+          fi
+          cat .github/release-install.md >> notes.md
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release/*.zip \
+            --title "Paragon X1 ${GITHUB_REF_NAME}" \
+            --notes-file notes.md

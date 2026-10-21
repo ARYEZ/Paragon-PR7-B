@@ -23,9 +23,9 @@ namespace
         }
     };
 
-    struct Rig
+    struct EffectRig
     {
-        explicit Rig (int outputChannels = 2) : channels (outputChannels)
+        explicit EffectRig (int outputChannels = 2) : channels (outputChannels)
         {
             processor.setPlayConfigDetails (1, channels, sampleRate, blockSize);
             processor.setPlayHead (&playHead);
@@ -127,7 +127,7 @@ namespace
 
 TEST_CASE ("With every effect off, both channels are the clean input", "[effects]")
 {
-    Rig rig;
+    EffectRig rig;
     const auto input = sine (440.0, 0.3f, 0.5);
     const auto output = rig.run (input);
     CHECK (maxAbsDifference (input, output[0]) < 1.0e-6f);
@@ -138,7 +138,7 @@ TEST_CASE ("Compressor turns loud playing down and leaves quiet playing alone", 
 {
     // Threshold -18 dB, ratio 4:1. A peak at -6 dB is 12 dB over, so it
     // should come out 3 dB over: turned down by about 9 dB.
-    Rig rig;
+    EffectRig rig;
     rig.set (ParamIDs::compOn, 1.0f);
     rig.set (ParamIDs::compThreshold, -18.0f);
     rig.set (ParamIDs::compRatio, 4.0f);
@@ -152,7 +152,7 @@ TEST_CASE ("Compressor turns loud playing down and leaves quiet playing alone", 
 
 TEST_CASE ("Noise gate silences signal below its threshold", "[effects][comp]")
 {
-    Rig rig;
+    EffectRig rig;
     rig.set (ParamIDs::compOn, 1.0f);
     rig.set (ParamIDs::compThreshold, 0.0f);   // compressor out of the way
     rig.set (ParamIDs::gateThreshold, -50.0f);
@@ -166,7 +166,7 @@ TEST_CASE ("Noise gate silences signal below its threshold", "[effects][comp]")
 
 TEST_CASE ("Overdrive adds harmonics, and oversampling keeps aliasing down", "[effects][drive]")
 {
-    Rig rig;
+    EffectRig rig;
     rig.set (ParamIDs::driveOn, 1.0f);
     rig.set (ParamIDs::driveTone, 10.0f);
 
@@ -203,7 +203,7 @@ TEST_CASE ("Overdrive adds harmonics, and oversampling keeps aliasing down", "[e
 
 TEST_CASE ("Modulation effects", "[effects][mod]")
 {
-    Rig rig;
+    EffectRig rig;
     rig.set (ParamIDs::modOn, 1.0f);
     const auto input = sine (440.0, 0.3f, 1.0);
 
@@ -251,7 +251,7 @@ TEST_CASE ("Modulation effects", "[effects][mod]")
 
 TEST_CASE ("Delay repeats at the set time", "[effects][delay]")
 {
-    Rig rig;
+    EffectRig rig;
     rig.set (ParamIDs::delayOn, 1.0f);
     rig.set (ParamIDs::delayMix, 1.0f);
     rig.set (ParamIDs::delayFeedback, 0.5f);
@@ -290,7 +290,7 @@ TEST_CASE ("Delay repeats at the set time", "[effects][delay]")
         CHECK_THAT (output[24000], WithinAbs (0.5, 0.01));
 
         // Dotted eighth at 90 BPM: 0.75 beats * 60/90 s = 500 ms as well.
-        Rig other;
+        EffectRig other;
         other.set (ParamIDs::delayOn, 1.0f);
         other.set (ParamIDs::delayMix, 1.0f);
         other.set (ParamIDs::delaySync, 7.0f);   // 1/8 dotted
@@ -313,7 +313,7 @@ TEST_CASE ("Delay repeats at the set time", "[effects][delay]")
 
 TEST_CASE ("Switching delay off lets the echoes ring out but stops new ones", "[effects][delay]")
 {
-    Rig rig;
+    EffectRig rig;
     rig.set (ParamIDs::delayOn, 1.0f);
     rig.set (ParamIDs::delayMix, 1.0f);
     rig.set (ParamIDs::delayFeedback, 0.0f);
@@ -334,7 +334,7 @@ TEST_CASE ("Switching delay off lets the echoes ring out but stops new ones", "[
 
 TEST_CASE ("Reverb adds a stereo tail that fades out", "[effects][reverb]")
 {
-    Rig rig;
+    EffectRig rig;
     rig.set (ParamIDs::reverbOn, 1.0f);
     rig.set (ParamIDs::reverbMix, 0.5f);
     const auto output = rig.run (impulse (3.0, 0.5f));
@@ -353,7 +353,7 @@ TEST_CASE ("Reverb adds a stereo tail that fades out", "[effects][reverb]")
 
 TEST_CASE ("Presence boosts the top end and leaves the lows alone", "[effects][presence]")
 {
-    Rig rig;
+    EffectRig rig;
     rig.set (ParamIDs::presence, 10.0f);
     const auto highs = sine (9000.0, 0.1f, 0.5);
     const auto lows = sine (150.0, 0.1f, 0.5);
@@ -367,7 +367,7 @@ TEST_CASE ("Turning effects on and off doesn't click, and off really is off", "[
     {
         DYNAMIC_SECTION (id)
         {
-            Rig rig;
+            EffectRig rig;
             const auto input = sine (220.0, 0.3f, 0.3);
             rig.set (id, 1.0f);
             rig.runMono (input);
@@ -395,7 +395,7 @@ TEST_CASE ("Turning effects on and off doesn't click, and off really is off", "[
 
 TEST_CASE ("Every effect copes with a mono track and with oversized blocks", "[effects]")
 {
-    const auto turnEverythingOn = [] (Rig& rig)
+    const auto turnEverythingOn = [] (EffectRig& rig)
     {
         for (const auto* id : { ParamIDs::compOn, ParamIDs::driveOn, ParamIDs::modOn, ParamIDs::delayOn, ParamIDs::reverbOn })
             rig.set (id, 1.0f);
@@ -405,7 +405,7 @@ TEST_CASE ("Every effect copes with a mono track and with oversized blocks", "[e
 
     SECTION ("Mono output")
     {
-        Rig rig (1);
+        EffectRig rig (1);
         turnEverythingOn (rig);
         const auto output = rig.runMono (sine (220.0, 0.3f, 0.5));
         REQUIRE (allFinite (output));
@@ -414,7 +414,7 @@ TEST_CASE ("Every effect copes with a mono track and with oversized blocks", "[e
 
     SECTION ("A host sending 3x the promised block size")
     {
-        Rig rig;
+        EffectRig rig;
         turnEverythingOn (rig);
         juce::AudioBuffer<float> big (2, blockSize * 3);
         juce::MidiBuffer midi;
@@ -433,7 +433,7 @@ TEST_CASE ("Every effect copes with a mono track and with oversized blocks", "[e
 
 TEST_CASE ("Full chain runs comfortably faster than real time", "[effects][performance]")
 {
-    Rig rig;
+    EffectRig rig;
     rig.processor.loadAmpModel (juce::File (PARAGON_NAM_EXAMPLE_MODELS).getChildFile ("wavenet.nam"));
     REQUIRE (rig.processor.waitForLoads (20000));
     for (const auto* id : { ParamIDs::compOn, ParamIDs::driveOn, ParamIDs::modOn, ParamIDs::delayOn, ParamIDs::reverbOn })

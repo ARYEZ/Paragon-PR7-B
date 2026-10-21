@@ -14,7 +14,7 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 | 1 | Project skeleton, CI builds for Windows/macOS/Linux, input/output gain, level meters | ✅ Done |
 | 2 | Load `.nam` amp models and cabinet IRs | ✅ Done |
 | 3 | Effect blocks: comp/gate, overdrive, modulation, delay, reverb, with footswitches | ✅ Done |
-| 4 | Rigs, presets, banks, tags | Planned |
+| 4 | Rigs, presets, banks, tags | ✅ Done |
 | 5 | Full pedalboard UI from the mockup | Planned |
 | 6 | Expression pedal/morph, tap tempo, undo/redo, tuner | Planned |
 
@@ -40,13 +40,17 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
     DAW's tempo (or set SYNC to Off for milliseconds), has a tone control for darker repeats, and
     optional ping-pong. Both let their tails ring out when switched off.
 - All effects start switched off, so projects made with earlier versions sound the same.
+- **Rigs:** SAVE in the header saves the current sound as a rig; **<** and **>** step through rigs; a
+  `*` after the name means it's changed since loading. The **PRESETS** tab browses, searches, files
+  (banks A-D), tags and favourites rigs. Factory rigs set the effects and keep your amp and cab.
+  INPUT and OUTPUT stay put when you switch rigs; each rig has its own **OUTPUT LEVEL**.
 - The paths of the loaded files are saved in your DAW project. If a file is missing when the project
   opens, the slot says so and keeps the path, so moving the file back fixes it.
 
 ## Download
 
-Every push builds the plugin on GitHub Actions. Open the **Actions** tab, pick the latest
-green run, and download `ParagonX1-VST3-<your OS>` from the **Artifacts** section.
+Get the latest version from the **[Releases](../../releases)** page: download the zip for your
+computer. (Builds of every push also appear under **Actions** → a run → **Artifacts**.)
 
 Unzip it and copy `Paragon X1.vst3` to your VST3 folder:
 
@@ -58,6 +62,14 @@ Unzip it and copy `Paragon X1.vst3` to your VST3 folder:
 
 **macOS:** the build isn't code-signed yet, so macOS will block it. After copying, run
 `xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/"Paragon X1.vst3"` once.
+
+## Making a release
+
+1. Set the new version in `CMakeLists.txt` (`project(ParagonX1 VERSION x.y.z)`).
+2. Add a `## x.y.z` section to `CHANGELOG.md`.
+3. Commit, then push a tag: `git tag vx.y.z && git push origin vx.y.z`.
+
+GitHub Actions builds all three platforms and publishes the release with notes from the changelog.
 
 ## Building from source
 

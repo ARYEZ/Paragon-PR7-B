@@ -10,6 +10,10 @@ namespace
     // Where file paths are kept in the saved state (DAW project or preset).
     const juce::Identifier ampModelPathKey { "ampModelPath" };
     const juce::Identifier cabIrPathKey { "cabIrPath" };
+    const juce::Identifier rigNameKey { "rigName" };
+    const juce::Identifier rigFileKey { "rigFile" };
+    const juce::Identifier rigFactoryKey { "rigFactory" };
+    const juce::Identifier rigModifiedKey { "rigModified" };
 
     juce::String describeModel (const AmpStage::ModelInfo& info)
     {
@@ -37,6 +41,14 @@ ParagonX1AudioProcessor::ParagonX1AudioProcessor()
     ampNormalise = parameters.getRawParameterValue (ParamIDs::ampNormalise);
     cabOn = parameters.getRawParameterValue (ParamIDs::cabOn);
 
+    rigLibrary = std::make_unique<RigLibrary>();
+
+    // Any change to a parameter that rigs store marks the rig as modified.
+    for (auto* parameter : AudioProcessor::getParameters())
+        if (auto* withId = dynamic_cast<juce::AudioProcessorParameterWithID*> (parameter))
+            if (! ParamIDs::notInRigs.contains (withId->paramID))
+                parameters.addParameterListener (withId->paramID, this);
+
     // Housekeeping off the audio thread: free swapped-out models and keep the
     // host's latency figure up to date.
     startTimerHz (4);
@@ -44,6 +56,10 @@ ParagonX1AudioProcessor::ParagonX1AudioProcessor()
 
 ParagonX1AudioProcessor::~ParagonX1AudioProcessor()
 {
+    for (auto* parameter : AudioProcessor::getParameters())
+        if (auto* withId = dynamic_cast<juce::AudioProcessorParameterWithID*> (parameter))
+            parameters.removeParameterListener (withId->paramID, this);
+
     stopTimer();
     loader.removeAllJobs (true, 10000);
 }
@@ -53,7 +69,7 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     inputGain.reset (sampleRate, gainRampSeconds);
     outputGain.reset (sampleRate, gainRampSeconds);
     inputGain.setCurrentAndTargetValue (juce::Decibels::decibelsToGain (inputGainDb->load()));
-    outputGain.setCurrentAndTargetValue (juce::Decibels::decibelsToGain (outputGainDb->load()));
+    outputGain.setCurrentAndTargetValue (juce::Decibels::decibelsToGain (outputGainDb->load() + param (ParamIDs::rigLevel)));
 
     preparedBlockSize = juce::jmax (1, samplesPerBlock);
     amp.prepare (sampleRate, preparedBlockSize);
@@ -150,7 +166,8 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     reverb.process (stereoBlock, { isOn (ParamIDs::reverbOn), param (ParamIDs::reverbSize), param (ParamIDs::reverbTone),
                                    param (ParamIDs::reverbMix) });
 
-    outputGain.setTargetValue (juce::Decibels::decibelsToGain (outputGainDb->load()));
+    // The master OUTPUT knob plus the rig's own OUTPUT LEVEL.
+    outputGain.setTargetValue (juce::Decibels::decibelsToGain (outputGainDb->load() + param (ParamIDs::rigLevel)));
     for (int i = 0; i < numSamples; ++i)
     {
         const auto gain = outputGain.getNextValue();
@@ -186,6 +203,7 @@ SlotStatus ParagonX1AudioProcessor::getCabStatus() const
 
 void ParagonX1AudioProcessor::loadAmpModel (const juce::File& file)
 {
+    markModified();
     auto loading = getAmpStatus();
     loading.loading = true;
     setStatus (ampStatus, loading);
@@ -226,6 +244,7 @@ void ParagonX1AudioProcessor::loadAmpModel (const juce::File& file)
 
 void ParagonX1AudioProcessor::clearAmpModel()
 {
+    markModified();
     loader.addJob ([this]
     {
         amp.stage (nullptr);
@@ -235,6 +254,7 @@ void ParagonX1AudioProcessor::clearAmpModel()
 
 void ParagonX1AudioProcessor::loadCabinetIR (const juce::File& file)
 {
+    markModified();
     auto loading = getCabStatus();
     loading.loading = true;
     setStatus (cabStatus, loading);
@@ -271,6 +291,7 @@ void ParagonX1AudioProcessor::loadCabinetIR (const juce::File& file)
 
 void ParagonX1AudioProcessor::clearCabinetIR()
 {
+    markModified();
     loader.addJob ([this]
     {
         cab.clear();
@@ -299,6 +320,193 @@ void ParagonX1AudioProcessor::timerCallback()
 }
 
 //==============================================================================
+void ParagonX1AudioProcessor::markModified() noexcept
+{
+    if (! applyingRig.load())
+        rigModified = true;
+}
+
+void ParagonX1AudioProcessor::parameterChanged (const juce::String&, float)
+{
+    // Can be called on the audio thread (automation), so only touch the atomic.
+    markModified();
+}
+
+void ParagonX1AudioProcessor::useRigFolder (const juce::File& folder)
+{
+    rigLibrary = std::make_unique<RigLibrary> (folder);
+    rigBroadcaster.sendChangeMessage();
+}
+
+Rig ParagonX1AudioProcessor::captureRig() const
+{
+    Rig rig;
+    rig.name = currentRig.name;
+    for (auto* parameter : AudioProcessor::getParameters())
+        if (auto* ranged = dynamic_cast<juce::RangedAudioParameter*> (parameter))
+            if (! ParamIDs::notInRigs.contains (ranged->paramID))
+                rig.parameters[ranged->paramID] = ranged->convertFrom0to1 (ranged->getValue());
+
+    rig.ampModelPath = getAmpStatus().file.getFullPathName();
+    rig.cabIrPath = getCabStatus().file.getFullPathName();
+    return rig;
+}
+
+void ParagonX1AudioProcessor::applyRig (const Rig& rig)
+{
+    applyingRig = true;
+
+    for (auto* parameter : AudioProcessor::getParameters())
+    {
+        auto* ranged = dynamic_cast<juce::RangedAudioParameter*> (parameter);
+        if (ranged == nullptr || ParamIDs::notInRigs.contains (ranged->paramID))
+            continue;
+
+        // Anything the rig doesn't mention goes back to its default.
+        const auto found = rig.parameters.find (ranged->paramID);
+        const auto normalised = found != rig.parameters.end()
+                                  ? ranged->convertTo0to1 (ranged->getNormalisableRange().snapToLegalValue (found->second))
+                                  : ranged->getDefaultValue();
+        ranged->setValueNotifyingHost (normalised);
+    }
+
+    if (! rig.keepAmpAndCab)
+    {
+        // Only reload files that actually change, so switching between rigs
+        // that share an amp doesn't reload (and crossfade) it for nothing.
+        const auto apply = [] (const juce::String& path, const juce::File& current, auto load, auto clear)
+        {
+            if (path.isEmpty())
+            {
+                if (current != juce::File())
+                    clear();
+            }
+            else if (juce::File (path) != current)
+            {
+                load (juce::File (path));
+            }
+        };
+        apply (rig.ampModelPath, getAmpStatus().file, [this] (auto f) { loadAmpModel (f); }, [this] { clearAmpModel(); });
+        apply (rig.cabIrPath, getCabStatus().file, [this] (auto f) { loadCabinetIR (f); }, [this] { clearCabinetIR(); });
+    }
+
+    applyingRig = false;
+    rigModified = false;
+}
+
+void ParagonX1AudioProcessor::loadRig (const RigLibrary::Entry& entry)
+{
+    // Copy first: applying parameters can't invalidate it, but be safe.
+    const auto rig = entry.rig;
+    currentRig = { rig.name, entry.file, entry.isFactory ? rig.name : juce::String() };
+    applyRig (rig);
+    rigBroadcaster.sendChangeMessage();
+}
+
+const RigLibrary::Entry* ParagonX1AudioProcessor::findCurrentRigEntry() const
+{
+    if (currentRig.isUserRig())
+        return rigLibrary->find (currentRig.file);
+    if (currentRig.factoryName.isNotEmpty())
+        return rigLibrary->findFactory (currentRig.factoryName);
+    return nullptr;
+}
+
+bool ParagonX1AudioProcessor::saveCurrentRig()
+{
+    const auto* entry = findCurrentRigEntry();
+    if (entry == nullptr || entry->isFactory)
+        return false;
+
+    // Keep how it's filed; replace the sound.
+    auto rig = captureRig();
+    rig.name = entry->rig.name;
+    rig.bank = entry->rig.bank;
+    rig.number = entry->rig.number;
+    rig.tags = entry->rig.tags;
+    rig.favourite = entry->rig.favourite;
+
+    const auto file = entry->file;
+    if (! rigLibrary->overwrite (file, rig))
+        return false;
+
+    rigModified = false;
+    rigBroadcaster.sendChangeMessage();
+    return true;
+}
+
+bool ParagonX1AudioProcessor::saveCurrentRigAs (const juce::String& name)
+{
+    auto rig = captureRig();
+    rig.name = name;
+
+    // File it next to the rig it came from, in the first free slot.
+    if (const auto* entry = findCurrentRigEntry())
+    {
+        rig.bank = entry->rig.bank;
+        rig.tags = entry->rig.tags;
+    }
+    rig.number = rigLibrary->nextFreeNumber (rig.bank);
+
+    const auto file = rigLibrary->saveAsNew (rig);
+    if (file == juce::File())
+        return false;
+
+    const auto* saved = rigLibrary->find (file);
+    currentRig = { saved != nullptr ? saved->rig.name : name, file, {} };
+    rigModified = false;
+    rigBroadcaster.sendChangeMessage();
+    return true;
+}
+
+void ParagonX1AudioProcessor::stepRig (int direction)
+{
+    if (const auto* next = rigLibrary->step (findCurrentRigEntry(), direction))
+        loadRig (*next);
+}
+
+bool ParagonX1AudioProcessor::updateRigDetails (const RigLibrary::Entry& entry, const Rig& newDetails)
+{
+    if (entry.isFactory)
+        return false;
+
+    auto rig = entry.rig;
+    rig.name = newDetails.name.trim().isEmpty() ? rig.name : newDetails.name.trim();
+    rig.bank = newDetails.bank;
+    rig.number = newDetails.number;
+    rig.tags = newDetails.tags;
+
+    const auto file = entry.file;
+    const auto isCurrent = currentRig.file == file;
+    if (! rigLibrary->overwrite (file, rig))
+        return false;
+
+    if (isCurrent)
+        currentRig.name = rig.name;
+    rigBroadcaster.sendChangeMessage();
+    return true;
+}
+
+bool ParagonX1AudioProcessor::deleteRig (const RigLibrary::Entry& entry)
+{
+    if (entry.isFactory)
+        return false;
+
+    const auto file = entry.file;
+    if (! rigLibrary->remove (file))
+        return false;
+
+    // The sound is still loaded; it just isn't saved anywhere any more.
+    if (currentRig.file == file)
+    {
+        currentRig.file = juce::File();
+        rigModified = true;
+    }
+    rigBroadcaster.sendChangeMessage();
+    return true;
+}
+
+//==============================================================================
 juce::AudioProcessorEditor* ParagonX1AudioProcessor::createEditor()
 {
     return new ParagonX1AudioProcessorEditor (*this);
@@ -309,6 +517,10 @@ void ParagonX1AudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     auto state = parameters.copyState();
     state.setProperty (ampModelPathKey, getAmpStatus().file.getFullPathName(), nullptr);
     state.setProperty (cabIrPathKey, getCabStatus().file.getFullPathName(), nullptr);
+    state.setProperty (rigNameKey, currentRig.name, nullptr);
+    state.setProperty (rigFileKey, currentRig.file.getFullPathName(), nullptr);
+    state.setProperty (rigFactoryKey, currentRig.factoryName, nullptr);
+    state.setProperty (rigModifiedKey, rigModified.load(), nullptr);
 
     if (auto xml = state.createXml())
         copyXmlToBinary (*xml, destData);
@@ -333,6 +545,15 @@ void ParagonX1AudioProcessor::setStateInformation (const void* data, int sizeInB
 
     restore (state[ampModelPathKey], [this] (auto f) { loadAmpModel (f); }, [this] { clearAmpModel(); });
     restore (state[cabIrPathKey], [this] (auto f) { loadCabinetIR (f); }, [this] { clearCabinetIR(); });
+
+    // Restoring the project changed parameters and files, which marked the
+    // rig as modified; put back what was saved instead.
+    const auto rigFile = state[rigFileKey].toString();
+    currentRig = { state.getProperty (rigNameKey, "Untitled").toString(),
+                   rigFile.isNotEmpty() ? juce::File (rigFile) : juce::File(),
+                   state[rigFactoryKey].toString() };
+    rigModified = (bool) state.getProperty (rigModifiedKey, false);
+    rigBroadcaster.sendChangeMessage();
 }
 
 // JUCE calls this to create new instances of the plugin.

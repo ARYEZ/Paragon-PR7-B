@@ -44,6 +44,12 @@ namespace ParamIDs
     inline constexpr auto reverbSize     = "reverbSize";
     inline constexpr auto reverbTone     = "reverbTone";
     inline constexpr auto reverbMix      = "reverbMix";
+
+    // Phase 4
+    inline constexpr auto rigLevel       = "rigLevel";
+
+    // Global settings: kept when switching rigs. Everything else is part of a rig.
+    inline const juce::StringArray notInRigs { inputGain, outputGain };
 }
 
 namespace ParamRanges

@@ -64,7 +64,9 @@ ParagonX1AudioProcessorEditor::ParagonX1AudioProcessorEditor (ParagonX1AudioProc
       cabSlot ("CABINET", "*.wav;*.aif;*.aiff;*.flac", "Click or drop an IR (.wav)",
                processorToEdit.getParameters(), ParamIDs::cabOn),
       normaliseAttachment (processorToEdit.getParameters(), ParamIDs::ampNormalise, normaliseButton),
-      presenceAttachment (processorToEdit.getParameters(), ParamIDs::presence, presenceKnob)
+      presenceAttachment (processorToEdit.getParameters(), ParamIDs::presence, presenceKnob),
+      rigLevelAttachment (processorToEdit.getParameters(), ParamIDs::rigLevel, rigLevelKnob),
+      rigBrowser (processorToEdit)
 {
     setLookAndFeel (&lookAndFeel);
 
@@ -78,16 +80,55 @@ ParagonX1AudioProcessorEditor::ParagonX1AudioProcessorEditor (ParagonX1AudioProc
 
     presenceKnob.setTooltip ("Cut or boost the top end (above about 3.5 kHz) after the cabinet, "
                              "like the presence control on an amp. Double-click to reset.");
-    presenceKnob.setDoubleClickReturnValue (true, 0.0);
-    presenceKnob.setTextBoxStyle (juce::Slider::TextBoxRight, false, 64, 20);
-    presenceKnob.setColour (juce::Slider::textBoxTextColourId, ParagonColours::accent);
-    presenceKnob.setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-    presenceLabel.setFont (juce::FontOptions (12.0f, juce::Font::bold));
-    presenceLabel.setJustificationType (juce::Justification::centredRight);
+    rigLevelKnob.setTooltip ("This rig's volume, saved with the rig: use it to balance rigs against each other. "
+                             "The OUTPUT knob on the right is the overall volume for every rig.");
+    for (auto* knob : { &presenceKnob, &rigLevelKnob })
+    {
+        knob->setDoubleClickReturnValue (true, 0.0);
+        knob->setTextBoxStyle (juce::Slider::TextBoxRight, false, 64, 20);
+        knob->setColour (juce::Slider::textBoxTextColourId, ParagonColours::accent);
+        knob->setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+    }
+    for (auto* label : { &presenceLabel, &rigLevelLabel })
+    {
+        label->setFont (juce::FontOptions (12.0f, juce::Font::bold));
+        label->setJustificationType (juce::Justification::centredRight);
+    }
 
-    for (auto* component : std::initializer_list<juce::Component*> { &inputColumn, &outputColumn, &ampSlot, &cabSlot,
-                                                                      &normaliseButton, &presenceKnob, &presenceLabel })
+    for (auto* component : std::initializer_list<juce::Component*> { &inputColumn, &outputColumn })
         addAndMakeVisible (component);
+
+    processorPage = { &ampSlot, &cabSlot, &normaliseButton, &presenceKnob, &presenceLabel, &rigLevelKnob, &rigLevelLabel };
+    for (auto* component : processorPage)
+        addAndMakeVisible (component);
+    addChildComponent (rigBrowser);
+
+    // Header
+    for (auto* tab : { &processorTab, &presetsTab })
+    {
+        tab->setClickingTogglesState (true);
+        tab->setRadioGroupId (100);
+        tab->setColour (juce::TextButton::buttonOnColourId, ParagonColours::accentDim);
+        tab->setColour (juce::TextButton::textColourOnId, ParagonColours::accent);
+        addAndMakeVisible (*tab);
+    }
+    processorTab.setToggleState (true, juce::dontSendNotification);
+    processorTab.setComponentID ("processorTab");
+    presetsTab.setComponentID ("presetsTab");
+    processorTab.onClick = [this] { showPage (false); };
+    presetsTab.onClick = [this] { showPage (true); };
+
+    previousRig.setTooltip ("Previous rig");
+    nextRig.setTooltip ("Next rig");
+    rigNameButton.setTooltip ("The current rig. * means it has changed since it was loaded or saved. Click to browse rigs.");
+    saveButton.setTooltip ("Save the current sound over this rig (or as a new rig if it's a factory rig)");
+    previousRig.onClick = [this] { audioProcessor.stepRig (-1); };
+    nextRig.onClick = [this] { audioProcessor.stepRig (1); };
+    rigNameButton.onClick = [this] { showPage (true); };
+    rigNameButton.setColour (juce::TextButton::textColourOffId, ParagonColours::accent);
+    saveButton.onClick = [this] { saveRig(); };
+    for (auto* button : { &previousRig, &nextRig, &rigNameButton, &saveButton })
+        addAndMakeVisible (*button);
 
     // The four footswitches and their edit panels, in signal-chain order.
     auto& state = processorToEdit.getParameters();
@@ -135,8 +176,13 @@ ParagonX1AudioProcessorEditor::ParagonX1AudioProcessorEditor (ParagonX1AudioProc
         footswitches[(size_t) i]->refresh();
         addAndMakeVisible (*footswitches[(size_t) i]);
         addChildComponent (*panels[(size_t) i]);
+        processorPage.push_back (footswitches[(size_t) i].get());
     }
     selectBlock (0);
+
+    audioProcessor.rigBroadcaster.addChangeListener (this);
+    updateRigName();
+    startTimerHz (5);   // the "modified" star can be set by automation, so poll it
 
     audioProcessor.statusBroadcaster.addChangeListener (this);
     changeListenerCallback (nullptr);
@@ -151,6 +197,7 @@ ParagonX1AudioProcessorEditor::ParagonX1AudioProcessorEditor (ParagonX1AudioProc
 ParagonX1AudioProcessorEditor::~ParagonX1AudioProcessorEditor()
 {
     audioProcessor.statusBroadcaster.removeChangeListener (this);
+    audioProcessor.rigBroadcaster.removeChangeListener (this);
     setLookAndFeel (nullptr);
 }
 
@@ -165,12 +212,48 @@ void ParagonX1AudioProcessorEditor::selectBlock (int index)
     for (size_t i = 0; i < footswitches.size(); ++i)
     {
         footswitches[i]->setSelected ((int) i == index);
-        panels[i]->setVisible ((int) i == index);
+        panels[i]->setVisible ((int) i == index && ! showingPresets);
     }
+}
+
+void ParagonX1AudioProcessorEditor::showPage (bool presets)
+{
+    showingPresets = presets;
+    (presets ? presetsTab : processorTab).setToggleState (true, juce::dontSendNotification);
+    for (auto* component : processorPage)
+        component->setVisible (! presets);
+    rigBrowser.setVisible (presets);
+    selectBlock (selectedBlock);
+}
+
+void ParagonX1AudioProcessorEditor::updateRigName()
+{
+    const auto rig = audioProcessor.getCurrentRig();
+    juce::String text;
+    if (const auto* entry = audioProcessor.findCurrentRigEntry())
+        text << entry->rig.getSlotName() << "   ";
+    text << rig.name;
+    if (audioProcessor.isRigModified())
+        text << " *";
+    if (rigNameButton.getButtonText() != text)
+        rigNameButton.setButtonText (text);
+}
+
+void ParagonX1AudioProcessorEditor::timerCallback()
+{
+    updateRigName();
+}
+
+void ParagonX1AudioProcessorEditor::saveRig()
+{
+    // Factory rigs and never-saved sounds need a name first.
+    if (! audioProcessor.saveCurrentRig())
+        rigBrowser.promptSaveAs();
 }
 
 void ParagonX1AudioProcessorEditor::changeListenerCallback (juce::ChangeBroadcaster*)
 {
+    updateRigName();
     ampSlot.setStatus (audioProcessor.getAmpStatus());
     cabSlot.setStatus (audioProcessor.getCabStatus());
 }
@@ -204,9 +287,23 @@ void ParagonX1AudioProcessorEditor::resized()
     headerArea = area.removeFromTop (headerHeight);
     area.reduce (margin, margin);
 
+    // Header: name (painted) | tabs | < rig name > SAVE | version (painted)
+    auto header = headerArea.reduced (margin, 12);
+    header.removeFromLeft (150);
+    processorTab.setBounds (header.removeFromLeft (110));
+    header.removeFromLeft (4);
+    presetsTab.setBounds (header.removeFromLeft (110));
+    auto rigArea = headerArea.withSizeKeepingCentre (430, headerArea.getHeight() - 24).translated (90, 0);
+    previousRig.setBounds (rigArea.removeFromLeft (32));
+    saveButton.setBounds (rigArea.removeFromRight (64));
+    rigArea.removeFromRight (6);
+    nextRig.setBounds (rigArea.removeFromRight (32));
+    rigNameButton.setBounds (rigArea.reduced (4, 0));
+
     inputColumn.setBounds (area.removeFromLeft (columnWidth));
     outputColumn.setBounds (area.removeFromRight (columnWidth));
     auto centre = area.reduced (margin, 0);
+    rigBrowser.setBounds (centre);
 
     // Top row: amp and cabinet side by side, as in the mockup, with the
     // normalise switch under the amp and presence under the cabinet.
@@ -216,9 +313,12 @@ void ParagonX1AudioProcessorEditor::resized()
     auto cabColumn = slots.withTrimmedLeft (margin);
     const auto controlRowHeight = 44;
     normaliseButton.setBounds (ampColumn.removeFromBottom (controlRowHeight).withSizeKeepingCentre (130, 24));
-    auto presenceRow = cabColumn.removeFromBottom (controlRowHeight).withSizeKeepingCentre (240, controlRowHeight);
-    presenceLabel.setBounds (presenceRow.removeFromLeft (80));
-    presenceKnob.setBounds (presenceRow);
+    auto knobRow = cabColumn.removeFromBottom (controlRowHeight);
+    auto presenceArea = knobRow.removeFromLeft (knobRow.getWidth() / 2);
+    presenceLabel.setBounds (presenceArea.removeFromLeft (presenceArea.getWidth() - 130));
+    presenceKnob.setBounds (presenceArea);
+    rigLevelLabel.setBounds (knobRow.removeFromLeft (knobRow.getWidth() - 130));
+    rigLevelKnob.setBounds (knobRow);
     ampSlot.setBounds (ampColumn.withTrimmedBottom (4));
     cabSlot.setBounds (cabColumn.withTrimmedBottom (4));
 

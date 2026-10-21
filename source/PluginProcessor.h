@@ -11,6 +11,7 @@
 #include "dsp/effects/Modulation.h"
 #include "dsp/effects/Presence.h"
 #include "dsp/effects/Reverb.h"
+#include "rigs/RigLibrary.h"
 
 // What the editor shows for the amp or cabinet slot.
 struct SlotStatus
@@ -21,8 +22,18 @@ struct SlotStatus
     bool loading = false;
 };
 
+// Which rig is loaded, for the header display and the Save button.
+struct CurrentRig
+{
+    juce::String name { "Untitled" };
+    juce::File file;              // set for the user's own rigs
+    juce::String factoryName;     // set for factory rigs
+    bool isUserRig() const { return file != juce::File(); }
+};
+
 class ParagonX1AudioProcessor final : public juce::AudioProcessor,
-                                      private juce::Timer
+                                      private juce::Timer,
+                                      private juce::AudioProcessorValueTreeState::Listener
 {
 public:
     ParagonX1AudioProcessor();
@@ -67,6 +78,41 @@ public:
     // Blocks until queued loads finish. For tests.
     bool waitForLoads (int timeoutMs);
 
+    //==========================================================================
+    // Rigs (message thread only)
+    RigLibrary& getRigLibrary() noexcept { return *rigLibrary; }
+
+    // Points the library at another folder. For tests.
+    void useRigFolder (const juce::File& folder);
+
+    // The current sound as a rig (not saved anywhere yet).
+    Rig captureRig() const;
+
+    void loadRig (const RigLibrary::Entry& entry);
+
+    // Saves over the current rig if it's one of the user's own and returns
+    // true; returns false if it isn't (a factory rig or never saved), in
+    // which case the caller should ask for a name and use saveCurrentRigAs.
+    bool saveCurrentRig();
+    bool saveCurrentRigAs (const juce::String& name);
+
+    // Loads the next (+1) or previous (-1) rig in the library.
+    void stepRig (int direction);
+
+    // Rename, re-file or re-tag a user rig from the browser.
+    bool updateRigDetails (const RigLibrary::Entry& entry, const Rig& newDetails);
+    bool deleteRig (const RigLibrary::Entry& entry);
+
+    CurrentRig getCurrentRig() const { return currentRig; }
+    const RigLibrary::Entry* findCurrentRigEntry() const;
+
+    // True once anything in the rig has changed since it was loaded or saved.
+    bool isRigModified() const noexcept { return rigModified.load(); }
+
+    // Tells listeners (the editor) that the rig list or current rig changed.
+    juce::ChangeBroadcaster rigBroadcaster;
+
+    //==========================================================================
     // The DAW's tempo, as last seen by the audio thread (120 if it hasn't said).
     double getHostBpm() const noexcept { return hostBpm.load(); }
 
@@ -82,6 +128,9 @@ private:
 
     void timerCallback() override;
     void setStatus (SlotStatus& slot, SlotStatus newStatus);
+    void parameterChanged (const juce::String& parameterId, float newValue) override;
+    void markModified() noexcept;
+    void applyRig (const Rig& rig);
 
     juce::AudioProcessorValueTreeState parameters;
     std::atomic<float>* inputGainDb = nullptr;
@@ -105,6 +154,11 @@ private:
     effects::Modulation modulation;
     effects::Delay delay;
     effects::Reverb reverb;
+
+    std::unique_ptr<RigLibrary> rigLibrary;
+    CurrentRig currentRig;
+    // Atomic because the DAW's automation changes parameters on the audio thread.
+    std::atomic<bool> rigModified { false }, applyingRig { false };
 
     int preparedBlockSize = 512;
     std::atomic<double> hostBpm { 120.0 };
