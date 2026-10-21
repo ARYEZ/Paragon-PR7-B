@@ -63,7 +63,8 @@ ParagonX1AudioProcessorEditor::ParagonX1AudioProcessorEditor (ParagonX1AudioProc
                processorToEdit.getParameters(), ParamIDs::ampOn),
       cabSlot ("CABINET", "*.wav;*.aif;*.aiff;*.flac", "Click or drop an IR (.wav)",
                processorToEdit.getParameters(), ParamIDs::cabOn),
-      normaliseAttachment (processorToEdit.getParameters(), ParamIDs::ampNormalise, normaliseButton)
+      normaliseAttachment (processorToEdit.getParameters(), ParamIDs::ampNormalise, normaliseButton),
+      presenceAttachment (processorToEdit.getParameters(), ParamIDs::presence, presenceKnob)
 {
     setLookAndFeel (&lookAndFeel);
 
@@ -75,8 +76,67 @@ ParagonX1AudioProcessorEditor::ParagonX1AudioProcessorEditor (ParagonX1AudioProc
     normaliseButton.setTooltip ("Level-match models to the same loudness, like the official NAM plugin's "
                                 "\"Normalized\" output. Needs loudness data in the model.");
 
-    for (auto* component : std::initializer_list<juce::Component*> { &inputColumn, &outputColumn, &ampSlot, &cabSlot, &normaliseButton })
+    presenceKnob.setTooltip ("Cut or boost the top end (above about 3.5 kHz) after the cabinet, "
+                             "like the presence control on an amp. Double-click to reset.");
+    presenceKnob.setDoubleClickReturnValue (true, 0.0);
+    presenceKnob.setTextBoxStyle (juce::Slider::TextBoxRight, false, 64, 20);
+    presenceKnob.setColour (juce::Slider::textBoxTextColourId, ParagonColours::accent);
+    presenceKnob.setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+    presenceLabel.setFont (juce::FontOptions (12.0f, juce::Font::bold));
+    presenceLabel.setJustificationType (juce::Justification::centredRight);
+
+    for (auto* component : std::initializer_list<juce::Component*> { &inputColumn, &outputColumn, &ampSlot, &cabSlot,
+                                                                      &normaliseButton, &presenceKnob, &presenceLabel })
         addAndMakeVisible (component);
+
+    // The four footswitches and their edit panels, in signal-chain order.
+    auto& state = processorToEdit.getParameters();
+    using Group = EffectPanel::Group;
+
+    footswitches[0] = std::make_unique<Footswitch> (1, "COMP / GATE", state, juce::StringArray { ParamIDs::compOn });
+    footswitches[0]->describe = [this]
+    {
+        auto text = valueText (ParamIDs::compThreshold) + "  " + valueText (ParamIDs::compRatio);
+        if (audioProcessor.getParameters().getRawParameterValue (ParamIDs::gateThreshold)->load() > effects::CompGate::gateOffDb)
+            text << "  + gate";
+        return text;
+    };
+    panels[0] = std::make_unique<EffectPanel> (state, std::vector<Group> {
+        { "COMPRESSOR", { { ParamIDs::compThreshold, "THRESHOLD" }, { ParamIDs::compRatio, "RATIO" }, { ParamIDs::compLevel, "LEVEL" } } },
+        { "NOISE GATE", { { ParamIDs::gateThreshold, "THRESHOLD" } } } });
+
+    footswitches[1] = std::make_unique<Footswitch> (2, "OD / DISTORTION", state, juce::StringArray { ParamIDs::driveOn });
+    footswitches[1]->describe = [this] { return "Drive " + valueText (ParamIDs::driveGain) + "  Tone " + valueText (ParamIDs::driveTone); };
+    panels[1] = std::make_unique<EffectPanel> (state, std::vector<Group> {
+        { "OVERDRIVE", { { ParamIDs::driveGain, "DRIVE" }, { ParamIDs::driveTone, "TONE" }, { ParamIDs::driveLevel, "LEVEL" } } } });
+
+    footswitches[2] = std::make_unique<Footswitch> (3, "MODULATION", state, juce::StringArray { ParamIDs::modOn });
+    footswitches[2]->describe = [this] { return valueText (ParamIDs::modType) + "  " + valueText (ParamIDs::modRate); };
+    panels[2] = std::make_unique<EffectPanel> (state, std::vector<Group> {
+        { "MODULATION", { { ParamIDs::modType, "TYPE" }, { ParamIDs::modRate, "RATE" }, { ParamIDs::modDepth, "DEPTH" },
+                          { ParamIDs::modMix, "MIX" } } } });
+
+    footswitches[3] = std::make_unique<Footswitch> (4, "REVERB / DELAY", state, juce::StringArray { ParamIDs::delayOn, ParamIDs::reverbOn });
+    footswitches[3]->describe = [this]
+    {
+        const auto synced = audioProcessor.getParameters().getRawParameterValue (ParamIDs::delaySync)->load() > 0.5f;
+        return "Delay " + valueText (synced ? ParamIDs::delaySync : ParamIDs::delayTime) + "  Reverb " + valueText (ParamIDs::reverbMix);
+    };
+    panels[3] = std::make_unique<EffectPanel> (state, std::vector<Group> {
+        { "DELAY", { { ParamIDs::delayOn, "ON" }, { ParamIDs::delaySync, "SYNC" }, { ParamIDs::delayTime, "TIME", [this] { return audioProcessor.getParameters().getRawParameterValue (ParamIDs::delaySync)->load() < 0.5f; } },
+                     { ParamIDs::delayFeedback, "FEEDBACK" }, { ParamIDs::delayTone, "TONE" }, { ParamIDs::delayMix, "MIX" },
+                     { ParamIDs::delayPingPong, "PING-PONG" } } },
+        { "REVERB", { { ParamIDs::reverbOn, "ON" }, { ParamIDs::reverbSize, "SIZE" }, { ParamIDs::reverbTone, "TONE" },
+                      { ParamIDs::reverbMix, "MIX" } } } });
+
+    for (int i = 0; i < (int) footswitches.size(); ++i)
+    {
+        footswitches[(size_t) i]->onSelect = [this, i] { selectBlock (i); };
+        footswitches[(size_t) i]->refresh();
+        addAndMakeVisible (*footswitches[(size_t) i]);
+        addChildComponent (*panels[(size_t) i]);
+    }
+    selectBlock (0);
 
     audioProcessor.statusBroadcaster.addChangeListener (this);
     changeListenerCallback (nullptr);
@@ -92,6 +152,21 @@ ParagonX1AudioProcessorEditor::~ParagonX1AudioProcessorEditor()
 {
     audioProcessor.statusBroadcaster.removeChangeListener (this);
     setLookAndFeel (nullptr);
+}
+
+juce::String ParagonX1AudioProcessorEditor::valueText (const char* parameterId) const
+{
+    return audioProcessor.getParameters().getParameter (parameterId)->getCurrentValueAsText();
+}
+
+void ParagonX1AudioProcessorEditor::selectBlock (int index)
+{
+    selectedBlock = index;
+    for (size_t i = 0; i < footswitches.size(); ++i)
+    {
+        footswitches[i]->setSelected ((int) i == index);
+        panels[i]->setVisible ((int) i == index);
+    }
 }
 
 void ParagonX1AudioProcessorEditor::changeListenerCallback (juce::ChangeBroadcaster*)
@@ -121,12 +196,6 @@ void ParagonX1AudioProcessorEditor::paint (juce::Graphics& g)
     g.setColour (ParagonColours::panelEdge);
     g.drawHorizontalLine (headerArea.getBottom() - 1, 0.0f, (float) getWidth());
 
-    // Placeholder for the effect footswitches, which arrive in Phase 3.
-    drawPanel (g, effectsArea.toFloat());
-    g.setColour (ParagonColours::textDim);
-    g.setFont (juce::FontOptions (16.0f));
-    g.drawText ("Comp / gate, drive, modulation, delay and reverb arrive in the next phase",
-                effectsArea, juce::Justification::centred, false);
 }
 
 void ParagonX1AudioProcessorEditor::resized()
@@ -139,14 +208,31 @@ void ParagonX1AudioProcessorEditor::resized()
     outputColumn.setBounds (area.removeFromRight (columnWidth));
     auto centre = area.reduced (margin, 0);
 
-    // Top row: amp and cabinet side by side, as in the mockup.
-    auto slots = centre.removeFromTop (centre.getHeight() * 45 / 100);
+    // Top row: amp and cabinet side by side, as in the mockup, with the
+    // normalise switch under the amp and presence under the cabinet.
+    auto slots = centre.removeFromTop (centre.getHeight() * 36 / 100);
     const auto slotWidth = (slots.getWidth() - margin) / 2;
     auto ampColumn = slots.removeFromLeft (slotWidth);
-    normaliseButton.setBounds (ampColumn.removeFromBottom (28).withSizeKeepingCentre (130, 24));
-    ampColumn.removeFromBottom (4);
-    ampSlot.setBounds (ampColumn);
-    cabSlot.setBounds (slots.withTrimmedLeft (margin).withTrimmedBottom (32));
+    auto cabColumn = slots.withTrimmedLeft (margin);
+    const auto controlRowHeight = 44;
+    normaliseButton.setBounds (ampColumn.removeFromBottom (controlRowHeight).withSizeKeepingCentre (130, 24));
+    auto presenceRow = cabColumn.removeFromBottom (controlRowHeight).withSizeKeepingCentre (240, controlRowHeight);
+    presenceLabel.setBounds (presenceRow.removeFromLeft (80));
+    presenceKnob.setBounds (presenceRow);
+    ampSlot.setBounds (ampColumn.withTrimmedBottom (4));
+    cabSlot.setBounds (cabColumn.withTrimmedBottom (4));
 
-    effectsArea = centre.withTrimmedTop (margin);
+    // Bottom: the four footswitches, then the selected block's edit panel.
+    auto effects = centre.withTrimmedTop (margin);
+    auto switchRow = effects.removeFromTop (effects.getHeight() * 47 / 100);
+    const auto switchWidth = (switchRow.getWidth() - margin * 3) / 4;
+    for (auto& footswitch : footswitches)
+    {
+        footswitch->setBounds (switchRow.removeFromLeft (switchWidth));
+        switchRow.removeFromLeft (margin);
+    }
+
+    effects.removeFromTop (margin);
+    for (auto& panel : panels)
+        panel->setBounds (effects);
 }

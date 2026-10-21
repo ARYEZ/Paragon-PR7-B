@@ -13,7 +13,7 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 |---|---|---|
 | 1 | Project skeleton, CI builds for Windows/macOS/Linux, input/output gain, level meters | ✅ Done |
 | 2 | Load `.nam` amp models and cabinet IRs | ✅ Done |
-| 3 | Effect blocks: comp/gate, overdrive, modulation, delay, reverb, with footswitches | Planned |
+| 3 | Effect blocks: comp/gate, overdrive, modulation, delay, reverb, with footswitches | ✅ Done |
 | 4 | Rigs, presets, banks, tags | Planned |
 | 5 | Full pedalboard UI from the mockup | Planned |
 | 6 | Expression pedal/morph, tap tempo, undo/redo, tuner | Planned |
@@ -30,6 +30,16 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 - **Sample rate:** NAM models are captured at a fixed rate (almost always 48 kHz). At other rates the
   plugin resamples with the same resampler as the official plugin and reports the small added
   latency to your DAW.
+- **PRESENCE** (under the cabinet) cuts or boosts the top end after the cab, like an amp's presence knob.
+- **Footswitches 1-4** turn the effect blocks on and off. Click a footswitch's name to show its knobs
+  below. Signal chain: comp/gate → overdrive → amp → cabinet → presence → modulation → delay → reverb.
+  - **1 Comp / Gate:** compressor (threshold, ratio, level) and noise gate (threshold; all the way down is off).
+  - **2 OD / Distortion:** overdrive (drive, tone, level), 8x oversampled to avoid harsh aliasing.
+  - **3 Modulation:** chorus, flanger, phaser or tremolo. Chorus and flanger are stereo.
+  - **4 Reverb / Delay:** switches both; each also has its own ON switch. The delay syncs to your
+    DAW's tempo (or set SYNC to Off for milliseconds), has a tone control for darker repeats, and
+    optional ping-pong. Both let their tails ring out when switched off.
+- All effects start switched off, so projects made with earlier versions sound the same.
 - The paths of the loaded files are saved in your DAW project. If a file is missing when the project
   opens, the slot says so and keeps the path, so moving the file back fixes it.
 

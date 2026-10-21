@@ -5,6 +5,12 @@
 #include "LevelMeterSource.h"
 #include "dsp/AmpStage.h"
 #include "dsp/CabStage.h"
+#include "dsp/effects/CompGate.h"
+#include "dsp/effects/Delay.h"
+#include "dsp/effects/Drive.h"
+#include "dsp/effects/Modulation.h"
+#include "dsp/effects/Presence.h"
+#include "dsp/effects/Reverb.h"
 
 // What the editor shows for the amp or cabinet slot.
 struct SlotStatus
@@ -61,11 +67,19 @@ public:
     // Blocks until queued loads finish. For tests.
     bool waitForLoads (int timeoutMs);
 
+    // The DAW's tempo, as last seen by the audio thread (120 if it hasn't said).
+    double getHostBpm() const noexcept { return hostBpm.load(); }
+
     juce::AudioProcessorValueTreeState& getParameters() noexcept { return parameters; }
     LevelMeterSource& getInputMeter() noexcept { return inputMeter; }
     LevelMeterSource& getOutputMeter() noexcept { return outputMeter; }
 
 private:
+    void processChunk (juce::AudioBuffer<float>& buffer, int start, int numSamples);
+    void readHostTempo();
+    float param (const char* id) const;
+    bool isOn (const char* id) const { return param (id) > 0.5f; }
+
     void timerCallback() override;
     void setStatus (SlotStatus& slot, SlotStatus newStatus);
 
@@ -81,6 +95,19 @@ private:
 
     AmpStage amp;
     CabStage cab;
+
+    // Signal chain, in order: compGate -> drive -> amp -> cab -> presence
+    // -> modulation -> delay -> reverb. Up to the cab it's mono; from
+    // modulation on it's stereo when the track is.
+    effects::CompGate compGate;
+    effects::Drive drive;
+    effects::Presence presence;
+    effects::Modulation modulation;
+    effects::Delay delay;
+    effects::Reverb reverb;
+
+    int preparedBlockSize = 512;
+    std::atomic<double> hostBpm { 120.0 };
 
     juce::CriticalSection statusLock;
     SlotStatus ampStatus, cabStatus;

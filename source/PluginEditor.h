@@ -3,6 +3,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include "PluginProcessor.h"
+#include "ui/EffectPanel.h"
+#include "ui/Footswitch.h"
 #include "ui/LevelMeter.h"
 #include "ui/ModelSlot.h"
 #include "ui/ParagonLookAndFeel.h"
@@ -40,6 +42,8 @@ public:
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
+    void selectBlock (int index);
+    juce::String valueText (const char* parameterId) const;
 
     ParagonX1AudioProcessor& audioProcessor;
     ParagonLookAndFeel lookAndFeel;
@@ -47,8 +51,18 @@ private:
     ModelSlot ampSlot, cabSlot;
     juce::ToggleButton normaliseButton { "NORMALISE" };
     juce::AudioProcessorValueTreeState::ButtonAttachment normaliseAttachment;
+    juce::Slider presenceKnob { juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::TextBoxRight };
+    juce::Label presenceLabel { {}, "PRESENCE" };
+    juce::AudioProcessorValueTreeState::SliderAttachment presenceAttachment;
+
+    // The four effect blocks: a footswitch each, plus the edit panel of the
+    // selected one.
+    std::array<std::unique_ptr<Footswitch>, 4> footswitches;
+    std::array<std::unique_ptr<EffectPanel>, 4> panels;
+    int selectedBlock = 0;
+
     juce::TooltipWindow tooltips { this };
-    juce::Rectangle<int> headerArea, effectsArea;
+    juce::Rectangle<int> headerArea;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParagonX1AudioProcessorEditor)
 };

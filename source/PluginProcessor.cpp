@@ -55,9 +55,31 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     inputGain.setCurrentAndTargetValue (juce::Decibels::decibelsToGain (inputGainDb->load()));
     outputGain.setCurrentAndTargetValue (juce::Decibels::decibelsToGain (outputGainDb->load()));
 
-    amp.prepare (sampleRate, samplesPerBlock);
-    cab.prepare (sampleRate, samplesPerBlock);
+    preparedBlockSize = juce::jmax (1, samplesPerBlock);
+    amp.prepare (sampleRate, preparedBlockSize);
+    cab.prepare (sampleRate, preparedBlockSize);
+    compGate.prepare (sampleRate, preparedBlockSize);
+    drive.prepare (sampleRate, preparedBlockSize);
+    presence.prepare (sampleRate, preparedBlockSize);
+    modulation.prepare (sampleRate, preparedBlockSize);
+    delay.prepare (sampleRate, preparedBlockSize);
+    reverb.prepare (sampleRate, preparedBlockSize);
     setLatencySamples (amp.getLatencySamples());
+}
+
+float ParagonX1AudioProcessor::param (const char* id) const
+{
+    // Looked up by ID each block. APVTS keeps these in a sorted map, so the
+    // lookup is a handful of string compares and never allocates.
+    return parameters.getRawParameterValue (id)->load();
+}
+
+void ParagonX1AudioProcessor::readHostTempo()
+{
+    if (auto* host = getPlayHead())
+        if (const auto position = host->getPosition())
+            if (const auto bpm = position->getBpm(); bpm.hasValue() && *bpm > 0.0)
+                hostBpm = *bpm;
 }
 
 bool ParagonX1AudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -75,32 +97,69 @@ void ParagonX1AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 {
     juce::ScopedNoDenormals noDenormals;
 
-    const auto numSamples = buffer.getNumSamples();
-    const auto numOutputChannels = getTotalNumOutputChannels();
-
-    if (buffer.getNumChannels() == 0 || numSamples == 0)
+    if (buffer.getNumChannels() == 0 || buffer.getNumSamples() == 0)
         return;
 
-    // A guitar is a mono source, and NAM models are mono, so the whole chain
-    // runs on the first input channel. On a stereo track that is the left
-    // channel, which is how most amp sims treat stereo input.
-    auto* mono = buffer.getWritePointer (0);
+    readHostTempo();
+
+    // Some hosts occasionally send more samples than they promised in
+    // prepareToPlay. Every stage's scratch memory is sized for the promise,
+    // so work through an oversized block in promised-size pieces.
+    for (int start = 0; start < buffer.getNumSamples(); start += preparedBlockSize)
+        processChunk (buffer, start, juce::jmin (preparedBlockSize, buffer.getNumSamples() - start));
+}
+
+void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, int start, int numSamples)
+{
+    const auto numOutputChannels = juce::jmin (getTotalNumOutputChannels(), buffer.getNumChannels());
+
+    // A guitar is a mono source, and NAM models are mono, so the chain up to
+    // the cabinet runs on the first input channel. On a stereo track that is
+    // the left channel, which is how most amp sims treat stereo input.
+    auto* mono = buffer.getWritePointer (0, start);
+    juce::dsp::AudioBlock<float> monoBlock (&mono, 1, (size_t) numSamples);
 
     inputGain.setTargetValue (juce::Decibels::decibelsToGain (inputGainDb->load()));
     inputGain.applyGain (mono, numSamples);
     inputMeter.pushSamples (mono, numSamples);
 
+    compGate.process (monoBlock, { isOn (ParamIDs::compOn), param (ParamIDs::compThreshold), param (ParamIDs::compRatio),
+                                   param (ParamIDs::compLevel), param (ParamIDs::gateThreshold) });
+    drive.process (monoBlock, { isOn (ParamIDs::driveOn), param (ParamIDs::driveGain), param (ParamIDs::driveTone),
+                                param (ParamIDs::driveLevel) });
+
     amp.process (mono, numSamples, ampOn->load() > 0.5f, ampNormalise->load() > 0.5f);
     cab.process (mono, numSamples, cabOn->load() > 0.5f);
+    presence.process (monoBlock, param (ParamIDs::presence));
 
-    // Phase 3: the effect blocks process `mono` here.
+    // From here on, stereo: modulation, delay and reverb spread the sound
+    // across both speakers.
+    for (int channel = 1; channel < numOutputChannels; ++channel)
+        buffer.copyFrom (channel, start, buffer, 0, start, numSamples);
+
+    const auto stereoBlock = juce::dsp::AudioBlock<float> (buffer)
+                                 .getSubBlock ((size_t) start, (size_t) numSamples)
+                                 .getSubsetChannelBlock (0, (size_t) juce::jmin (numOutputChannels, effects::maxChannels));
+
+    modulation.process (stereoBlock, { isOn (ParamIDs::modOn), (effects::Modulation::Type) (int) param (ParamIDs::modType),
+                                       param (ParamIDs::modRate), param (ParamIDs::modDepth), param (ParamIDs::modMix) });
+    delay.process (stereoBlock, { isOn (ParamIDs::delayOn), param (ParamIDs::delayTime), (int) param (ParamIDs::delaySync),
+                                  param (ParamIDs::delayFeedback), param (ParamIDs::delayTone), param (ParamIDs::delayMix),
+                                  isOn (ParamIDs::delayPingPong) },
+                   hostBpm.load());
+    reverb.process (stereoBlock, { isOn (ParamIDs::reverbOn), param (ParamIDs::reverbSize), param (ParamIDs::reverbTone),
+                                   param (ParamIDs::reverbMix) });
 
     outputGain.setTargetValue (juce::Decibels::decibelsToGain (outputGainDb->load()));
-    outputGain.applyGain (mono, numSamples);
-    outputMeter.pushSamples (mono, numSamples);
+    for (int i = 0; i < numSamples; ++i)
+    {
+        const auto gain = outputGain.getNextValue();
+        for (size_t channel = 0; channel < stereoBlock.getNumChannels(); ++channel)
+            stereoBlock.getChannelPointer (channel)[i] *= gain;
+    }
 
-    for (int channel = 1; channel < numOutputChannels; ++channel)
-        buffer.copyFrom (channel, 0, buffer, 0, 0, numSamples);
+    for (size_t channel = 0; channel < stereoBlock.getNumChannels(); ++channel)
+        outputMeter.pushSamples (stereoBlock.getChannelPointer (channel), numSamples);
 }
 
 //==============================================================================

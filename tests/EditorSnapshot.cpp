@@ -7,7 +7,8 @@
 // UI without a DAW. Run with:
 //   PARAGON_SNAPSHOT=editor.png ./ParagonX1Tests "[snapshot]"
 // Optionally set PARAGON_SNAPSHOT_MODEL and PARAGON_SNAPSHOT_IR to file paths
-// to show the amp and cabinet slots loaded.
+// to show the amp and cabinet slots loaded, and PARAGON_SNAPSHOT_EFFECTS=1 to
+// switch on the drive, delay and reverb.
 TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
 {
     const auto path = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT", "editor.png");
@@ -20,6 +21,10 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
     if (const auto ir = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_IR", {}); ir.isNotEmpty())
         processor.loadCabinetIR (juce::File (ir));
     REQUIRE (processor.waitForLoads (20000));
+
+    if (juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_EFFECTS", {}) == "1")
+        for (const auto* id : { "driveOn", "delayOn", "reverbOn" })
+            processor.getParameters().getParameter (id)->setValueNotifyingHost (1.0f);
 
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
     const auto image = editor->createComponentSnapshot (editor->getLocalBounds());
