@@ -1,0 +1,16 @@
+#pragma once
+
+#include <juce_gui_basics/juce_gui_basics.h>
+
+// Line icons from the mockup, drawn as vectors so they stay sharp at any
+// window size. Each is designed in a 0-1 square and stroked by drawIcon().
+namespace Icons
+{
+    enum class Type { amp, cabinet, rig, comp, drive, modulation, delay, reverb, guitar, speaker };
+
+    juce::Path get (Type type);
+
+    // Draws `type` fitted into `area`, with an optional soft glow behind it.
+    void draw (juce::Graphics&, Type type, juce::Rectangle<float> area, juce::Colour colour,
+               float strokeWidth = 1.6f, bool glow = false);
+}

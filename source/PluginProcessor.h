@@ -54,6 +54,10 @@ public:
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return 0.0; }
 
+    // The DAW's own bypass button drives our BYPASS parameter, so the two
+    // can't disagree, and bypassing keeps the plugin's latency.
+    juce::AudioProcessorParameter* getBypassParameter() const override;
+
     // Presets live in the rig browser (Phase 4), so the host's program list is a single entry.
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
@@ -159,6 +163,12 @@ private:
     CurrentRig currentRig;
     // Atomic because the DAW's automation changes parameters on the audio thread.
     std::atomic<bool> rigModified { false }, applyingRig { false };
+
+    // BYPASS: the clean input, delayed by our latency so switching bypass
+    // never shifts the guitar in time, crossfaded in over 20 ms.
+    juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::None> bypassDelay { 8192 };
+    juce::AudioBuffer<float> bypassDry;
+    juce::SmoothedValue<float> bypassAmount;
 
     int preparedBlockSize = 512;
     std::atomic<double> hostBpm { 120.0 };

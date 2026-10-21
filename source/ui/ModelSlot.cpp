@@ -2,23 +2,29 @@
 
 #include "ParagonLookAndFeel.h"
 
-ModelSlot::ModelSlot (const juce::String& titleText, const juce::String& wildcardToUse, const juce::String& emptyTextToUse,
+ModelSlot::ModelSlot (const juce::String& titleText, Icons::Type iconToShow, juce::Colour iconColourToUse,
+                      const juce::String& wildcardToUse, const juce::String& hintText,
                       juce::AudioProcessorValueTreeState& parameters, const juce::String& powerParameterId)
     : title (titleText),
       wildcard (wildcardToUse),
-      emptyText (emptyTextToUse),
-      powerAttachment (parameters, powerParameterId, power)
+      hint (hintText),
+      icon (iconToShow),
+      iconColour (iconColourToUse),
+      powerAttachment (parameters, powerParameterId, power),
+      previous (SlotWindow::makeArrow (true)),
+      next (SlotWindow::makeArrow (false))
 {
     power.setTooltip ("Turn the " + title.toLowerCase() + " on or off");
-    previous.setTooltip ("Previous file in this folder");
-    next.setTooltip ("Next file in this folder");
+    previous->setTooltip ("Previous file in this folder");
+    next->setTooltip ("Next file in this folder");
     clear.setTooltip ("Unload");
+    clear.getProperties().set (ParagonLookAndFeel::pedalButtonProperty, true);
 
-    previous.onClick = [this] { step (-1); };
-    next.onClick = [this] { step (1); };
+    previous->onClick = [this] { step (-1); };
+    next->onClick = [this] { step (1); };
     clear.onClick = [this] { if (onClear) onClear(); };
 
-    for (auto* component : std::initializer_list<juce::Component*> { &power, &previous, &next, &clear })
+    for (auto* component : std::initializer_list<juce::Component*> { &power, previous.get(), next.get(), &clear })
         addAndMakeVisible (component);
 
     setStatus ({});
@@ -28,9 +34,9 @@ void ModelSlot::setStatus (const SlotStatus& newStatus)
 {
     status = newStatus;
     const auto hasFile = status.file != juce::File();
-    previous.setEnabled (hasFile);
-    next.setEnabled (hasFile);
-    clear.setEnabled (hasFile);
+    previous->setEnabled (hasFile);
+    next->setEnabled (hasFile);
+    clear.setVisible (hasFile);
     repaint();
 }
 
@@ -84,55 +90,57 @@ void ModelSlot::step (int direction)
 
 void ModelSlot::paint (juce::Graphics& g)
 {
-    const auto bounds = getLocalBounds().toFloat();
-    g.setColour (ParagonColours::panel);
-    g.fillRoundedRectangle (bounds, 8.0f);
-    g.setColour (dragHover ? ParagonColours::accent : ParagonColours::panelEdge);
-    g.drawRoundedRectangle (bounds.reduced (0.5f), 8.0f, dragHover ? 2.0f : 1.0f);
+    SlotWindow::drawTitle (g, layout, title);
 
-    g.setColour (ParagonColours::text);
-    g.setFont (juce::FontOptions (15.0f, juce::Font::bold));
-    g.drawText (title, titleArea, juce::Justification::centred, false);
-
-    // The display, like the black buttons in the mockup's slots.
-    const auto display = displayArea.toFloat();
-    g.setColour (juce::Colour (0xff060607));
-    g.fillRoundedRectangle (display, 6.0f);
-    g.setColour (ParagonColours::panelEdge);
-    g.drawRoundedRectangle (display.reduced (0.5f), 6.0f, 1.0f);
-
-    auto textArea = displayArea.reduced (10, 8);
     const auto hasFile = status.file != juce::File();
+    SlotWindow::drawButton (g, layout.button, icon, hasFile ? iconColour : iconColour.withAlpha (0.5f),
+                            hasFile ? status.file.getFileNameWithoutExtension() : juce::String(),
+                            buttonHover, dragHover);
 
-    g.setFont (juce::FontOptions (16.0f, juce::Font::bold));
-    g.setColour (hasFile ? ParagonColours::accent : ParagonColours::textDim);
-    g.drawFittedText (hasFile ? status.file.getFileNameWithoutExtension() : emptyText,
-                      textArea.removeFromTop (textArea.getHeight() / 2), juce::Justification::centredBottom, 2);
-
-    juce::String subtitle = status.loading ? "Loading..." : status.error.isNotEmpty() ? status.error : status.detail;
-    g.setFont (juce::FontOptions (12.0f));
-    g.setColour (status.error.isNotEmpty() && ! status.loading ? ParagonColours::meterRed : ParagonColours::textDim);
-    g.drawFittedText (subtitle, textArea.withTrimmedTop (4), juce::Justification::centredTop, 2);
+    const auto isError = status.error.isNotEmpty() && ! status.loading;
+    const auto caption = status.loading ? juce::String ("Loading...")
+                       : isError         ? status.error
+                       : hasFile         ? status.detail
+                                         : hint;
+    SlotWindow::drawCaption (g, layout.caption, caption, isError);
 }
 
 void ModelSlot::resized()
 {
-    auto area = getLocalBounds().reduced (10);
+    layout = SlotWindow::layout (getLocalBounds());
 
-    titleArea = area.removeFromTop (24);
-    power.setBounds (titleArea.removeFromRight (24).reduced (2));
-    clear.setBounds (titleArea.removeFromLeft (24).reduced (2));
+    // Power LED just right of the title text, as in the mockup.
+    const auto titleWidth = juce::GlyphArrangement::getStringWidthInt (juce::FontOptions (14.0f, juce::Font::bold), title);
+    power.setBounds (juce::Rectangle<int> (20, 20).withCentre ({ layout.title.getCentreX() + titleWidth / 2 + 14, layout.title.getCentreY() }));
+    clear.setBounds (layout.corner.withSizeKeepingCentre (20, 18));
+    previous->setBounds (layout.previous);
+    next->setBounds (layout.next);
+}
 
-    area.removeFromTop (6);
-    previous.setBounds (area.removeFromLeft (28).withSizeKeepingCentre (28, 40));
-    next.setBounds (area.removeFromRight (28).withSizeKeepingCentre (28, 40));
-    displayArea = area.reduced (6, 0);
+void ModelSlot::mouseMove (const juce::MouseEvent& event)
+{
+    const auto hover = layout.button.contains (event.getPosition());
+    if (hover != buttonHover)
+    {
+        buttonHover = hover;
+        repaint (layout.button.expanded (4));
+    }
+}
+
+void ModelSlot::mouseExit (const juce::MouseEvent&)
+{
+    buttonHover = false;
+    repaint (layout.button.expanded (4));
 }
 
 void ModelSlot::mouseUp (const juce::MouseEvent& event)
 {
-    if (displayArea.contains (event.getPosition()))
+    if (! event.mouseWasClicked())
+        return;
+    if (layout.button.contains (event.getPosition()))
         chooseFile();
+    else if (layout.title.contains (event.getPosition()) && onTitleClicked)
+        onTitleClicked();
 }
 
 bool ModelSlot::isInterestedInFileDrag (const juce::StringArray& files)

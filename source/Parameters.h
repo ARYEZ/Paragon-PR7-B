@@ -48,8 +48,11 @@ namespace ParamIDs
     // Phase 4
     inline constexpr auto rigLevel       = "rigLevel";
 
+    // Phase 5
+    inline constexpr auto bypass         = "bypass";
+
     // Global settings: kept when switching rigs. Everything else is part of a rig.
-    inline const juce::StringArray notInRigs { inputGain, outputGain };
+    inline const juce::StringArray notInRigs { inputGain, outputGain, bypass };
 }
 
 namespace ParamRanges

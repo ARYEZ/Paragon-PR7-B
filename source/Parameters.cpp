@@ -106,5 +106,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     // Added in plugin version 4 (Phase 4): the OUTPUT LEVEL knob on the
     // mockup's pedal face, saved with each rig to balance rigs' volumes.
     layout.add (makeFloat (ParamIDs::rigLevel, "Rig Level", { -24.0f, 12.0f, 0.1f }, 0.0f, 4, asDb));
+
+    // Added in plugin version 5 (Phase 5): the pedal's BYPASS button. It's
+    // also the plugin's official bypass, so the DAW's bypass uses it too.
+    layout.add (makeSwitch (ParamIDs::bypass, "Bypass", 5, false));
     return layout;
 }

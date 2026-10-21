@@ -1,0 +1,185 @@
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+#include "Parameters.h"
+#include "PluginEditor.h"
+#include "PluginProcessor.h"
+
+using Catch::Matchers::WithinAbs;
+
+namespace
+{
+    template <typename Type>
+    void findAll (juce::Component& parent, std::vector<Type*>& found)
+    {
+        for (auto* child : parent.getChildren())
+        {
+            if (auto* match = dynamic_cast<Type*> (child))
+                found.push_back (match);
+            findAll (*child, found);
+        }
+    }
+
+    // Every visible component sits inside its parent and has some size.
+    void checkLayout (juce::Component& parent, const juce::String& path)
+    {
+        for (auto* child : parent.getChildren())
+        {
+            if (! child->isVisible() || dynamic_cast<juce::TooltipWindow*> (child) != nullptr)
+                continue;
+
+            const auto name = path + "/" + (child->getName().isNotEmpty() ? child->getName()
+                                                                          : juce::String (typeid (*child).name()));
+            INFO (name << " at " << child->getBounds().toString() << " in " << parent.getLocalBounds().toString());
+            CHECK_FALSE (child->getBounds().isEmpty());
+            CHECK (parent.getLocalBounds().expanded (1).contains (child->getBounds()));
+            checkLayout (*child, name);
+        }
+    }
+
+    std::vector<float> playThrough (ParagonX1AudioProcessor& processor, const std::vector<float>& input)
+    {
+        juce::AudioBuffer<float> buffer (2, (int) input.size());
+        buffer.clear();
+        std::copy (input.begin(), input.end(), buffer.getWritePointer (0));
+        juce::MidiBuffer midi;
+        processor.processBlock (buffer, midi);
+        return { buffer.getReadPointer (1), buffer.getReadPointer (1) + buffer.getNumSamples() };
+    }
+
+    void set (ParagonX1AudioProcessor& processor, const char* id, float plainValue)
+    {
+        auto* parameter = processor.getParameters().getParameter (id);
+        parameter->setValueNotifyingHost (parameter->convertTo0to1 (plainValue));
+    }
+}
+
+TEST_CASE ("The window lays out cleanly at every size", "[ui]")
+{
+    ParagonX1AudioProcessor processor;
+    std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
+
+    for (const auto width : { 960, 1280, 1920 })
+    {
+        DYNAMIC_SECTION (width << " wide")
+        {
+            editor->setSize (width, width * 9 / 16);
+            REQUIRE (editor->getWidth() == width);
+
+            // The view is scaled, not re-laid-out: its transform matches the window.
+            auto* view = editor->getChildComponent (0);
+            REQUIRE (view != nullptr);
+            CHECK_THAT (view->getTransform().mat00, WithinAbs ((float) width / (float) MainView::width, 0.001));
+
+            checkLayout (*view, "view");
+        }
+    }
+}
+
+TEST_CASE ("Exactly one block's knobs show, and the chain and footswitches pick which", "[ui]")
+{
+    ParagonX1AudioProcessor processor;
+    std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
+
+    std::vector<EffectPanel*> panels;
+    findAll (*editor, panels);
+    REQUIRE (panels.size() == 7);
+
+    const auto visiblePanel = [&]
+    {
+        int count = 0, index = -1;
+        for (size_t i = 0; i < panels.size(); ++i)
+            if (panels[i]->isVisible())
+            {
+                ++count;
+                index = (int) i;
+            }
+        REQUIRE (count == 1);
+        return index;
+    };
+
+    CHECK (visiblePanel() == 0);   // comp / gate to start with
+
+    std::vector<SignalChain*> chains;
+    findAll (*editor, chains);
+    REQUIRE (chains.size() == 1);
+    for (int block = 0; block < 7; ++block)
+    {
+        chains[0]->onSelect (block);
+        CHECK (visiblePanel() == block);
+    }
+
+    // Footswitch 3's name shows modulation (block 4); footswitch 4's shows delay (block 5).
+    std::vector<Footswitch*> footswitches;
+    findAll (*editor, footswitches);
+    REQUIRE (footswitches.size() == 4);
+    footswitches[2]->onSelect();
+    CHECK (visiblePanel() == 4);
+    footswitches[3]->onSelect();
+    CHECK (visiblePanel() == 5);
+}
+
+TEST_CASE ("BYPASS passes the clean guitar, on both channels", "[ui][bypass]")
+{
+    ParagonX1AudioProcessor processor;
+    processor.setPlayConfigDetails (1, 2, 48000.0, 512);
+    processor.prepareToPlay (48000.0, 512);
+
+    // Make the processed sound very different from the input...
+    set (processor, ParamIDs::driveOn, 1.0f);
+    set (processor, ParamIDs::driveGain, 10.0f);
+    set (processor, ParamIDs::inputGain, 12.0f);
+    set (processor, ParamIDs::bypass, 1.0f);
+
+    std::vector<float> input (512);
+    for (size_t i = 0; i < input.size(); ++i)
+        input[i] = 0.3f * std::sin (0.05f * (float) i);
+
+    for (int block = 0; block < 4; ++block)
+        playThrough (processor, input);   // let the 20 ms bypass fade finish (one block is ~11 ms)
+    const auto output = playThrough (processor, input);
+    for (size_t i = 0; i < input.size(); ++i)
+        REQUIRE_THAT (output[i], WithinAbs (input[i], 1.0e-6));
+
+    CHECK (processor.getBypassParameter() == processor.getParameters().getParameter (ParamIDs::bypass));
+}
+
+TEST_CASE ("BYPASS stays in time when the amp adds latency", "[ui][bypass]")
+{
+    // At 44.1 kHz a 48 kHz model is resampled, which adds latency. The
+    // bypassed signal must be delayed by the same amount, or toggling bypass
+    // would shift the guitar against the rest of the mix.
+    ParagonX1AudioProcessor processor;
+    processor.setPlayConfigDetails (1, 2, 44100.0, 512);
+    processor.prepareToPlay (44100.0, 512);
+    processor.loadAmpModel (juce::File (PARAGON_NAM_EXAMPLE_MODELS).getChildFile ("wavenet.nam"));
+    REQUIRE (processor.waitForLoads (20000));
+    processor.prepareToPlay (44100.0, 512);
+    const auto latency = processor.getLatencySamples();
+    REQUIRE (latency > 0);
+
+    set (processor, ParamIDs::bypass, 1.0f);
+    for (int block = 0; block < 4; ++block)
+        playThrough (processor, std::vector<float> (512, 0.0f));   // let the bypass fade finish
+
+    std::vector<float> click (512, 0.0f);
+    click[10] = 0.5f;
+    const auto output = playThrough (processor, click);
+    CHECK_THAT (output[(size_t) (10 + latency)], WithinAbs (0.5, 1.0e-6));
+    CHECK_THAT (output[10], WithinAbs (0.0, 1.0e-6));
+}
+
+TEST_CASE ("BYPASS is global: rigs don't change it and it doesn't mark them modified", "[ui][bypass]")
+{
+    ParagonX1AudioProcessor processor;
+    const auto folder = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("ParagonX1UiTests").getChildFile (juce::Uuid().toString());
+    processor.useRigFolder (folder);
+
+    processor.loadRig (*processor.getRigLibrary().findFactory ("Studio Clean"));
+    set (processor, ParamIDs::bypass, 1.0f);
+    CHECK_FALSE (processor.isRigModified());
+
+    processor.loadRig (*processor.getRigLibrary().findFactory ("Slapback"));
+    CHECK (processor.getParameters().getRawParameterValue (ParamIDs::bypass)->load() > 0.5f);
+    folder.deleteRecursively();
+}
