@@ -2,6 +2,10 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.12.3
+
+- **Expression pedal covers its base:** the treadle is now as big as the base it sits on, as on the DigiTech RP6, rather than sitting inside it with gaps round it. The mockup's treadle artwork was narrower than the base, so it's widened to the base's shape (drawn at twice the size, so it stays sharp), with the PR7 mark re-engraved at its own proportions. The base shows only where the treadle rocks away from it, and the treadle stays within the base's footprint, so it never spills over the unit.
+
 ## 0.12.2
 
 - **Expression pedal sits in the unit:** the treadle now sits down in a well in the housing, as on a real floor unit like the DigiTech RP6, rather than being drawn on top of it.

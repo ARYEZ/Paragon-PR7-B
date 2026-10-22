@@ -177,6 +177,17 @@ void ExpressionAssign::resized()
     }
 }
 
+namespace
+{
+    // The pedal's layout, in the housing image's pixels (211 x 490): the
+    // treadle covers the whole base, just inside its outer edge, as on a
+    // real floor unit, so the base only shows where the treadle rocks away
+    // from it.
+    constexpr float housingWidth = 211.0f, housingHeight = 490.0f;
+    const juce::Rectangle<float> treadleInHousing { 3.0f, 3.0f, 205.0f, 484.0f };
+    constexpr float baseCorner = 16.0f;   // the base's rounded corners, in housing pixels
+}
+
 //==============================================================================
 ExpressionPedal::ExpressionPedal (ParagonX1AudioProcessor& processorToUse)
     : processor (processorToUse),
@@ -186,16 +197,28 @@ ExpressionPedal::ExpressionPedal (ParagonX1AudioProcessor& processorToUse)
                 "a MIDI expression pedal moves it too (CC 11, or the one chosen in SETTINGS). Assign it with the EXPRESSION buttons.");
     setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
     housing = juce::ImageCache::getFromMemory (ParagonImages::ExpressionHousing_png, ParagonImages::ExpressionHousing_pngSize);
-    treadle = juce::ImageCache::getFromMemory (ParagonImages::ExpressionTreadle_png, ParagonImages::ExpressionTreadle_pngSize).createCopy();
-
-    // Engrave the PR7 mark on the plate under the toe pad (the artwork
-    // leaves it blank), so it rocks with the treadle.
+    // The treadle covers the whole base, as on a real floor unit, but the
+    // mockup's treadle artwork (158 x 462) is narrower than the base. Widen
+    // it to the base's proportions, at twice the size so it stays sharp,
+    // then engrave the PR7 mark on the plate under the toe pad at its own
+    // proportions (not widened), so it rocks with the treadle.
     {
+        const auto art = juce::ImageCache::getFromMemory (ParagonImages::ExpressionTreadle_png, ParagonImages::ExpressionTreadle_pngSize);
+        constexpr int oversample = 2;
+        treadle = juce::Image (juce::Image::ARGB, juce::roundToInt (treadleInHousing.getWidth()) * oversample,
+                               juce::roundToInt (treadleInHousing.getHeight()) * oversample, true);
         juce::Graphics g (treadle);
-        const auto plate = juce::Rectangle<float> (62.0f, 416.0f, 51.0f, 22.0f);
-        Logo::drawPR7 (g, plate, juce::Justification::centred,
+        g.setImageResamplingQuality (juce::Graphics::highResamplingQuality);
+        g.drawImage (art, treadle.getBounds().toFloat(), juce::RectanglePlacement::stretchToFit);
+
+        const auto toArt = juce::AffineTransform::scale ((float) treadle.getWidth() / (float) art.getWidth(),
+                                                         (float) treadle.getHeight() / (float) art.getHeight());
+        const auto plateCentre = juce::Point<float> (87.5f, 427.0f).transformedBy (toArt);
+        const auto plateHeight = 22.0f * (float) treadle.getHeight() / (float) art.getHeight();
+        Logo::drawPR7 (g, juce::Rectangle<float> (Logo::widthFor (plateHeight * 0.8f), plateHeight).withCentre (plateCentre),
+                       juce::Justification::centred,
                        { juce::Colour (0xfff4f0f2), juce::Colour (0xfff4f0f2), juce::Colours::white.withAlpha (0.5f),
-                         juce::Colour (0xff3a3236), 0.9f });
+                         juce::Colour (0xff3a3236), 0.9f * oversample });
     }
     setRepaintsOnMouseActivity (true);   // shows the pedal's position while you hover
     startTimerHz (30);   // follows a MIDI pedal smoothly
@@ -225,17 +248,6 @@ void ExpressionPedal::timerCallback()
     }
 }
 
-namespace
-{
-    // The pedal artwork's own layout, in the housing image's pixels (211 x
-    // 490). The opening is the well the treadle sits down in, at (5, 6),
-    // 160 x 462 px. The treadle is set slightly inside it, with a gap all
-    // round as on a real pedal, at its artwork's proportions (158 x 462).
-    constexpr float housingWidth = 211.0f, housingHeight = 490.0f;
-    const juce::Rectangle<float> openingInHousing { 5.0f, 6.0f, 160.0f, 462.0f };
-    const juce::Rectangle<float> treadleInHousing { 10.0f, 15.0f, 151.0f, 441.6f };
-    constexpr float openingCorner = 12.0f;   // in housing pixels
-}
 
 juce::Rectangle<float> ExpressionPedal::housingArea() const
 {
@@ -254,33 +266,31 @@ juce::Rectangle<float> ExpressionPedal::trackArea() const
 
 void ExpressionPedal::paint (juce::Graphics& g)
 {
-    // The housing (from the mockup): its walls, and the well the treadle sits in.
+    // The base (from the mockup): it shows only where the treadle rocks away from it.
     g.setImageResamplingQuality (juce::Graphics::highResamplingQuality);
     g.drawImage (housing, housingArea(), juce::RectanglePlacement::stretchToFit);
 
     //==========================================================================
     // The treadle (the mockup's artwork), rocking in 3D the way Neural DSP and
-    // IK Multimedia show theirs, and as a real floor unit's pedal sits: down
-    // in a well in the housing, pivoting on an axle across its middle. It's
-    // drawn only inside the well, and the housing's rim is drawn over its
-    // edges afterwards, so as it rocks its ends tuck under the rim rather
-    // than sliding over the unit. The rocking shows as the far end dropping
-    // away (narrower, darker, the gap at that end opening up) and the near
-    // end coming up (lit, its shadow spreading on the floor of the well).
+    // IK Multimedia show theirs, and as a real floor unit's pedal does: it
+    // covers the whole base and pivots on an axle across its middle. It's
+    // kept within the base's footprint, so it never spills over the unit.
+    // The rocking shows as one end dropping away (narrower and darker, the
+    // base showing round it) and the other coming up (lit, its shadow
+    // spreading across the base).
     //
     // World units are pixels. X runs across the pedal, Y along it (toe at
     // -Y, heel at +Y), Z up towards the camera.
     const auto flat = trackArea();
     const auto scale = housingArea().getWidth() / housingWidth;
-    const auto opening = openingInHousing * scale + housingArea().getPosition();
-    juce::Path well;
-    well.addRoundedRectangle (opening, openingCorner * scale);
+    juce::Path base;
+    base.addRoundedRectangle (housingArea().reduced (1.0f), baseCorner * scale);
 
     constexpr float maxTilt = 0.16f;                                   // about 9 degrees each way
     const auto tilt = (shownPosition * 2.0f - 1.0f) * maxTilt;         // + = toe down
     const auto length = flat.getHeight(), width = flat.getWidth();
     const auto thickness = width * 0.07f;   // the artwork has its own bevelled edge; this is the body under it
-    const auto pivotZ = thickness * 1.2f;                              // axle height above the floor of the well
+    const auto pivotZ = thickness * 1.2f;                              // axle height above the base
     const auto cameraZ = length * 3.0f;                                // camera height: how strong the perspective is
     const auto cameraY = length * 0.6f;                                // camera a little towards the player
     const auto centre = flat.getCentre();
@@ -314,14 +324,10 @@ void ExpressionPedal::paint (juce::Graphics& g)
                                                       { outlineRightBottom, outlineBottom }, { outlineLeft, outlineBottom } };
 
     {
-        juce::Graphics::ScopedSaveState insideWell (g);
-        g.reduceClipRegion (well);
+        juce::Graphics::ScopedSaveState clipToBase (g);
+        g.reduceClipRegion (base);
 
-        // The floor of the well, darker towards its walls.
-        g.setColour (juce::Colour (0xff0d0a0c));
-        g.fillPath (well);
-
-        // The treadle's shadow on the floor, spreading under whichever end lifts.
+        // The treadle's shadow on the base, spreading under whichever end lifts.
         {
             juce::Path shadow;
             const auto onBase = [&] (float u, float v)
@@ -385,26 +391,6 @@ void ExpressionPedal::paint (juce::Graphics& g)
                                                      amount < 0.0f ? shaded : lit, heelEnd, false));
             g.fillPath (face.createPathWithRoundedCorners (7.0f));
         }
-
-        // The rim's shadow falling into the well and onto the treadle's edges.
-        for (int ring = 1; ring <= 4; ++ring)
-        {
-            g.setColour (juce::Colours::black.withAlpha (0.22f - 0.045f * (float) ring));
-            g.strokePath (well, juce::PathStrokeType ((float) ring * 2.2f * scale + 1.0f));
-        }
-    }
-
-    // The housing's rim round the well, over the treadle's edges: a chrome
-    // lip, lit from above, with a dark line where it meets the well.
-    {
-        const auto rim = opening.expanded (1.2f * scale);
-        juce::Path lip;
-        lip.addRoundedRectangle (rim, (openingCorner + 1.2f) * scale);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfff3e6ec), rim.getTopLeft(),
-                                                 juce::Colour (0xff8d7a84), rim.getBottomRight(), false));
-        g.strokePath (lip, juce::PathStrokeType (2.6f * scale));
-        g.setColour (juce::Colours::black.withAlpha (0.7f));
-        g.strokePath (well, juce::PathStrokeType (0.9f * scale));
     }
 
     // While you hover or drag: what the pedal controls and where it is.
