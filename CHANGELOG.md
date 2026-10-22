@@ -2,6 +2,13 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.7.5
+
+**The mockup's own expression pedal.**
+
+- The expression pedal is now the mockup's artwork itself (with X1 in place of RPX): the chrome housing with its neon-lit rail, and the treadle with its two black pads. It still rocks in 3D: the artwork is drawn through the same perspective as it tilts, so the lifted end comes towards you and the lowered end drops away, over a dark recess with the treadle's shadow.
+- Hover over the pedal (or drag it) to see what it controls and its position.
+
 ## 0.7.4
 
 **A real rocking pedal, piano-black keys and neon LEDs.**

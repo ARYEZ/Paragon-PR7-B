@@ -623,7 +623,9 @@ void MainView::resized()
     for (size_t i = 0; i < footswitches.size(); ++i)
         footswitches[i]->setBounds (mock (footswitchX[i] - 48, 400, footswitchX[i] + 164, 524));
 
-    expressionPedal.setBounds (mock (1352, 90, 1530, 545));
+    // Exactly where the artwork was cut from the mockup, plus headroom above
+    // for the toe to rise into.
+    expressionPedal.setBounds (mock (1342, 46, 1553, 562));
 
     // Dock
     rigNavigator.setBounds (mock (12, 568, 246, 822));
