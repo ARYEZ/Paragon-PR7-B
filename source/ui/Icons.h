@@ -10,7 +10,11 @@ namespace Icons
                       // Phase 6: header and expression pedal
                       processor, presets, undo, redo, tap, tuner, volume, wah,
                       // Phase 7: header and dock
-                      save, settings, star, user, factory, plus, chevronLeft, chevronRight, flame };
+                      save, settings, star, user, factory, plus, chevronLeft, chevronRight, flame,
+                      // Phase 8
+                      eq,
+                      // Version 0.10
+                      filterPitch };
 
     juce::Path get (Type type);
 

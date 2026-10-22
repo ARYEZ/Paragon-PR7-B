@@ -300,6 +300,25 @@ float RigSummary::value (const char* parameterId) const
     return processor.getParameters().getRawParameterValue (parameterId)->load();
 }
 
+juce::String RigSummary::eqSummary() const
+{
+    // The biggest change, e.g. "+4.0 dB @ 1K", or "Flat".
+    int biggest = -1;
+    float biggestDb = 0.0f;
+    for (int band = 0; band < ParamIDs::eqBands.size(); ++band)
+    {
+        const auto db = processor.getParameters().getRawParameterValue (ParamIDs::eqBands[band])->load();
+        if (std::abs (db) > std::abs (biggestDb) + 0.05f)
+        {
+            biggest = band;
+            biggestDb = db;
+        }
+    }
+    if (biggest < 0)
+        return "Flat";
+    return (biggestDb > 0.0f ? "+" : "") + juce::String (biggestDb, 1) + " dB @ " + ParamIDs::eqBandNames[biggest];
+}
+
 void RigSummary::refresh()
 {
     const auto on = [this] (const char* id) { return value (id) > 0.5f; };
@@ -313,14 +332,20 @@ void RigSummary::refresh()
     const auto synced = value (ParamIDs::delaySync) > 0.5f;
 
     std::vector<Card> newCards {
-        { "COMP / GATE", gateOn ? "Comp + Gate" : "Studio Comp", text (ParamIDs::compThreshold) + "  " + text (ParamIDs::compRatio),
+        { "COMP/GATE", gateOn ? "Comp + Gate" : "Studio Comp", text (ParamIDs::compThreshold) + "  " + text (ParamIDs::compRatio),
           Icons::Type::comp, ParagonColours::comp, on (ParamIDs::compOn), {} },
-        { "OD / DIST", "Overdrive", "Drive " + text (ParamIDs::driveGain), Icons::Type::drive, ParagonColours::drive, on (ParamIDs::driveOn), {} },
-        { "AMP (NAM)", fileName (amp, "No model"), on (ParamIDs::ampNormalise) ? "Normalised" : "Raw level",
+        { "FLT/PITCH", text (ParamIDs::fpType),
+          juce::roundToInt (value (ParamIDs::fpType)) == (int) effects::FilterPitch::Type::pitchShifter ? text (ParamIDs::fpInterval)
+                                                                                                         : "Sens " + text (ParamIDs::fpSensitivity),
+          Icons::Type::filterPitch, ParagonColours::filterPitch, on (ParamIDs::fpOn), {} },
+        { "OD/DIST", juce::roundToInt (value (ParamIDs::driveModel)) == (int) effects::Drive::Model::screamer ? "Screamer" : "Classic OD",
+          "Drive " + text (ParamIDs::driveGain), Icons::Type::drive, ParagonColours::drive, on (ParamIDs::driveOn), {} },
+        { "AMP", fileName (amp, "No model"), on (ParamIDs::ampNormalise) ? "Normalised" : "Raw level",
           Icons::Type::amp, ParagonColours::amp, on (ParamIDs::ampOn) && amp.file != juce::File(), {} },
-        { "CABINET (IR)", fileName (cab, "No IR"), amp.file != juce::File() || cab.file != juce::File() ? cab.detail : juce::String(),
+        { "CAB IR", fileName (cab, "No IR"), amp.file != juce::File() || cab.file != juce::File() ? cab.detail : juce::String(),
           Icons::Type::cabinet, ParagonColours::cab, on (ParamIDs::cabOn) && cab.file != juce::File(), {} },
-        { "MODULATION", text (ParamIDs::modType), "Depth " + text (ParamIDs::modDepth), Icons::Type::modulation, ParagonColours::modulation,
+        { "EQ", "9-Band EQ", eqSummary(), Icons::Type::eq, ParagonColours::eq, on (ParamIDs::eqOn), {} },
+        { "MOD", text (ParamIDs::modType), "Depth " + text (ParamIDs::modDepth), Icons::Type::modulation, ParagonColours::modulation,
           on (ParamIDs::modOn), {} },
         { "DELAY", synced ? "Synced Delay" : "Digital Delay",
           (synced ? text (ParamIDs::delaySync) : text (ParamIDs::delayTime)) + "  " + text (ParamIDs::delayMix),
@@ -426,7 +451,7 @@ void RigSummary::paint (juce::Graphics& g)
         auto content = area.reduced (5.0f, 8.0f);
         g.setColour (ParagonColours::text.withAlpha (0.75f));
         g.setFont (juce::FontOptions (9.5f, juce::Font::bold));
-        g.drawText (card.title, content.removeFromTop (14.0f), juce::Justification::centred, false);
+        g.drawFittedText (card.title, content.removeFromTop (14.0f).toNearestInt(), juce::Justification::centred, 1, 0.7f);
 
         const auto iconArea = content.removeFromTop (content.getHeight() * 0.5f).withSizeKeepingCentre (40.0f, 34.0f);
         Icons::draw (g, card.icon, iconArea, card.on ? card.colour : card.colour.withAlpha (0.3f), 1.7f, card.on);
@@ -454,7 +479,11 @@ void RigSummary::mouseMove (const juce::MouseEvent& event)
     const auto overTag = plusArea.contains (event.position) || std::any_of (tagAreas.begin(), tagAreas.end(),
                                                                              [&] (auto& r) { return r.contains (event.position); });
     setMouseCursor (card >= 0 || (overTag && canEditTags) ? juce::MouseCursor::PointingHandCursor : juce::MouseCursor::NormalCursor);
-    setTooltip (card >= 0 ? "Edit " + cards[(size_t) card].title.toLowerCase()
+    // The cards' titles are abbreviated to fit; the tooltip names the block in full.
+    static const juce::StringArray blockNames { "the compressor and gate", "the filter / pitch block", "the overdrive",
+                                                "the amp", "the cabinet", "the graphic EQ", "the modulation",
+                                                "the delay", "the reverb" };
+    setTooltip (card >= 0 ? "Edit " + blockNames[card]
                           : overTag && canEditTags ? juce::String ("+ adds a tag; click a tag to remove it") : juce::String());
 
     if (card != hoveredCard)
@@ -589,11 +618,11 @@ void SettingsPage::paint (juce::Graphics& g)
     section (tunerArea, "TUNER", "Hold TAP or press TUNER on the pedal to tune. Reference pitch for A4:");
     section (expressionArea, "EXPRESSION PEDAL",
              "A MIDI expression pedal moves the on-screen pedal. Pick the MIDI controller it sends "
-             "(most send CC 11), and route the MIDI track to Paragon X1 in your DAW.");
+             "(most send CC 11), and route the MIDI track to Paragon PR7 in your DAW.");
     section (rigsArea, "RIGS", "Your rigs are files in this folder, so you can back them up or share them:\n"
                                + processor.getRigLibrary().getFolder().getFullPathName());
     section (aboutArea, "ABOUT",
-             juce::String ("Paragon X1 v") + JucePlugin_VersionString
+             juce::String ("Paragon PR7 v") + JucePlugin_VersionString
                  + ". Free and open source under the GNU AGPLv3.\n"
                    "Built with JUCE (AGPLv3), NeuralAmpModelerCore (MIT), Eigen (MPL 2.0) and the Inter typeface (SIL OFL).");
 }

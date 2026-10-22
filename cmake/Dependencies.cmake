@@ -29,9 +29,13 @@ FetchContent_Declare(eigen
 # AudioDSPTools: the official NAM plugin's resampler, used when the DAW's
 # sample rate differs from the model's (MIT). Pinned to the commit
 # NeuralAmpModelerCore v0.6.0 uses. Header-only for the parts we use.
+# Its own Eigen submodule is skipped: we build against the Eigen fetched
+# above, and that submodule is cloned from GitLab, whose outages would
+# otherwise fail the whole build.
 FetchContent_Declare(audiodsptools
     GIT_REPOSITORY https://github.com/sdatkinson/AudioDSPTools.git
     GIT_TAG        0827c6c2fc0deced568536142ea86f189e0b98a1
+    GIT_SUBMODULES ""
     SOURCE_SUBDIR  no-cmake)
 
 # SOURCE_SUBDIR points at a folder that doesn't exist, which tells CMake to

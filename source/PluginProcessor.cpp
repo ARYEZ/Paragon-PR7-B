@@ -43,6 +43,8 @@ ParagonX1AudioProcessor::ParagonX1AudioProcessor()
     ampOn = parameters.getRawParameterValue (ParamIDs::ampOn);
     ampNormalise = parameters.getRawParameterValue (ParamIDs::ampNormalise);
     cabOn = parameters.getRawParameterValue (ParamIDs::cabOn);
+    for (int band = 0; band < effects::GraphicEq::numBands; ++band)
+        eqGainDb[(size_t) band] = parameters.getRawParameterValue (ParamIDs::eqBands[band]);
 
     rigLibrary = std::make_unique<RigLibrary>();
 
@@ -94,8 +96,10 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     amp.prepare (sampleRate, preparedBlockSize);
     cab.prepare (sampleRate, preparedBlockSize);
     compGate.prepare (sampleRate, preparedBlockSize);
+    filterPitch.prepare (sampleRate, preparedBlockSize);
     drive.prepare (sampleRate, preparedBlockSize);
     presence.prepare (sampleRate, preparedBlockSize);
+    graphicEq.prepare (sampleRate, preparedBlockSize);
     modulation.prepare (sampleRate, preparedBlockSize);
     delay.prepare (sampleRate, preparedBlockSize);
     reverb.prepare (sampleRate, preparedBlockSize);
@@ -242,12 +246,25 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
 
     compGate.process (monoBlock, { isOn (ParamIDs::compOn), param (ParamIDs::compThreshold), param (ParamIDs::compRatio),
                                    param (ParamIDs::compLevel), param (ParamIDs::gateThreshold) });
-    drive.process (monoBlock, { isOn (ParamIDs::driveOn), param (ParamIDs::driveGain), param (ParamIDs::driveTone),
-                                param (ParamIDs::driveLevel) });
+    // PITCH / WHAMMY: the pedal bends the pitch shifter from no shift at
+    // the heel to its INTERVAL at the toe, like a DigiTech Whammy.
+    const auto whammy = expressionTarget == ExpressionTargets::pitch ? pedal : 1.0f;
+    filterPitch.process (monoBlock, { isOn (ParamIDs::fpOn), (effects::FilterPitch::Type) (int) param (ParamIDs::fpType),
+                                      param (ParamIDs::fpSensitivity), param (ParamIDs::fpResonance),
+                                      param (ParamIDs::fpInterval) * whammy, param (ParamIDs::fpMix) });
+    drive.process (monoBlock, { isOn (ParamIDs::driveOn), (effects::Drive::Model) (int) param (ParamIDs::driveModel),
+                                param (ParamIDs::driveGain), param (ParamIDs::driveTone), param (ParamIDs::driveLevel) });
 
     amp.process (mono, numSamples, ampOn->load() > 0.5f, ampNormalise->load() > 0.5f);
     cab.process (mono, numSamples, cabOn->load() > 0.5f);
     presence.process (monoBlock, param (ParamIDs::presence));
+
+    effects::GraphicEq::Settings eq;
+    eq.on = isOn (ParamIDs::eqOn);
+    for (size_t band = 0; band < eq.gainsDb.size(); ++band)
+        eq.gainsDb[band] = eqGainDb[band]->load();
+    eq.levelDb = param (ParamIDs::eqLevel);
+    graphicEq.process (monoBlock, eq);
 
     // From here on, stereo: modulation, delay and reverb spread the sound
     // across both speakers.
@@ -263,12 +280,18 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     // mix, so sweeping the pedal doesn't click.)
     const auto morph = expressionTarget == ExpressionTargets::morph ? pedal : 1.0f;
 
-    // Tremolo has no dry/wet mix (it's a volume effect), so morph its depth instead.
+    // Types with no dry/wet mix (tremolo, vibrato, auto-pan...) morph their depth instead.
     const auto modType = (effects::Modulation::Type) (int) param (ParamIDs::modType);
-    const auto isTremolo = modType == effects::Modulation::Type::tremolo;
-    modulation.process (stereoBlock, { isOn (ParamIDs::modOn), modType, param (ParamIDs::modRate),
-                                       param (ParamIDs::modDepth) * (isTremolo ? morph : 1.0f),
-                                       param (ParamIDs::modMix) * (isTremolo ? 1.0f : morph) });
+    const auto morphsDepth = ! effects::Modulation::usesMix (modType);
+
+    // SYNC: one LFO cycle per note length at the tapped (or host) tempo.
+    auto modRate = param (ParamIDs::modRate);
+    if (const auto sync = (int) param (ParamIDs::modSync); sync > 0 && sync < (int) std::size (effects::Delay::syncBeats))
+        modRate = juce::jlimit (0.02f, 20.0f, (float) (getTempoBpm() / 60.0) / effects::Delay::syncBeats[sync]);
+
+    modulation.process (stereoBlock, { isOn (ParamIDs::modOn), modType, modRate,
+                                       param (ParamIDs::modDepth) * (morphsDepth ? morph : 1.0f),
+                                       param (ParamIDs::modMix) * (morphsDepth ? 1.0f : morph) });
     delay.process (stereoBlock, { isOn (ParamIDs::delayOn), param (ParamIDs::delayTime), (int) param (ParamIDs::delaySync),
                                   param (ParamIDs::delayFeedback), param (ParamIDs::delayTone), param (ParamIDs::delayMix) * morph,
                                   isOn (ParamIDs::delayPingPong) },
@@ -764,7 +787,16 @@ void ParagonX1AudioProcessor::setStateInformation (const void* data, int sizeInB
     if (xml == nullptr || ! xml->hasTagName (parameters.state.getType()))
         return;
 
-    const auto state = juce::ValueTree::fromXml (*xml);
+    auto state = juce::ValueTree::fromXml (*xml);
+
+    // Saved before the drive had a MODEL: it was the original overdrive.
+    if (! state.getChildWithProperty ("id", ParamIDs::driveModel).isValid())
+    {
+        juce::ValueTree model ("PARAM");
+        model.setProperty ("id", ParamIDs::driveModel, nullptr);
+        model.setProperty ("value", (int) effects::Drive::Model::classic, nullptr);
+        state.appendChild (model, nullptr);
+    }
     parameters.replaceState (state);
 
     const auto restore = [] (const juce::var& path, auto load, auto clear)

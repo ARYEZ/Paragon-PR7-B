@@ -1,5 +1,6 @@
 #include "PedalBody.h"
 
+#include "Logo.h"
 #include "ParagonLookAndFeel.h"
 
 namespace
@@ -228,7 +229,7 @@ void PedalBody::paint (juce::Graphics& g)
 
 void PedalBody::paintBadge (juce::Graphics& g) const
 {
-    // Heavy italic product name, as "CYBER RPX" in the mockup.
+    // Heavy italic PARAGON, as "CYBER RPX" in the mockup, over the PR7 mark.
     if (geometry.badge.isEmpty())
         return;
 
@@ -247,10 +248,13 @@ void PedalBody::paintBadge (juce::Graphics& g) const
 
     g.setFont (font);
     drawStamped ("PARAGON", area.removeFromTop (lineHeight), ParagonColours::ink);
+
+    // The PR7 mark under it, as tall as the lettering's capitals, starting
+    // where they do (the slant makes the P's foot sit under PARAGON's P).
     auto secondLine = area.removeFromTop (lineHeight);
-    drawStamped ("X", secondLine, ParagonColours::ink);
-    const auto xWidth = (float) juce::GlyphArrangement::getStringWidthInt (juce::Font (font), "X");
-    drawStamped ("1", secondLine.withTrimmedLeft (xWidth + 2.0f), ParagonColours::glow);
+    Logo::drawPR7 (g, secondLine.withSizeKeepingCentre (secondLine.getWidth(), lineHeight * 0.82f).withTrimmedLeft (lineHeight * 0.04f),
+                   juce::Justification::centredLeft,
+                   { ParagonColours::ink, ParagonColours::glow, juce::Colours::white.withAlpha (0.7f) });
 
     g.setFont (juce::FontOptions (lineHeight * 0.27f, juce::Font::bold));
     g.setColour (ParagonColours::glow.darker (0.15f));

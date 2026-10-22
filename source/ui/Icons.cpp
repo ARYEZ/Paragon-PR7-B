@@ -262,6 +262,34 @@ namespace Icons
                     p.applyTransform (juce::AffineTransform::scale (-1.0f, 1.0f, 0.5f, 0.5f));
                 break;
 
+            case Type::eq:
+            {
+                // Three faders at different heights: a graphic EQ.
+                const float xs[] = { 0.2f, 0.5f, 0.8f }, knobs[] = { 0.62f, 0.3f, 0.5f };
+                for (int i = 0; i < 3; ++i)
+                {
+                    p.startNewSubPath (xs[i], 0.08f);
+                    p.lineTo (xs[i], 0.92f);
+                    p.addRoundedRectangle (xs[i] - 0.1f, knobs[i] - 0.06f, 0.2f, 0.12f, 0.03f);
+                }
+                break;
+            }
+
+            case Type::filterPitch:
+                // A resonant filter's peak, and an up / down arrow for pitch.
+                p.startNewSubPath (0.04f, 0.72f);
+                p.cubicTo (0.25f, 0.72f, 0.3f, 0.18f, 0.42f, 0.18f);
+                p.cubicTo (0.52f, 0.18f, 0.55f, 0.85f, 0.66f, 0.92f);
+                p.startNewSubPath (0.84f, 0.12f);
+                p.lineTo (0.84f, 0.62f);
+                p.startNewSubPath (0.74f, 0.24f);
+                p.lineTo (0.84f, 0.12f);
+                p.lineTo (0.94f, 0.24f);
+                p.startNewSubPath (0.74f, 0.5f);
+                p.lineTo (0.84f, 0.62f);
+                p.lineTo (0.94f, 0.5f);
+                break;
+
             case Type::flame:
                 // The mockup's "All Rigs" icon.
                 p.startNewSubPath (0.5f, 0.05f);

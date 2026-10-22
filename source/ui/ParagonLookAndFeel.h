@@ -2,7 +2,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
-// Colours taken from the Paragon X1 mockup: near-black panels with an
+// Colours taken from the mockup: near-black panels with an
 // orange accent.
 namespace ParagonColours
 {
@@ -31,6 +31,8 @@ namespace ParagonColours
     inline const juce::Colour modulation { 0xffb86dff };
     inline const juce::Colour delay      { 0xff45b4ff };
     inline const juce::Colour reverb     { 0xff4fe3dd };
+    inline const juce::Colour eq         { 0xffff5a2c };
+    inline const juce::Colour filterPitch { 0xffb8f040 };   // lime   // the plugin's neon orange-red
 }
 
 class ParagonLookAndFeel final : public juce::LookAndFeel_V4
@@ -57,8 +59,13 @@ public:
     // box: the header's rig name and tempo, which sit in framed groups.
     static constexpr const char* plainTextProperty = "plainText";
 
+    // Set this on a vertical slider to draw it as a graphic-EQ fader: a thin
+    // groove lit from its centre (0 dB) to the cap, and a small black cap.
+    static constexpr const char* eqFaderProperty = "eqFader";
+    static constexpr int eqFaderThumbRadius = 7;
+
     // Every font in the plugin is Inter, built in: semibold for bold text,
-    // and the heavy display italic for bold italic (the PARAGON X1 badge).
+    // and the heavy display italic for bold italic (the PARAGON badge).
     juce::Typeface::Ptr getTypefaceForFont (const juce::Font&) override;
 
     void drawRotarySlider (juce::Graphics&, int x, int y, int width, int height,
@@ -66,6 +73,10 @@ public:
                            float rotaryEndAngle, juce::Slider&) override;
 
     // Toggle buttons are drawn as the mockup's red/orange status LEDs.
+    // EQ faders: travel inset by half the cap's height, so the cap's centre
+    // reaches exactly the top and bottom of the scale.
+    int getSliderThumbRadius (juce::Slider&) override;
+
     // The two-thumb MIN / MAX slider: a thin track with round glowing thumbs.
     void drawLinearSlider (juce::Graphics&, int x, int y, int width, int height,
                            float sliderPos, float minSliderPos, float maxSliderPos,
@@ -82,6 +93,18 @@ private:
     juce::Typeface::Ptr regular, semiBold, blackItalic;
 
     static void drawPedalKnob (juce::Graphics&, juce::Rectangle<float> bounds, float angle);
+
+public:
+    // The mockup's piano-black keys (footswitches, slot blocks, small
+    // buttons): a glossy black top set in chamfered edges, the top bevel
+    // catching the light, the side bevels reflecting the red glow, and a
+    // soft shadow on the metal. `bevel` is the chamfer's width.
+    static void drawPianoBlackKey (juce::Graphics&, juce::Rectangle<float> area, float radius, float bevel,
+                                   bool pressed, bool highlighted);
+
+    // The mockup's LED bars: when lit, a neon tube (white-hot core inside a
+    // red-orange outline, with a soft glow); when off, a dimmer solid red.
+    static void drawNeonBar (juce::Graphics&, juce::Rectangle<float> bar, bool lit);
 };
 
 // JUCE finds fonts through the *default* look-and-feel, so while any plugin

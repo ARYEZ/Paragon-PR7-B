@@ -73,49 +73,14 @@ void Footswitch::resized()
 
 void Footswitch::paint (juce::Graphics& g)
 {
-    // Status LED: a short bar above the pad, glowing pink-red when on.
-    const auto led = ledArea.toFloat().withSizeKeepingCentre (26.0f, 4.0f).withX ((float) switchArea.getCentreX() - 13.0f);
-    if (lastOn)
-    {
-        g.setColour (ParagonColours::glow.withAlpha (0.3f));
-        g.fillRoundedRectangle (led.expanded (7.0f, 5.0f), 7.0f);
-        g.setColour (ParagonColours::glow.withAlpha (0.45f));
-        g.fillRoundedRectangle (led.expanded (3.0f, 2.0f), 4.0f);
-    }
-    g.setColour (lastOn ? juce::Colour (0xffff6a6a) : ParagonColours::glow.withAlpha (0.28f));
-    g.fillRoundedRectangle (led, 2.0f);
+    // Status LED: a short neon bar above the pad, as in the mockup.
+    ParagonLookAndFeel::drawNeonBar (g, ledArea.toFloat().withSizeKeepingCentre (26.0f, 5.0f).withX ((float) switchArea.getCentreX() - 13.0f),
+                                     lastOn);
 
-    // The pad: a chunky black rubber block seen slightly from above, so its
-    // front edge shows as a darker band, sitting in its own shadow.
+    // The pad: a big piano-black key with chamfered edges.
     const auto pressed = isMouseButtonDown() && switchArea.contains (getMouseXYRelative());
-    auto pad = switchArea.toFloat();
-    juce::Path padPath;
-    padPath.addRoundedRectangle (pad, 7.0f);
-    juce::DropShadow (juce::Colours::black.withAlpha (0.55f), 10, { 0, pressed ? 2 : 6 }).drawForPath (g, padPath);
-    if (pressed)
-        pad = pad.translated (0.0f, 2.0f);
-
-    // One block of black rubber: the top face fades from a soft grey sheen
-    // at the back edge to near black at the front, then a narrow, darker
-    // front lip shows its thickness.
-    const auto frontHeight = pad.getHeight() * (pressed ? 0.06f : 0.11f);
-    g.setColour (juce::Colour (0xff020203));
-    g.fillRoundedRectangle (pad, 8.0f);
-
-    const auto top = pad.withTrimmedBottom (frontHeight);
-    juce::ColourGradient rubber (juce::Colour (0xff3a393e), 0.0f, top.getY(), juce::Colour (0xff0b0b0d), 0.0f, top.getBottom(), false);
-    rubber.addColour (0.25, juce::Colour (0xff222125));
-    g.setGradientFill (rubber);
-    g.fillRoundedRectangle (top, 8.0f);
-    g.setColour (juce::Colours::white.withAlpha (0.2f));
-    g.drawHorizontalLine ((int) top.getY() + 1, top.getX() + 8.0f, top.getRight() - 8.0f);   // back edge catching the light
-
-    // Pink reflection along the bottom edge, and a red outline on hover.
-    g.setColour (ParagonColours::glow.withAlpha (0.35f));
-    g.drawHorizontalLine ((int) pad.getBottom() - 1, pad.getX() + 8.0f, pad.getRight() - 8.0f);
     const auto hover = isMouseOver() && switchArea.contains (getMouseXYRelative());
-    g.setColour (hover ? ParagonColours::glow.withAlpha (0.8f) : juce::Colours::black);
-    g.drawRoundedRectangle (pad, 7.0f, 1.0f);
+    ParagonLookAndFeel::drawPianoBlackKey (g, switchArea.toFloat(), 7.0f, 7.0f, pressed, hover);
 
     // Number printed to the left of the pad, as on the mockup.
     g.setColour (ParagonColours::ink);

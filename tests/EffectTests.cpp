@@ -3,6 +3,7 @@
 
 #include "Parameters.h"
 #include "PluginProcessor.h"
+#include "dsp/effects/Modulation.h"
 
 using Catch::Matchers::WithinAbs;
 
@@ -168,6 +169,7 @@ TEST_CASE ("Overdrive adds harmonics, and oversampling keeps aliasing down", "[e
 {
     EffectRig rig;
     rig.set (ParamIDs::driveOn, 1.0f);
+    rig.set (ParamIDs::driveModel, (float) effects::Drive::Model::classic);
     rig.set (ParamIDs::driveTone, 10.0f);
 
     SECTION ("Harmonics: odd from clipping, even from the asymmetry")
@@ -198,6 +200,67 @@ TEST_CASE ("Overdrive adds harmonics, and oversampling keeps aliasing down", "[e
 
         rig.set (ParamIDs::driveLevel, 6.0f);
         CHECK_THAT (dB (rms (rig.runMono (input), 0.2) / rms (input, 0.2)), WithinAbs (6.0, 1.0));
+    }
+}
+
+TEST_CASE ("The Screamer drive behaves like a Tube Screamer", "[effects][drive]")
+{
+    EffectRig rig;
+    rig.set (ParamIDs::driveOn, 1.0f);
+    rig.set (ParamIDs::driveModel, (float) effects::Drive::Model::screamer);
+
+    SECTION ("It's the default for new rigs")
+    {
+        EffectRig fresh;
+        CHECK (juce::roundToInt (fresh.processor.getParameters().getRawParameterValue (ParamIDs::driveModel)->load())
+               == (int) effects::Drive::Model::screamer);
+    }
+
+    SECTION ("Mid hump: the bass passes clean while the mids are boosted")
+    {
+        // A quiet signal, so nothing clips and this is just the frequency response.
+        rig.set (ParamIDs::driveGain, 0.0f);
+        rig.set (ParamIDs::driveTone, 10.0f);
+        const auto gainAt = [&] (double hz)
+        {
+            const auto input = sine (hz, 0.003f, 0.5);
+            return dB (rms (rig.runMono (input), 0.2) / rms (input, 0.2));
+        };
+        CHECK (gainAt (1000.0) - gainAt (100.0) > 9.0f);
+
+        // TONE: dark at 0 (the top well below the mids), bright at 10.
+        const auto brightTreble = gainAt (6000.0) - gainAt (1000.0);
+        rig.set (ParamIDs::driveTone, 0.0f);
+        const auto darkTreble = gainAt (6000.0) - gainAt (1000.0);
+        CHECK (darkTreble < -10.0f);
+        CHECK (brightTreble - darkTreble > 12.0f);
+    }
+
+    SECTION ("Its diodes clip both halves alike: odd harmonics, hardly any even")
+    {
+        rig.set (ParamIDs::driveGain, 7.0f);
+        rig.set (ParamIDs::driveTone, 10.0f);
+        const auto output = rig.runMono (sine (500.0, 0.3f, 0.5));
+        REQUIRE (allFinite (output));
+        const auto fundamental = levelAt (output, 500.0);
+        CHECK (dB (levelAt (output, 1500.0) / fundamental) > -25.0f);
+        CHECK (dB (levelAt (output, 1000.0) / fundamental) < -50.0f);
+    }
+
+    SECTION ("Its level at noon is close to the guitar's own")
+    {
+        rig.set (ParamIDs::driveGain, 5.0f);
+        rig.set (ParamIDs::driveTone, 5.0f);
+        const auto input = sine (440.0, 0.3f, 0.5);
+        CHECK_THAT (dB (rms (rig.runMono (input), 0.2) / rms (input, 0.2)), WithinAbs (0.0, 3.0));
+    }
+
+    SECTION ("Aliasing stays down at full drive")
+    {
+        rig.set (ParamIDs::driveGain, 10.0f);
+        rig.set (ParamIDs::driveTone, 10.0f);
+        const auto output = rig.runMono (sine (5000.0, 0.5f, 0.5));
+        CHECK (dB (levelAt (output, 13000.0) / levelAt (output, 5000.0)) < -45.0f);
     }
 }
 
@@ -247,6 +310,231 @@ TEST_CASE ("Modulation effects", "[effects][mod]")
             CHECK (maxAbsDifference (input, output, (size_t) (0.2 * sampleRate)) > 0.01f);
         }
     }
+}
+
+namespace
+{
+    // Loudness in 10 ms windows from `fromSeconds` on: how the volume moves.
+    std::vector<float> envelope (const std::vector<float>& samples, double fromSeconds = 0.2)
+    {
+        std::vector<float> levels;
+        for (auto t = fromSeconds; (t + 0.01) * sampleRate <= (double) samples.size(); t += 0.01)
+            levels.push_back (rms (samples, t, t + 0.01));
+        return levels;
+    }
+
+    // +1 when two envelopes rise and fall together, -1 when one rises as the other falls.
+    double correlation (const std::vector<float>& a, const std::vector<float>& b)
+    {
+        const auto n = std::min (a.size(), b.size());
+        double meanA = 0.0, meanB = 0.0;
+        for (size_t i = 0; i < n; ++i) { meanA += a[i]; meanB += b[i]; }
+        meanA /= (double) n;
+        meanB /= (double) n;
+        double ab = 0.0, aa = 0.0, bb = 0.0;
+        for (size_t i = 0; i < n; ++i)
+        {
+            ab += (a[i] - meanA) * (b[i] - meanB);
+            aa += (a[i] - meanA) * (a[i] - meanA);
+            bb += (b[i] - meanB) * (b[i] - meanB);
+        }
+        return ab / std::sqrt (aa * bb + 1.0e-30);
+    }
+
+    using ModType = effects::Modulation::Type;
+    float typeIndex (ModType type) { return (float) (int) type; }
+}
+
+TEST_CASE ("The newer modulation types", "[effects][mod]")
+{
+    const auto input = sine (440.0, 0.3f, 1.0);
+
+    SECTION ("Every type changes the sound and stays stable")
+    {
+        for (const auto type : { ModType::dimension, ModType::uniVibe, ModType::rotary, ModType::vibrato,
+                                 ModType::harmonicTremolo, ModType::autoPan })
+        {
+            EffectRig rig;
+            rig.set (ParamIDs::modOn, 1.0f);
+            rig.set (ParamIDs::modType, typeIndex (type));
+            rig.set (ParamIDs::modDepth, 0.8f);
+            rig.set (ParamIDs::modMix, 0.5f);
+            const auto output = rig.run (input);
+            INFO (effects::Modulation::typeNames[(int) type]);
+            REQUIRE (allFinite (output[0]));
+            REQUIRE (allFinite (output[1]));
+            CHECK (maxAbsDifference (input, output[0], (size_t) (0.2 * sampleRate)) > 0.01f);
+            CHECK (rms (output[0], 0.2) < 2.0f * rms (input, 0.2));   // nothing runs away
+        }
+    }
+
+    SECTION ("Dimension chorus and rotary are stereo")
+    {
+        for (const auto type : { ModType::dimension, ModType::rotary })
+        {
+            EffectRig rig;
+            rig.set (ParamIDs::modOn, 1.0f);
+            rig.set (ParamIDs::modType, typeIndex (type));
+            rig.set (ParamIDs::modMix, 1.0f);
+            const auto output = rig.run (input);
+            std::vector<float> difference (output[0].size());
+            for (size_t i = 0; i < difference.size(); ++i)
+                difference[i] = output[0][i] - output[1][i];
+            INFO (effects::Modulation::typeNames[(int) type]);
+            CHECK (rms (difference, 0.2) > 0.05f * rms (output[0], 0.2));
+        }
+    }
+
+    SECTION ("Uni-Vibe's wet signal only shifts phase, so it keeps the level")
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::modOn, 1.0f);
+        rig.set (ParamIDs::modType, typeIndex (ModType::uniVibe));
+        rig.set (ParamIDs::modMix, 1.0f);
+        rig.set (ParamIDs::modDepth, 1.0f);
+        CHECK_THAT (rms (rig.runMono (input), 0.2) / rms (input, 0.2), WithinAbs (1.0, 0.05));
+    }
+
+    SECTION ("Auto-pan moves the sound from one speaker to the other")
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::modOn, 1.0f);
+        rig.set (ParamIDs::modType, typeIndex (ModType::autoPan));
+        rig.set (ParamIDs::modRate, 2.0f);
+        rig.set (ParamIDs::modDepth, 1.0f);
+        const auto output = rig.run (input);
+        CHECK (correlation (envelope (output[0]), envelope (output[1])) < -0.9);
+    }
+
+    SECTION ("Harmonic tremolo pulses the lows and highs in turn")
+    {
+        const auto pulse = [] (double hz)
+        {
+            EffectRig rig;
+            rig.set (ParamIDs::modOn, 1.0f);
+            rig.set (ParamIDs::modType, typeIndex (ModType::harmonicTremolo));
+            rig.set (ParamIDs::modRate, 3.0f);
+            rig.set (ParamIDs::modDepth, 1.0f);
+            return envelope (rig.runMono (sine (hz, 0.3f, 1.0)));
+        };
+        CHECK (correlation (pulse (150.0), pulse (5000.0)) < -0.8);
+    }
+}
+
+TEST_CASE ("The pitch shifter moves notes by its interval", "[effects][pitch]")
+{
+    const auto shifted = [] (float semitones, double hz)
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::fpOn, 1.0f);
+        rig.set (ParamIDs::fpType, (float) effects::FilterPitch::Type::pitchShifter);
+        rig.set (ParamIDs::fpInterval, semitones);
+        rig.set (ParamIDs::fpMix, 1.0f);
+        return rig.runMono (sine (hz, 0.3f, 1.0));
+    };
+
+    for (const auto [semitones, ratio] : { std::pair { 12.0f, 2.0 }, { -12.0f, 0.5 }, { 7.0f, 1.4983 }, { -5.0f, 0.7492 }, { 24.0f, 4.0 } })
+    {
+        INFO (semitones << " semitones");
+        const auto output = shifted (semitones, 330.0);
+        REQUIRE (allFinite (output));
+        const auto target = levelAt (output, 330.0 * ratio, 0.2);
+        CHECK (dB (target / levelAt (output, 330.0, 0.2)) > 20.0f);   // the original pitch is gone
+        CHECK (dB (target / 0.3f) > -6.0f);                           // and the new one is about as loud
+    }
+}
+
+TEST_CASE ("The auto-wah opens up as you play harder", "[effects][wah]")
+{
+    // A bright test note: a 220 Hz tone with its first 15 harmonics.
+    std::vector<float> note ((size_t) sampleRate);
+    for (size_t i = 0; i < note.size(); ++i)
+        for (int harmonic = 1; harmonic <= 15; ++harmonic)
+            note[i] += (float) std::sin (juce::MathConstants<double>::twoPi * 220.0 * harmonic * (double) i / sampleRate) / (float) harmonic;
+
+    const auto brightness = [&] (float level)
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::fpOn, 1.0f);
+        rig.set (ParamIDs::fpType, (float) effects::FilterPitch::Type::autoWah);
+        rig.set (ParamIDs::fpSensitivity, 5.0f);
+        auto input = note;
+        for (auto& sample : input)
+            sample *= level;
+        const auto output = rig.runMono (input);
+        REQUIRE (allFinite (output));
+        return dB (levelAt (output, 220.0 * 11) / levelAt (output, 220.0 * 2));   // 2.4 kHz against 440 Hz
+    };
+
+    CHECK (brightness (0.3f) - brightness (0.003f) > 12.0f);
+}
+
+TEST_CASE ("The doubler adds a take on each side", "[effects][mod]")
+{
+    EffectRig rig;
+    rig.set (ParamIDs::modOn, 1.0f);
+    rig.set (ParamIDs::modType, typeIndex (ModType::doubler));
+    rig.set (ParamIDs::modMix, 0.7f);
+    const auto input = sine (440.0, 0.3f, 1.0);
+    const auto output = rig.run (input);
+    REQUIRE (allFinite (output[0]));
+    REQUIRE (allFinite (output[1]));
+
+    std::vector<float> difference (output[0].size());
+    for (size_t i = 0; i < difference.size(); ++i)
+        difference[i] = output[0][i] - output[1][i];
+    CHECK (rms (difference, 0.2) > 0.1f * rms (output[0], 0.2));   // the two sides differ
+    CHECK (rms (output[0], 0.2) < 2.0f * rms (input, 0.2));
+}
+
+TEST_CASE ("Projects saved before the drive MODEL keep the original overdrive", "[effects][drive]")
+{
+    EffectRig original;
+    juce::MemoryBlock saved;
+    original.processor.getStateInformation (saved);
+
+    // As an older version saved it: no driveModel parameter at all.
+    auto xml = juce::AudioProcessor::getXmlFromBinary (saved.getData(), (int) saved.getSize());
+    REQUIRE (xml != nullptr);
+    for (auto* child : xml->getChildIterator())
+        if (child->getStringAttribute ("id") == ParamIDs::driveModel)
+        {
+            xml->removeChildElement (child, true);
+            break;
+        }
+    juce::MemoryBlock older;
+    juce::AudioProcessor::copyXmlToBinary (*xml, older);
+
+    const auto modelAfterLoading = [] (const juce::MemoryBlock& state)
+    {
+        EffectRig rig;
+        rig.processor.setStateInformation (state.getData(), (int) state.getSize());
+        return juce::roundToInt (rig.processor.getParameters().getRawParameterValue (ParamIDs::driveModel)->load());
+    };
+    CHECK (modelAfterLoading (older) == (int) effects::Drive::Model::classic);
+    CHECK (modelAfterLoading (saved) == (int) effects::Drive::Model::screamer);
+}
+
+TEST_CASE ("Modulation syncs to the tempo", "[effects][mod]")
+{
+    // Tremolo synced to quarter notes at the DAW's 120 BPM is two pulses a
+    // second, whatever RATE says: the same as RATE at 2 Hz unsynced.
+    const auto input = sine (440.0, 0.3f, 1.0);
+    const auto tremolo = [&] (float rate, float sync)
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::modOn, 1.0f);
+        rig.set (ParamIDs::modType, typeIndex (ModType::tremolo));
+        rig.set (ParamIDs::modDepth, 1.0f);
+        rig.set (ParamIDs::modRate, rate);
+        rig.set (ParamIDs::modSync, sync);
+        return rig.runMono (input);
+    };
+
+    const auto synced = tremolo (7.0f, 3.0f);   // sync 3 = "1/4"
+    const auto free = tremolo (2.0f, 0.0f);
+    CHECK (maxAbsDifference (synced, free, 0) < 0.01f);
+    CHECK (maxAbsDifference (tremolo (7.0f, 0.0f), free, (size_t) (0.2 * sampleRate)) > 0.05f);   // and RATE alone does matter
 }
 
 TEST_CASE ("Delay repeats at the set time", "[effects][delay]")
@@ -436,8 +724,13 @@ TEST_CASE ("Full chain runs comfortably faster than real time", "[effects][perfo
     EffectRig rig;
     rig.processor.loadAmpModel (juce::File (PARAGON_NAM_EXAMPLE_MODELS).getChildFile ("wavenet.nam"));
     REQUIRE (rig.processor.waitForLoads (20000));
-    for (const auto* id : { ParamIDs::compOn, ParamIDs::driveOn, ParamIDs::modOn, ParamIDs::delayOn, ParamIDs::reverbOn })
+    for (const auto* id : { ParamIDs::compOn, ParamIDs::fpOn, ParamIDs::driveOn, ParamIDs::eqOn, ParamIDs::modOn, ParamIDs::delayOn,
+                            ParamIDs::reverbOn })
         rig.set (id, 1.0f);
+    // The costliest settings: the pitch shifter two octaves up (it jumps most often) and the rotary.
+    rig.set (ParamIDs::fpType, (float) effects::FilterPitch::Type::pitchShifter);
+    rig.set (ParamIDs::fpInterval, 24.0f);
+    rig.set (ParamIDs::modType, (float) effects::Modulation::Type::rotary);
 
     const auto input = sine (220.0, 0.3f, 5.0);
     const auto startMs = juce::Time::getMillisecondCounterHiRes();
@@ -447,4 +740,57 @@ TEST_CASE ("Full chain runs comfortably faster than real time", "[effects][perfo
 
     WARN ("Full chain uses " << juce::String (realtimeFraction * 100.0, 1) << "% of one core in real time");
     CHECK (realtimeFraction < 0.5);
+}
+
+TEST_CASE ("Graphic EQ: flat is transparent, each band moves only its octave", "[effects][eq]")
+{
+    // The peak level of a steady tone after the plugin, with the EQ set by `setUp`.
+    auto levelOf = [] (float frequency, const std::function<void (EffectRig&)>& setUp)
+    {
+        EffectRig rig;
+        setUp (rig);
+        std::vector<float> tone ((size_t) (sampleRate * 0.5));
+        for (size_t i = 0; i < tone.size(); ++i)
+            tone[i] = 0.1f * (float) std::sin (juce::MathConstants<double>::twoPi * frequency * (double) i / sampleRate);
+        const auto out = rig.run (tone)[0];
+        return *std::max_element (out.end() - 4800, out.end());
+    };
+    const auto off = [] (EffectRig&) {};
+    const auto toDb = [] (float ratio) { return juce::Decibels::gainToDecibels (ratio); };
+
+    for (auto frequency : { 63.0f, 500.0f, 1000.0f, 4000.0f })
+    {
+        // Switched on but flat: no change at all.
+        const auto flat = levelOf (frequency, [] (EffectRig& rig) { rig.set (ParamIDs::eqOn, 1.0f); });
+        CHECK_THAT (toDb (flat / levelOf (frequency, off)), WithinAbs (0.0, 0.05));
+    }
+
+    // +12 dB at 1 kHz: a 1 kHz tone comes up by about 12 dB; far-off octaves barely
+    // move (a band's skirt spills a little, as on a hardware graphic EQ: under
+    // 1 dB three octaves away, under 0.5 dB four away).
+    const auto boost1k = [] (EffectRig& rig) { rig.set (ParamIDs::eqOn, 1.0f); rig.set ("eq1k", 12.0f); };
+    CHECK_THAT (toDb (levelOf (1000.0f, boost1k) / levelOf (1000.0f, off)), WithinAbs (12.0, 0.5));
+    CHECK (std::abs (toDb (levelOf (63.0f, boost1k) / levelOf (63.0f, off))) < 0.5f);
+    CHECK (std::abs (toDb (levelOf (8000.0f, boost1k) / levelOf (8000.0f, off))) < 1.0f);
+
+    // Cuts work the same way, and LEVEL moves everything.
+    const auto cut125 = [] (EffectRig& rig) { rig.set (ParamIDs::eqOn, 1.0f); rig.set ("eq125", -12.0f); };
+    CHECK_THAT (toDb (levelOf (125.0f, cut125) / levelOf (125.0f, off)), WithinAbs (-12.0, 0.5));
+    const auto louder = [] (EffectRig& rig) { rig.set (ParamIDs::eqOn, 1.0f); rig.set (ParamIDs::eqLevel, 6.0f); };
+    CHECK_THAT (toDb (levelOf (500.0f, louder) / levelOf (500.0f, off)), WithinAbs (6.0, 0.1));
+
+    // Off means off, whatever the faders say.
+    const auto bypassed = [] (EffectRig& rig) { rig.set ("eq1k", 12.0f); };
+    CHECK_THAT (toDb (levelOf (1000.0f, bypassed) / levelOf (1000.0f, off)), WithinAbs (0.0, 0.01));
+}
+
+TEST_CASE ("Graphic EQ's drawn curve matches what it does", "[effects][eq]")
+{
+    std::array<float, effects::GraphicEq::numBands> gains {};
+    CHECK_THAT (effects::GraphicEq::responseDb (gains, 1000.0f), WithinAbs (0.0, 1.0e-6));
+    gains[4] = 12.0f;   // 1 kHz
+    CHECK_THAT (effects::GraphicEq::responseDb (gains, 1000.0f), WithinAbs (12.0, 0.05));
+    CHECK (std::abs (effects::GraphicEq::responseDb (gains, 63.0f)) < 0.5f);
+    // A band above half a low sample rate is pulled down rather than breaking.
+    CHECK (effects::GraphicEq::bandFrequency (8, 22050.0) < 11025.0f);
 }

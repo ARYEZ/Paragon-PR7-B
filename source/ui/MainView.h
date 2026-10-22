@@ -5,6 +5,7 @@
 #include "PluginProcessor.h"
 #include "ui/DockPanels.h"
 #include "ui/EffectPanel.h"
+#include "ui/GraphicEqPanel.h"
 #include "ui/Footswitch.h"
 #include "ui/LedDisplay.h"
 #include "ui/LevelMeter.h"
@@ -62,7 +63,7 @@ public:
 private:
     // The blocks in signal-chain order; footswitches, the chain strip and
     // the summary cards select these to show their knobs.
-    enum Block { compBlock, driveBlock, ampBlock, cabBlock, modBlock, delayBlock, reverbBlock, numBlocks };
+    enum Block { compBlock, filterPitchBlock, driveBlock, ampBlock, cabBlock, eqBlock, modBlock, delayBlock, reverbBlock, numBlocks };
     static constexpr int noBlock = -1;   // the dock shows the rig summary
 
     enum class Page { processor, presets, settings };
@@ -78,6 +79,7 @@ private:
     void refreshRig();
     void saveRig();
     juce::String valueText (const char* parameterId) const;
+    float rawValue (const char* parameterId) const;
 
     ParagonX1AudioProcessor& audioProcessor;
 
@@ -129,7 +131,8 @@ private:
     SelectedRigPanel selectedRig;
     RigSummary rigSummary;
     ExpressionPanel expressionPanel;
-    std::array<std::unique_ptr<EffectPanel>, numBlocks> panels;
+    std::array<std::unique_ptr<EffectPanel>, numBlocks> panels;   // empty at eqBlock: the EQ has its own panel
+    GraphicEqPanel eqPanel;
     juce::TextButton closePanel { "RIG SUMMARY" };
     SignalChain signalChain;
     int selectedBlock = noBlock;

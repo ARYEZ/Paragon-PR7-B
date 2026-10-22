@@ -62,7 +62,7 @@ struct EffectPanel::Control
         else if (buttonAttachment != nullptr)
             widget->setBounds (area.withSizeKeepingCentre (26, 26));   // LED in the middle of its card
         else
-            widget->setBounds (area.withSizeKeepingCentre (area.getWidth() - 10, 28));
+            widget->setBounds (area.withSizeKeepingCentre (area.getWidth() - 4, 28));
     }
 
     void updateActive()
@@ -174,26 +174,41 @@ void EffectPanel::resized()
         area.removeFromTop (20);   // group names
     area.removeFromBottom (4);
 
-    // Cards as wide as fit (up to a limit), centred as a row.
+    // Cards as wide as fit (up to a limit), centred as a row. An ON light
+    // needs little room and a drop-down list a lot, so cards are sized by
+    // what they hold rather than all alike.
+    const auto weight = [] (const Control& control) { return control.isKnob ? 1.0f : control.buttonAttachment != nullptr ? 0.75f : 1.9f; };
     int numControls = 0;
+    float totalWeight = 0.0f;
     for (const auto& group : groups)
-        numControls += (int) group.controls.size();
+        for (const auto* control : group.controls)
+        {
+            ++numControls;
+            totalWeight += weight (*control);
+        }
     const auto gaps = tileGap * (numControls - (int) groups.size()) + groupGap * ((int) groups.size() - 1);
-    const auto tileWidth = juce::jmin (maxTileWidth, (area.getWidth() - gaps) / juce::jmax (1, numControls));
-    const auto totalWidth = tileWidth * numControls + gaps;
+    const auto unitWidth = juce::jmin ((float) maxTileWidth, (float) (area.getWidth() - gaps) / juce::jmax (1.0f, totalWeight));
+    const auto tileWidth = [&] (const Control& control) { return juce::roundToInt (unitWidth * weight (control)); };
+
+    auto totalWidth = gaps;
+    for (const auto& group : groups)
+        for (const auto* control : group.controls)
+            totalWidth += tileWidth (*control);
     area = area.withSizeKeepingCentre (totalWidth, area.getHeight());
 
     tiles.clear();
     for (auto& group : groups)
     {
-        const auto groupWidth = tileWidth * (int) group.controls.size() + tileGap * ((int) group.controls.size() - 1);
+        auto groupWidth = tileGap * ((int) group.controls.size() - 1);
+        for (const auto* control : group.controls)
+            groupWidth += tileWidth (*control);
         group.area = area.removeFromLeft (groupWidth).withTrimmedTop (-20);
         area.removeFromLeft (groupGap);
 
         auto row = group.area.withTrimmedTop (20);
         for (auto* control : group.controls)
         {
-            const auto tile = row.removeFromLeft (tileWidth);
+            const auto tile = row.removeFromLeft (tileWidth (*control));
             row.removeFromLeft (tileGap);
             tiles.push_back (tile);
             control->setBounds (tile.reduced (4, 8));

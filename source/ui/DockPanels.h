@@ -115,6 +115,7 @@ private:
     void setTags (const juce::StringArray& tags);
     juce::String text (const char* parameterId) const;
     float value (const char* parameterId) const;
+    juce::String eqSummary() const;
 
     ParagonX1AudioProcessor& processor;
     std::vector<Card> cards;

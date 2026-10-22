@@ -10,6 +10,8 @@
 #include "dsp/effects/CompGate.h"
 #include "dsp/effects/Delay.h"
 #include "dsp/effects/Drive.h"
+#include "dsp/effects/FilterPitch.h"
+#include "dsp/effects/GraphicEq.h"
 #include "dsp/effects/Modulation.h"
 #include "dsp/effects/Presence.h"
 #include "dsp/effects/Reverb.h"
@@ -223,16 +225,19 @@ private:
     AmpStage amp;
     CabStage cab;
 
-    // Signal chain, in order: compGate -> drive -> amp -> cab -> presence
-    // -> modulation -> delay -> reverb. Up to the cab it's mono; from
+    // Signal chain, in order: wah -> compGate -> drive -> amp -> cab -> presence
+    // -> graphic EQ -> modulation -> delay -> reverb. Up to the cab it's mono; from
     // modulation on it's stereo when the track is.
     effects::CompGate compGate;
+    effects::FilterPitch filterPitch;   // after the compressor, before the drive
     effects::Drive drive;
     effects::Presence presence;
     effects::Modulation modulation;
     effects::Delay delay;
     effects::Reverb reverb;
-    effects::Wah wah;   // the expression pedal's WAH, first in the chain as on a pedalboard
+    effects::Wah wah;
+    effects::GraphicEq graphicEq;   // after the cabinet and presence, before modulation
+    std::array<std::atomic<float>*, effects::GraphicEq::numBands> eqGainDb {};   // the expression pedal's WAH, first in the chain as on a pedalboard
 
     std::unique_ptr<RigLibrary> rigLibrary;
     CurrentRig currentRig;
@@ -269,7 +274,7 @@ private:
     LevelMeterSource inputMeter, outputMeter;
 
     // Declared last so it is destroyed first: its jobs use the members above.
-    juce::ThreadPool loader { juce::ThreadPoolOptions{}.withThreadName ("Paragon X1 loader").withNumberOfThreads (1) };
+    juce::ThreadPool loader { juce::ThreadPoolOptions{}.withThreadName ("Paragon PR7 loader").withNumberOfThreads (1) };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParagonX1AudioProcessor)
 };

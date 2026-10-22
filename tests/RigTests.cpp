@@ -390,3 +390,38 @@ TEST_CASE ("Each rig's OUTPUT LEVEL adds to the master output", "[rigs]")
     }
     CHECK_THAT (buffer.getMagnitude (0, 0, 256), WithinAbs (0.1 * 1.9953, 0.005));
 }
+
+TEST_CASE ("Rigs saved under the old name (Paragon X1) carry over to Paragon PR7", "[rigs]")
+{
+    const auto root = juce::File::getSpecialLocation (juce::File::tempDirectory)
+                          .getChildFile ("ParagonRename-" + juce::String::toHexString (juce::Random::getSystemRandom().nextInt64()));
+    const auto oldFolder = root.getChildFile ("Paragon X1"), newFolder = root.getChildFile ("Paragon PR7");
+    REQUIRE (oldFolder.getChildFile ("Rigs").createDirectory());
+    REQUIRE (oldFolder.getChildFile ("Rigs").getChildFile ("My Rig.x1rig").replaceWithText ("<ParagonRig/>"));
+
+    CHECK (RigLibrary::carryOverFromOldName (oldFolder, newFolder));
+    CHECK (newFolder.getChildFile ("Rigs").getChildFile ("My Rig.x1rig").existsAsFile());
+    CHECK (oldFolder.getChildFile ("Rigs").getChildFile ("My Rig.x1rig").existsAsFile());   // copied, not moved
+
+    // Only once: after that the new folder is the one in use, even if rigs are deleted from it.
+    newFolder.getChildFile ("Rigs").getChildFile ("My Rig.x1rig").deleteFile();
+    CHECK_FALSE (RigLibrary::carryOverFromOldName (oldFolder, newFolder));
+    CHECK_FALSE (newFolder.getChildFile ("Rigs").getChildFile ("My Rig.x1rig").exists());
+
+    root.deleteRecursively();
+}
+
+TEST_CASE ("Rig files from Paragon X1 (.x1rig) still load", "[rigs]")
+{
+    const auto folder = juce::File::getSpecialLocation (juce::File::tempDirectory)
+                            .getChildFile ("ParagonOldRigs-" + juce::String::toHexString (juce::Random::getSystemRandom().nextInt64()));
+    REQUIRE (folder.createDirectory());
+    Rig old;
+    old.name = "From X1";
+    REQUIRE (old.toXml()->writeTo (folder.getChildFile ("From X1.x1rig")));
+
+    RigLibrary library (folder);
+    CHECK (std::any_of (library.getEntries().begin(), library.getEntries().end(),
+                        [] (const auto& entry) { return entry.rig.name == "From X1"; }));
+    folder.deleteRecursively();
+}

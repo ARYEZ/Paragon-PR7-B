@@ -1,9 +1,12 @@
-# Paragon X1
+# Paragon PR7
+
+[![Build](https://github.com/ARYEZ/Paragon-X1/actions/workflows/build.yml/badge.svg)](https://github.com/ARYEZ/Paragon-X1/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/ARYEZ/Paragon-X1)](https://github.com/ARYEZ/Paragon-X1/releases/latest)
 
 A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://github.com/sdatkinson/NeuralAmpModelerCore)
 (`.nam`) amp captures, with a cabinet IR loader and built-in effects. Built with [JUCE](https://juce.com).
 
-![Paragon X1 mockup](Paragon%20x1.png)
+![Paragon PR7 mockup (from when it was called Paragon X1)](Paragon%20x1.png)
 
 *The design mockup. Version 0.7 matches it closely, feature for feature.*
 
@@ -33,13 +36,20 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
   latency to your DAW.
 - **PRESENCE** (under the cabinet) cuts or boosts the top end after the cab, like an amp's presence knob.
 - **Footswitches 1-4** turn the effect blocks on and off. Click a footswitch's name to show its knobs
-  below. Signal chain: comp/gate → overdrive → amp → cabinet → presence → modulation → delay → reverb.
+  below. Signal chain: comp/gate → filter / pitch → overdrive → amp → cabinet → presence → graphic EQ → modulation
+  → delay → reverb.
   - **1 Comp / Gate:** compressor (threshold, ratio, level) and noise gate (threshold; all the way down is off).
-  - **2 OD / Distortion:** overdrive (drive, tone, level), 8x oversampled to avoid harsh aliasing.
-  - **3 Modulation:** chorus, flanger, phaser or tremolo. Chorus and flanger are stereo.
+  - **Filter / Pitch** (in the signal chain; no footswitch): an auto-wah (envelope filter) or a pitch shifter
+    (two octaves down to two up, blended with the dry guitar for harmonies and octaves).
+  - **2 OD / Distortion:** two models: **Screamer**, modelled on the Ibanez TS808 Tube Screamer's circuit, and
+    **Classic**, Paragon's original overdrive. Drive, tone, level; 8x oversampled to avoid harsh aliasing.
+  - **3 Modulation:** eleven types: chorus, flanger, phaser, tremolo, Dimension chorus, Uni-Vibe, rotary
+    (Leslie), vibrato, harmonic tremolo, auto-pan and doubler. SYNC locks the rate to the tapped or DAW tempo.
   - **4 Reverb / Delay:** switches both; each also has its own ON switch. The delay syncs to your
     DAW's tempo (or set SYNC to Off for milliseconds), has a tone control for darker repeats, and
     optional ping-pong. Both let their tails ring out when switched off.
+- **Graphic EQ:** 9 bands (63 Hz to 16 kHz, ±12 dB) and a level, after the cabinet. Open it from the
+  **EQ** block in the signal chain; the curve shows the EQ's actual response. FLAT resets it.
 - All effects start switched off, so projects made with earlier versions sound the same.
 - **Rigs:** SAVE in the header saves the current sound as a rig; **<** and **>** step through rigs; a
   `*` after the name means it's changed since loading. The **PRESETS** tab browses, searches, files
@@ -54,8 +64,9 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
   pedal's position aren't undone.
 - **Expression pedal** (right of the unit): drag it, use the mouse wheel, or send MIDI CC 11 (or the CC chosen in SETTINGS) from a
   real expression pedal (route your MIDI track to the plugin). Assign it with EXPRESSION ASSIGN to
-  **VOLUME**, **WAH / FILTER** (a wah before the drive) or **MORPH / FX** (fades modulation, delay and
-  reverb in from the heel). MIN and MAX set where the heel and toe land. The assignment and range
+  **VOLUME**, **WAH / FILTER** (a wah before the drive), **MORPH / FX** (fades modulation, delay and
+  reverb in from the heel) or **PITCH / WHAMMY** (bends the pitch shifter from no shift at the heel to its
+  INTERVAL at the toe). MIN and MAX set where the heel and toe land. The assignment and range
   are saved with each rig.
 - **Bottom panels:** RIG BROWSER jumps to the PRESETS page filtered; SELECTED RIG files and saves the
   current rig; TAGS and RIG SUMMARY show the rig at a glance. Click a summary card (or a footswitch name,
@@ -66,10 +77,10 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 
 ## Download
 
-Get the latest version from the **[Releases](../../releases)** page: download the zip for your
+Get the latest version from the **[Releases](https://github.com/ARYEZ/Paragon-X1/releases/latest)** page: download the zip for your
 computer. (Builds of every push also appear under **Actions** → a run → **Artifacts**.)
 
-Unzip it and copy `Paragon X1.vst3` to your VST3 folder:
+Unzip it and copy `Paragon PR7.vst3` to your VST3 folder:
 
 | OS | VST3 folder |
 |---|---|
@@ -78,7 +89,7 @@ Unzip it and copy `Paragon X1.vst3` to your VST3 folder:
 | Linux | `~/.vst3` |
 
 **macOS:** the build isn't code-signed yet, so macOS will block it. After copying, run
-`xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/"Paragon X1.vst3"` once.
+`xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/"Paragon PR7.vst3"` once.
 
 ## Making a release
 
@@ -115,7 +126,7 @@ PARAGON_SNAPSHOT=editor.png ./build/tests/ParagonX1Tests "[snapshot]"
 The Inter typeface (in `resources/fonts`) is by Rasmus Andersson, under the SIL Open Font License.
 
 
-Paragon X1 is free software under the [GNU Affero General Public License v3](LICENSE.md),
+Paragon PR7 is free software under the [GNU Affero General Public License v3](LICENSE.md),
 which is required by JUCE's open-source licence.
 
 It uses:
@@ -124,5 +135,5 @@ It uses:
 - [Eigen](https://eigen.tuxfamily.org): MPL 2.0
 - [AudioDSPTools](https://github.com/sdatkinson/AudioDSPTools) (resampler): MIT, with parts from iPlug2 under the zlib-style iPlug2 licence
 
-"Neural Amp Modeler" is Steven Atkinson's project. Paragon X1 is an independent player for `.nam`
+"Neural Amp Modeler" is Steven Atkinson's project. Paragon PR7 is an independent player for `.nam`
 files and isn't affiliated with or endorsed by it.

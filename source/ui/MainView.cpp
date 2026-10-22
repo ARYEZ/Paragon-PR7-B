@@ -1,6 +1,8 @@
 #include "MainView.h"
 
 #include "Parameters.h"
+#include "ui/Logo.h"
+#include "dsp/effects/Modulation.h"
 
 namespace
 {
@@ -104,11 +106,14 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
       selectedRig (processorToShow),
       rigSummary (processorToShow),
       expressionPanel (processorToShow.getParameters()),
+      eqPanel (processorToShow.getParameters()),
       signalChain (processorToShow.getParameters(), {
           { "COMP / GATE", Icons::Type::comp, ParagonColours::comp, ParamIDs::compOn },
+          { "FILTER / PITCH", Icons::Type::filterPitch, ParagonColours::filterPitch, ParamIDs::fpOn },
           { "OD / DIST", Icons::Type::drive, ParagonColours::drive, ParamIDs::driveOn },
           { "NAMP", Icons::Type::amp, ParagonColours::amp, ParamIDs::ampOn },
           { "CABINET IR", Icons::Type::cabinet, ParagonColours::cab, ParamIDs::cabOn },
+          { "EQ", Icons::Type::eq, ParagonColours::eq, ParamIDs::eqOn },
           { "MODULATION", Icons::Type::modulation, ParagonColours::modulation, ParamIDs::modOn },
           { "DELAY", Icons::Type::delay, ParagonColours::delay, ParamIDs::delayOn },
           { "REVERB", Icons::Type::reverb, ParagonColours::reverb, ParamIDs::reverbOn } }),
@@ -234,9 +239,16 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
         return text;
     };
     footswitches[1] = std::make_unique<Footswitch> (2, "OD / DISTORTION", state, juce::StringArray { ParamIDs::driveOn });
-    footswitches[1]->describe = [this] { return "Drive " + valueText (ParamIDs::driveGain) + "  Tone " + valueText (ParamIDs::driveTone); };
+    footswitches[1]->describe = [this]
+    {
+        const auto screamer = juce::roundToInt (rawValue (ParamIDs::driveModel)) == (int) effects::Drive::Model::screamer;
+        return juce::String (screamer ? "Screamer" : "Classic") + "  Drive " + valueText (ParamIDs::driveGain);
+    };
     footswitches[2] = std::make_unique<Footswitch> (3, "MODULATION", state, juce::StringArray { ParamIDs::modOn });
-    footswitches[2]->describe = [this] { return valueText (ParamIDs::modType) + "  " + valueText (ParamIDs::modRate); };
+    footswitches[2]->describe = [this]
+    {
+        return valueText (ParamIDs::modType) + "  " + valueText (rawValue (ParamIDs::modSync) > 0.5f ? ParamIDs::modSync : ParamIDs::modRate);
+    };
     footswitches[3] = std::make_unique<Footswitch> (4, "REVERB / DELAY", state, juce::StringArray { ParamIDs::delayOn, ParamIDs::reverbOn });
     footswitches[3]->describe = [this]
     {
@@ -270,8 +282,18 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
         { "COMPRESSOR", { { ParamIDs::compOn, "ON" }, { ParamIDs::compThreshold, "THRESHOLD" }, { ParamIDs::compRatio, "RATIO" },
                           { ParamIDs::compLevel, "LEVEL" } } },
         { "NOISE GATE", { { ParamIDs::gateThreshold, "THRESHOLD" } } } });
+    const auto fpIs = [this] (effects::FilterPitch::Type type)
+    {
+        return [this, type] { return juce::roundToInt (rawValue (ParamIDs::fpType)) == (int) type; };
+    };
+    panels[filterPitchBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
+        { "FILTER / PITCH", { { ParamIDs::fpOn, "ON" }, { ParamIDs::fpType, "TYPE" },
+                              { ParamIDs::fpSensitivity, "SENSITIVITY", fpIs (effects::FilterPitch::Type::autoWah) },
+                              { ParamIDs::fpResonance, "RESONANCE", fpIs (effects::FilterPitch::Type::autoWah) },
+                              { ParamIDs::fpInterval, "INTERVAL", fpIs (effects::FilterPitch::Type::pitchShifter) },
+                              { ParamIDs::fpMix, "MIX" } } } });
     panels[driveBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
-        { "OVERDRIVE", { { ParamIDs::driveOn, "ON" }, { ParamIDs::driveGain, "DRIVE" }, { ParamIDs::driveTone, "TONE" },
+        { "OVERDRIVE", { { ParamIDs::driveOn, "ON" }, { ParamIDs::driveModel, "MODEL" }, { ParamIDs::driveGain, "DRIVE" }, { ParamIDs::driveTone, "TONE" },
                          { ParamIDs::driveLevel, "LEVEL" } } } });
     panels[ampBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "AMP (NAM)", { { ParamIDs::ampOn, "ON" }, { ParamIDs::ampNormalise, "NORMALISE" }, { ParamIDs::presence, "PRESENCE" },
@@ -279,27 +301,35 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     panels[cabBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "CABINET (IR)", { { ParamIDs::cabOn, "ON" }, { ParamIDs::presence, "PRESENCE" } } } });
     panels[modBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
-        { "MODULATION", { { ParamIDs::modOn, "ON" }, { ParamIDs::modType, "TYPE" }, { ParamIDs::modRate, "RATE" },
-                          { ParamIDs::modDepth, "DEPTH" }, { ParamIDs::modMix, "MIX" } } } });
+        { "MODULATION", { { ParamIDs::modOn, "ON" }, { ParamIDs::modType, "TYPE" }, { ParamIDs::modSync, "SYNC" },
+                          { ParamIDs::modRate, "RATE", [this] { return rawValue (ParamIDs::modSync) < 0.5f; } },
+                          { ParamIDs::modDepth, "DEPTH" },
+                          { ParamIDs::modMix, "MIX", [this] {
+                              return effects::Modulation::usesMix ((effects::Modulation::Type) juce::roundToInt (rawValue (ParamIDs::modType))); } } } } });
     panels[delayBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "DELAY", { { ParamIDs::delayOn, "ON" }, { ParamIDs::delaySync, "SYNC" },
-                     { ParamIDs::delayTime, "TIME", [this] { return audioProcessor.getParameters().getRawParameterValue (ParamIDs::delaySync)->load() < 0.5f; } },
+                     { ParamIDs::delayTime, "TIME", [this] { return rawValue (ParamIDs::delaySync) < 0.5f; } },
                      { ParamIDs::delayFeedback, "FEEDBACK" }, { ParamIDs::delayTone, "TONE" }, { ParamIDs::delayMix, "MIX" },
                      { ParamIDs::delayPingPong, "PING-PONG" } } } });
     panels[reverbBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "REVERB", { { ParamIDs::reverbOn, "ON" }, { ParamIDs::reverbSize, "SIZE" }, { ParamIDs::reverbTone, "TONE" },
                       { ParamIDs::reverbMix, "MIX" } } } });
     const std::pair<Icons::Type, juce::Colour> headers[] = {
-        { Icons::Type::comp, ParagonColours::comp }, { Icons::Type::drive, ParagonColours::drive },
+        { Icons::Type::comp, ParagonColours::comp }, { Icons::Type::filterPitch, ParagonColours::filterPitch },
+        { Icons::Type::drive, ParagonColours::drive },
         { Icons::Type::amp, ParagonColours::amp }, { Icons::Type::cabinet, ParagonColours::cab },
+        { Icons::Type::eq, ParagonColours::eq },
         { Icons::Type::modulation, ParagonColours::modulation }, { Icons::Type::delay, ParagonColours::delay },
         { Icons::Type::reverb, ParagonColours::reverb } };
-    const char* titles[] = { "COMP / GATE", "OD / DISTORTION", "AMP (NAM)", "CABINET (IR)", "MODULATION", "DELAY", "REVERB" };
+    const char* titles[] = { "COMP / GATE", "FILTER / PITCH", "OD / DISTORTION", "AMP (NAM)", "CABINET (IR)", "GRAPHIC EQ", "MODULATION", "DELAY", "REVERB" };
     for (size_t i = 0; i < panels.size(); ++i)
     {
+        if (panels[i] == nullptr)
+            continue;
         panels[i]->setHeader (headers[i].first, headers[i].second, titles[i]);
         addChildComponent (*panels[i]);
     }
+    addChildComponent (eqPanel);
 
     closePanel.setTooltip ("Back to the rig summary");
     closePanel.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff151217));
@@ -345,13 +375,20 @@ juce::String MainView::valueText (const char* parameterId) const
     return audioProcessor.getParameters().getParameter (parameterId)->getCurrentValueAsText();
 }
 
+float MainView::rawValue (const char* parameterId) const
+{
+    return audioProcessor.getParameters().getRawParameterValue (parameterId)->load();
+}
+
 void MainView::selectBlock (int block)
 {
     // A block's knobs replace the TAGS / RIG SUMMARY panel; noBlock shows the summary again.
     selectedBlock = block;
     const auto onProcessorPage = page == Page::processor;
     for (size_t i = 0; i < panels.size(); ++i)
-        panels[i]->setVisible ((int) i == block && onProcessorPage);
+        if (panels[i] != nullptr)
+            panels[i]->setVisible ((int) i == block && onProcessorPage);
+    eqPanel.setVisible (block == eqBlock && onProcessorPage);
     closePanel.setVisible (block != noBlock && onProcessorPage);
     rigSummary.setVisible (block == noBlock && onProcessorPage);
     if (block != noBlock)
@@ -524,9 +561,8 @@ void MainView::paint (juce::Graphics& g)
     g.setColour (ParagonColours::text);
     g.drawText ("PARAGON", nameArea, juce::Justification::centredLeft, false);
     const auto nameWidth = (float) juce::GlyphArrangement::getStringWidthInt (nameFont, "PARAGON ");
-    g.setColour (ParagonColours::glow);
-    g.setFont (juce::FontOptions (21.0f, juce::Font::bold));
-    g.drawText ("X1", nameArea.withTrimmedLeft (nameWidth), juce::Justification::centredLeft, false);
+    Logo::drawPR7 (g, nameArea.withTrimmedLeft (nameWidth).withSizeKeepingCentre (nameArea.getWidth() - nameWidth, 17.0f),
+                   juce::Justification::centredLeft, { ParagonColours::glow, ParagonColours::glow, {}, {}, 1.0f, true });
 
     // Framed groups: the tabs, the rig selector and the tempo.
     for (const auto& group : { tabsGroup, rigGroup, tempoGroup })
@@ -623,7 +659,9 @@ void MainView::resized()
     for (size_t i = 0; i < footswitches.size(); ++i)
         footswitches[i]->setBounds (mock (footswitchX[i] - 48, 400, footswitchX[i] + 164, 524));
 
-    expressionPedal.setBounds (mock (1352, 90, 1530, 545));
+    // Exactly where the artwork was cut from the mockup, plus headroom above
+    // for the toe to rise into.
+    expressionPedal.setBounds (mock (1342, 46, 1553, 562));
 
     // Dock
     rigNavigator.setBounds (mock (12, 568, 246, 822));
@@ -631,7 +669,9 @@ void MainView::resized()
     const auto summaryArea = mock (662, 568, 1334, 822);
     rigSummary.setBounds (summaryArea);
     for (auto& panel : panels)
-        panel->setBounds (summaryArea);
+        if (panel != nullptr)
+            panel->setBounds (summaryArea);
+    eqPanel.setBounds (summaryArea);
     closePanel.setBounds (summaryArea.withSizeKeepingCentre (0, 0).withX (summaryArea.getRight() - 130).withY (summaryArea.getY() + 10)
                               .withSize (118, 24));
     expressionPanel.setBounds (mock (1344, 568, 1662, 822));

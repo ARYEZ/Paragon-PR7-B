@@ -59,6 +59,25 @@ namespace ParamIDs
     inline constexpr auto expressionMin    = "expressionMin";     // the target's setting at the heel...
     inline constexpr auto expressionMax    = "expressionMax";     // ...and at the toe
 
+    // Phase 8: the 9-band graphic EQ, one band per octave.
+    inline constexpr auto eqOn    = "eqOn";
+    inline constexpr auto eqLevel = "eqLevel";
+    inline const juce::StringArray eqBands { "eq63", "eq125", "eq250", "eq500", "eq1k", "eq2k", "eq4k", "eq8k", "eq16k" };
+    inline const juce::StringArray eqBandNames { "63", "125", "250", "500", "1K", "2K", "4K", "8K", "16K" };
+
+    // Modulation tempo sync: Off, or a note length at the tapped or host tempo.
+    inline constexpr auto modSync = "modSync";
+
+    // Version 10: the drive's model (Tube Screamer or the original), and
+    // the FILTER / PITCH block: auto-wah and pitch shifter.
+    inline constexpr auto driveModel    = "driveModel";
+    inline constexpr auto fpOn          = "fpOn";
+    inline constexpr auto fpType        = "fpType";
+    inline constexpr auto fpSensitivity = "fpSensitivity";   // auto-wah
+    inline constexpr auto fpResonance   = "fpResonance";     // auto-wah
+    inline constexpr auto fpInterval    = "fpInterval";      // pitch shifter, in semitones
+    inline constexpr auto fpMix         = "fpMix";
+
     // Global settings: kept when switching rigs. Everything else is part of a rig.
     // The expression pedal's position is global for the same reason a real
     // pedal's is: it's where your foot is, not part of the sound. What the
@@ -68,8 +87,9 @@ namespace ParamIDs
 
 namespace ExpressionTargets
 {
-    enum { off, volume, wah, morph };
-    inline const juce::StringArray names { "Off", "Volume", "Wah / Filter", "Morph FX" };
+    // Saved by number: only ever add to the end.
+    enum { off, volume, wah, morph, pitch };
+    inline const juce::StringArray names { "Off", "Volume", "Wah / Filter", "Morph FX", "Pitch / Whammy" };
 }
 
 namespace ParamRanges

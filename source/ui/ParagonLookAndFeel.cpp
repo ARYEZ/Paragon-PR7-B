@@ -81,15 +81,8 @@ void ParagonLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& 
 
     if (button.getProperties()[pedalButtonProperty])
     {
-        // Small black cap with a bevel, sitting on the metal.
-        auto cap = button.getLocalBounds().toFloat().reduced (1.0f);
-        g.setColour (juce::Colours::black.withAlpha (0.35f));
-        g.fillRoundedRectangle (cap.translated (0.0f, 1.5f), 3.0f);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (down ? 0xff151517 : 0xff2c2b30), cap.getTopLeft(),
-                                                 juce::Colour (0xff0b0b0c), cap.getBottomLeft(), false));
-        g.fillRoundedRectangle (cap, 3.0f);
-        g.setColour (highlighted ? ParagonColours::inkDim : juce::Colours::black);
-        g.drawRoundedRectangle (cap, 3.0f, 1.0f);
+        // A small piano-black key sitting on the metal.
+        drawPianoBlackKey (g, button.getLocalBounds().toFloat().reduced (1.0f, 1.0f).withTrimmedBottom (1.0f), 3.5f, 2.5f, down, highlighted);
         return;
     }
 
@@ -136,15 +129,7 @@ void ParagonLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& bu
     if (button.getButtonText().isEmpty())
     {
         // Just the LED stripe, like the mockup's EXIT / MODE / BYPASS caps.
-        const auto stripe = area.withSizeKeepingCentre (area.getWidth() * 0.6f, 3.0f);
-        if (on)
-        {
-            g.setColour (ParagonColours::glow.withAlpha (0.45f));
-            g.fillRoundedRectangle (stripe.expanded (3.0f, 3.0f), 3.0f);
-        }
-        // Even when off the stripe glows dimly red, as in the mockup.
-        g.setColour (on ? juce::Colour (0xffff8a7a) : juce::Colour (0xffd8352c).withAlpha (0.75f));
-        g.fillRoundedRectangle (stripe, 1.5f);
+        drawNeonBar (g, area.withSizeKeepingCentre (area.getWidth() * 0.6f, 4.0f).translated (0.0f, down ? 0.5f : -0.5f), on);
         return;
     }
 
@@ -156,44 +141,171 @@ void ParagonLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& bu
 
 void ParagonLookAndFeel::drawPedalKnob (juce::Graphics& g, juce::Rectangle<float> bounds, float angle)
 {
+    // The mockup's big knobs, drawn as a real object seen slightly from
+    // above: a black cylinder with a spun-metal top, standing in a thin neon
+    // ring that's open at the front, with red light pooling on the metal and
+    // reflecting up the cylinder's sides. Proportions measured off the mockup.
+    using MathConstants = juce::MathConstants<float>;
     const auto size = juce::jmin (bounds.getWidth(), bounds.getHeight());
-    const auto body = bounds.withSizeKeepingCentre (size, size).reduced (size * 0.2f);
-    const auto centre = body.getCentre();
+    const auto box = bounds.withSizeKeepingCentre (size, size);
+    const auto cx = box.getCentreX();
+    const auto topY = box.getY() + size * 0.37f;     // centre of the top face
+    const auto baseY = box.getY() + size * 0.58f;    // where the cylinder meets the metal
+    const auto rx = size * 0.24f, ry = size * 0.19f;
+    const auto ringRx = size * 0.29f, ringRy = size * 0.26f;
+    const auto ringY = baseY - size * 0.03f;         // the ring's centre, a little above the base
+    const juce::Colour neon { 0xffff2e3a }, neonCore { 0xffffd6d6 };
 
-    // Red-pink light pooling on the metal round the knob, as in the mockup:
-    // strongest right at its edge, fading out well beyond it.
-    juce::ColourGradient halo (juce::Colour (0xffff3a4a).withAlpha (0.7f), centre,
-                               juce::Colour (0xffff3a4a).withAlpha (0.0f), centre.translated (size * 0.5f, 0.0f), true);
-    halo.addColour (0.55, juce::Colour (0xffff3a4a).withAlpha (0.45f));
-    g.setGradientFill (halo);
-    g.fillEllipse (bounds.withSizeKeepingCentre (size, size));
-
-    // Shadow, then the knurled black body: a ring of fine ridges round the edge.
-    g.setColour (juce::Colours::black.withAlpha (0.4f));
-    g.fillEllipse (body.translated (0.0f, size * 0.03f));
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff3b3a40), body.getTopLeft(),
-                                             juce::Colour (0xff050506), body.getBottomRight(), false));
-    g.fillEllipse (body);
-
-    const auto radius = body.getWidth() / 2.0f;
-    g.setColour (juce::Colours::white.withAlpha (0.07f));
-    for (int ridge = 0; ridge < 48; ++ridge)
+    // 1. Light pooling on the metal round the ring (kept tight, so it reads
+    //    as a glow rather than a wash of pink), and the knob's contact shadow.
     {
-        const auto a = (float) ridge / 48.0f * juce::MathConstants<float>::twoPi;
-        g.drawLine ({ centre.getPointOnCircumference (radius * 0.86f, a), centre.getPointOnCircumference (radius * 0.99f, a) }, 1.0f);
+        juce::ColourGradient pool (neon.withAlpha (0.35f), cx, baseY, neon.withAlpha (0.0f), cx + ringRx * 1.25f, baseY, true);
+        pool.addColour (0.75, neon.withAlpha (0.18f));
+        g.setGradientFill (pool);
+        g.fillEllipse (juce::Rectangle<float> (ringRx * 2.5f, ringRy * 2.5f).withCentre ({ cx, baseY }));
+        g.setGradientFill (juce::ColourGradient (juce::Colours::black.withAlpha (0.55f), cx, baseY + ry * 0.2f,
+                                                 juce::Colours::black.withAlpha (0.0f), cx + rx * 1.25f, baseY + ry * 0.2f, true));
+        g.fillEllipse (juce::Rectangle<float> (rx * 2.5f, ry * 2.1f).withCentre ({ cx, baseY + ry * 0.25f }));
     }
 
-    // Smooth top cap with a highlight.
-    const auto cap = body.reduced (radius * 0.18f);
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2f2e34), cap.getTopLeft(),
-                                             juce::Colour (0xff0d0d0f), cap.getBottomRight(), false));
-    g.fillEllipse (cap);
-    g.setColour (juce::Colours::white.withAlpha (0.08f));
-    g.drawEllipse (cap.reduced (1.0f), 1.0f);
+    // The neon ring as arcs (JUCE angles: clockwise from 12 o'clock). It's
+    // open at the front (6 o'clock), like the mockup's.
+    constexpr auto gap = 0.62f;   // half the opening, in radians
+    const auto ringArc = [&] (float from, float to)
+    {
+        juce::Path arc;
+        arc.addCentredArc (cx, ringY, ringRx, ringRy, 0.0f, from, to, true);
+        return arc;
+    };
+    const auto strokeNeon = [&] (const juce::Path& arc)
+    {
+        g.setColour (neon.withAlpha (0.18f));
+        g.strokePath (arc, juce::PathStrokeType (size * 0.075f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        g.setColour (neon.withAlpha (0.45f));
+        g.strokePath (arc, juce::PathStrokeType (size * 0.032f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        g.setColour (neon);
+        g.strokePath (arc, juce::PathStrokeType (size * 0.016f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        g.setColour (neonCore);
+        g.strokePath (arc, juce::PathStrokeType (size * 0.006f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    };
 
-    // Pointer line.
-    g.setColour (ParagonColours::text);
-    g.drawLine ({ centre.getPointOnCircumference (radius * 0.25f, angle), centre.getPointOnCircumference (radius * 0.75f, angle) }, 2.5f);
+    // 2. The back of the ring (the knob hides most of it).
+    strokeNeon (ringArc (MathConstants::pi * 1.5f, MathConstants::pi * 2.5f));
+
+    // 3. The cylinder: glossy black, with the red glow reflected up its
+    //    sides and a faint highlight where it faces the light.
+    juce::Path side;
+    side.startNewSubPath (cx - rx, topY);
+    side.lineTo (cx - rx, baseY);
+    side.addCentredArc (cx, baseY, rx, ry, 0.0f, MathConstants::pi * 1.5f, MathConstants::pi * 0.5f);
+    side.lineTo (cx + rx, topY);
+    side.closeSubPath();
+    {
+        juce::ColourGradient wall (juce::Colour (0xff030304), cx - rx, 0.0f, juce::Colour (0xff030304), cx + rx, 0.0f, false);
+        wall.addColour (0.3, juce::Colour (0xff1b1a1e));
+        wall.addColour (0.55, juce::Colour (0xff0c0c0e));
+        g.setGradientFill (wall);
+        g.fillPath (side);
+
+        juce::Graphics::ScopedSaveState state (g);
+        g.reduceClipRegion (side);
+        for (auto x : { cx - rx * 0.78f, cx + rx * 0.82f, cx - rx * 0.35f })
+        {
+            const auto strong = std::abs (x - cx) > rx * 0.5f;
+            if (! strong)
+            {
+                g.setGradientFill (juce::ColourGradient (neon.withAlpha (0.0f), 0.0f, topY, neon.withAlpha (0.14f), 0.0f, baseY + ry, false));
+                g.fillRect (juce::Rectangle<float> (size * 0.015f, (baseY + ry) - topY).withCentre ({ x, (topY + baseY + ry) * 0.5f }));
+                continue;
+            }
+            const auto streak = juce::Rectangle<float> (size * (strong ? 0.035f : 0.02f), (baseY + ry) - topY).withCentre ({ x, (topY + baseY + ry) * 0.5f });
+            g.setGradientFill (juce::ColourGradient (neon.withAlpha (0.0f), 0.0f, topY,
+                                                     neon.withAlpha (strong ? 0.75f : 0.3f), 0.0f, baseY + ry, false));
+            g.fillRect (streak);
+        }
+    }
+
+    // 4. The top: spun metal. Light catches it in two broad opposite fans
+    //    (anisotropic reflection), drawn as thin wedges whose brightness
+    //    follows the angle, plus fine concentric machining rings.
+    const auto top = juce::Rectangle<float> (rx * 2.0f, ry * 2.0f).withCentre ({ cx, topY });
+    juce::Path topFace;
+    topFace.addEllipse (top);
+    {
+        juce::Graphics::ScopedSaveState state (g);
+        g.reduceClipRegion (topFace);
+        g.setColour (juce::Colour (0xff09090b));
+        g.fillPath (topFace);
+
+        constexpr int wedges = 144;
+        for (int i = 0; i < wedges; ++i)
+        {
+            const auto a0 = (float) i / (float) wedges * MathConstants::twoPi;
+            const auto a1 = (float) (i + 1) / (float) wedges * MathConstants::twoPi;
+            const auto fan = std::pow (0.5f + 0.5f * std::cos (2.0f * (a0 + 0.55f)), 3.0f);
+            juce::Path wedge;
+            wedge.startNewSubPath (cx, topY);
+            wedge.lineTo (cx + std::sin (a0) * rx * 1.1f, topY - std::cos (a0) * ry * 1.1f);
+            wedge.lineTo (cx + std::sin (a1) * rx * 1.1f, topY - std::cos (a1) * ry * 1.1f);
+            wedge.closeSubPath();
+            g.setColour (juce::Colour (0xff6a6970).withAlpha (0.06f + 0.7f * fan));
+            g.fillPath (wedge);
+        }
+
+        g.setColour (juce::Colours::white.withAlpha (0.012f));
+        for (int ring = 1; ring <= 10; ++ring)
+            g.drawEllipse (top.withSizeKeepingCentre (top.getWidth() * (float) ring / 10.0f, top.getHeight() * (float) ring / 10.0f), 0.8f);
+
+        // Darker towards the rim, so the top reads as slightly domed.
+        g.setGradientFill (juce::ColourGradient (juce::Colours::black.withAlpha (0.0f), cx, topY,
+                                                 juce::Colours::black.withAlpha (0.5f), cx + rx, topY, true));
+        g.fillPath (topFace);
+
+        // The pointer: a fine engraved line, turning with the value.
+        const auto at = [&] (float fraction)
+        {
+            return juce::Point<float> (cx + std::sin (angle) * rx * fraction, topY - std::cos (angle) * ry * fraction);
+        };
+        g.setColour (juce::Colours::black.withAlpha (0.6f));
+        g.drawLine ({ at (0.45f).translated (0.0f, 1.0f), at (0.9f).translated (0.0f, 1.0f) }, size * 0.018f);
+        g.setColour (juce::Colours::white.withAlpha (0.55f));
+        g.drawLine ({ at (0.45f), at (0.9f) }, size * 0.012f);
+    }
+    g.setColour (juce::Colours::white.withAlpha (0.22f));   // bevel catching the light round the top's back edge
+    g.drawEllipse (top.reduced (0.5f), 1.0f);
+    g.setColour (juce::Colours::black);
+    {
+        juce::Path frontEdge;
+        frontEdge.addCentredArc (cx, topY, rx, ry, 0.0f, MathConstants::pi * 0.55f, MathConstants::pi * 1.45f, true);
+        g.strokePath (frontEdge, juce::PathStrokeType (1.2f));
+    }
+
+    // 5. The front of the ring passes in front of the cylinder, with small
+    //    hooks curling outwards at the opening and marks at the sides.
+    const auto leftFront = ringArc (MathConstants::pi + gap, MathConstants::pi * 1.5f);
+    const auto rightFront = ringArc (MathConstants::pi * 0.5f, MathConstants::pi - gap);
+    strokeNeon (leftFront);
+    strokeNeon (rightFront);
+
+    const auto pointOnRing = [&] (float a, float scale)
+    {
+        return juce::Point<float> (cx + std::sin (a) * ringRx * scale, ringY - std::cos (a) * ringRy * scale);
+    };
+    for (auto end : { MathConstants::pi - gap, MathConstants::pi + gap })
+    {
+        juce::Path hook;
+        hook.startNewSubPath (pointOnRing (end, 1.0f));
+        hook.lineTo (pointOnRing (end + (end < MathConstants::pi ? -0.08f : 0.08f), 1.12f));
+        strokeNeon (hook);
+    }
+    for (auto a : { MathConstants::halfPi, MathConstants::pi * 1.5f })
+    {
+        const auto mark = juce::Rectangle<float> (size * 0.018f, size * 0.018f).withCentre (pointOnRing (a, 1.1f));
+        g.setColour (neon.withAlpha (0.35f));
+        g.fillEllipse (mark.expanded (size * 0.012f));
+        g.setColour (neonCore);
+        g.fillEllipse (mark);
+    }
 }
 
 void ParagonLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height,
@@ -243,6 +355,32 @@ void ParagonLookAndFeel::drawLinearSlider (juce::Graphics& g, int x, int y, int 
                                           float sliderPos, float minSliderPos, float maxSliderPos,
                                           juce::Slider::SliderStyle style, juce::Slider& slider)
 {
+    if (style == juce::Slider::LinearVertical && slider.getProperties()[eqFaderProperty])
+    {
+        const auto centreX = (float) x + (float) width * 0.5f;
+        const auto top = (float) y, bottom = (float) (y + height);   // already inset by the thumb radius
+        const auto middle = (top + bottom) * 0.5f;
+        const auto colour = slider.findColour (juce::Slider::trackColourId);
+
+        // Groove, then the lit part from 0 dB to the cap.
+        g.setColour (juce::Colour (0xff050406));
+        g.fillRoundedRectangle (juce::Rectangle<float> (4.0f, bottom - top).withCentre ({ centreX, middle }), 2.0f);
+        g.setColour (ParagonColours::panelEdge.brighter (0.2f));
+        g.drawRoundedRectangle (juce::Rectangle<float> (4.0f, bottom - top).withCentre ({ centreX, middle }), 2.0f, 0.8f);
+        const auto lit = juce::Rectangle<float>::leftTopRightBottom (centreX - 1.5f, juce::jmin (sliderPos, middle), centreX + 1.5f, juce::jmax (sliderPos, middle));
+        g.setColour (colour.withAlpha (0.3f));
+        g.fillRoundedRectangle (lit.expanded (2.5f, 0.0f), 2.0f);
+        g.setColour (colour);
+        g.fillRoundedRectangle (lit, 1.5f);
+
+        // The cap: a small piano-black key with a lit line across it.
+        const auto cap = juce::Rectangle<float> (juce::jmin (26.0f, (float) width - 4.0f), 14.0f).withCentre ({ centreX, sliderPos });
+        drawPianoBlackKey (g, cap, 3.0f, 2.0f, slider.isMouseButtonDown(), slider.isMouseOver());
+        g.setColour (colour);
+        g.fillRect (cap.reduced (5.0f, 0.0f).withSizeKeepingCentre (cap.getWidth() - 10.0f, 1.6f).translated (0.0f, -0.5f));
+        return;
+    }
+
     if (style != juce::Slider::TwoValueHorizontal)
     {
         LookAndFeel_V4::drawLinearSlider (g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
@@ -290,4 +428,88 @@ SharedParagonLookAndFeel::~SharedParagonLookAndFeel()
     if (&juce::LookAndFeel::getDefaultLookAndFeel() == &lookAndFeel)
         juce::LookAndFeel::setDefaultLookAndFeel (nullptr);
     juce::Typeface::clearTypefaceCache();
+}
+
+void ParagonLookAndFeel::drawPianoBlackKey (juce::Graphics& g, juce::Rectangle<float> area, float radius, float bevel,
+                                            bool pressed, bool highlighted)
+{
+    if (pressed)
+        area = area.translated (0.0f, 1.0f);
+
+    juce::Path outline;
+    outline.addRoundedRectangle (area, radius);
+    juce::DropShadow (juce::Colours::black.withAlpha (pressed ? 0.45f : 0.6f), juce::roundToInt (bevel * 3.0f),
+                      { 0, juce::roundToInt (bevel * (pressed ? 0.6f : 1.4f)) }).drawForPath (g, outline);
+
+    // The chamfer: lit along the top, mid grey down the sides, near black
+    // along the front (the edge facing you).
+    juce::ColourGradient chamfer (juce::Colour (0xff57565c), 0.0f, area.getY(), juce::Colour (0xff020203), 0.0f, area.getBottom(), false);
+    chamfer.addColour (0.18, juce::Colour (0xff2a292e));
+    chamfer.addColour (0.7, juce::Colour (0xff111113));
+    g.setGradientFill (chamfer);
+    g.fillPath (outline);
+
+    // Red glow reflected in the side chamfers near the bottom, as in the mockup.
+    {
+        juce::Graphics::ScopedSaveState state (g);
+        g.reduceClipRegion (outline);
+        for (auto x : { area.getX(), area.getRight() - bevel })
+        {
+            g.setGradientFill (juce::ColourGradient (ParagonColours::glow.withAlpha (0.0f), 0.0f, area.getCentreY(),
+                                                     ParagonColours::glow.withAlpha (0.75f), 0.0f, area.getBottom(), false));
+            g.fillRect (juce::Rectangle<float> (x, area.getY(), bevel, area.getHeight()));
+        }
+    }
+
+    // The top: deep glossy black, with a soft reflection of the room across
+    // its upper half and a crisp highlight where it meets the top chamfer.
+    const auto top = area.withTrimmedLeft (bevel).withTrimmedRight (bevel)
+                         .withTrimmedTop (bevel * 0.7f).withTrimmedBottom (bevel * (pressed ? 1.1f : 1.6f));
+    const auto topRadius = juce::jmax (1.0f, radius - bevel * 0.5f);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1c1b20), 0.0f, top.getY(), juce::Colour (0xff060607), 0.0f, top.getBottom(), false));
+    g.fillRoundedRectangle (top, topRadius);
+    {
+        juce::ColourGradient gloss (juce::Colours::white.withAlpha (0.13f), 0.0f, top.getY(),
+                                    juce::Colours::white.withAlpha (0.0f), 0.0f, top.getY() + top.getHeight() * 0.55f, false);
+        g.setGradientFill (gloss);
+        g.fillRoundedRectangle (top.reduced (top.getWidth() * 0.03f, 1.0f).withHeight (top.getHeight() * 0.55f), topRadius);
+    }
+    g.setColour (juce::Colours::white.withAlpha (0.32f));
+    g.drawHorizontalLine (juce::roundToInt (top.getY()), top.getX() + topRadius, top.getRight() - topRadius);
+    g.setColour (juce::Colours::black.withAlpha (0.6f));
+    g.drawRoundedRectangle (top, topRadius, 0.8f);
+
+    g.setColour (highlighted ? ParagonColours::glow.withAlpha (0.8f) : juce::Colours::black);
+    g.drawRoundedRectangle (area, radius, 1.0f);
+}
+
+void ParagonLookAndFeel::drawNeonBar (juce::Graphics& g, juce::Rectangle<float> bar, bool lit)
+{
+    const auto radius = bar.getHeight() * 0.5f;
+    const juce::Colour neon { 0xffff3a2a };
+    if (! lit)
+    {
+        g.setColour (neon.withAlpha (0.2f));
+        g.fillRoundedRectangle (bar.expanded (1.5f), radius + 1.5f);
+        g.setColour (juce::Colour (0xffcf3324));
+        g.fillRoundedRectangle (bar, radius);
+        return;
+    }
+
+    // Glow round the tube, the red-orange outline, then the white-hot core.
+    g.setColour (neon.withAlpha (0.18f));
+    g.fillRoundedRectangle (bar.expanded (bar.getHeight() * 1.6f, bar.getHeight() * 1.3f), radius * 3.0f);
+    g.setColour (neon.withAlpha (0.4f));
+    g.fillRoundedRectangle (bar.expanded (bar.getHeight() * 0.6f), radius * 1.6f);
+    g.setColour (neon);
+    g.fillRoundedRectangle (bar.expanded (1.0f), radius + 1.0f);
+    g.setColour (juce::Colour (0xfffff2ee));
+    g.fillRoundedRectangle (bar.reduced (bar.getHeight() * 0.18f, bar.getHeight() * 0.22f), radius * 0.6f);
+}
+
+int ParagonLookAndFeel::getSliderThumbRadius (juce::Slider& slider)
+{
+    if (slider.getProperties()[eqFaderProperty])
+        return eqFaderThumbRadius;
+    return LookAndFeel_V4::getSliderThumbRadius (slider);
 }

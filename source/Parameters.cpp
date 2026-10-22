@@ -2,6 +2,10 @@
 
 #include "dsp/effects/CompGate.h"
 #include "dsp/effects/Delay.h"
+#include "dsp/effects/Drive.h"
+#include "dsp/effects/FilterPitch.h"
+#include "dsp/effects/GraphicEq.h"
+#include "dsp/effects/Modulation.h"
 
 namespace
 {
@@ -13,6 +17,15 @@ namespace
     const ToText asPercent = [] (float value, int) { return juce::String (juce::roundToInt (value * 100.0f)) + "%"; };
     const ToText asHz = [] (float value, int) { return juce::String (value, value < 1.0f ? 2 : 1) + " Hz"; };
     const ToText asMs = [] (float value, int) { return juce::String (juce::roundToInt (value)) + " ms"; };
+    const ToText asSemitones = [] (float value, int)
+    {
+        const auto semitones = juce::roundToInt (value);
+        if (semitones == 0)
+            return juce::String ("Unison");
+        if (std::abs (semitones) % 12 == 0)
+            return juce::String (semitones > 0 ? "+" : "-") + juce::String (std::abs (semitones) / 12) + " oct";
+        return (semitones > 0 ? "+" : "") + juce::String (semitones) + " st";
+    };
     const ToText asRatio = [] (float value, int) { return juce::String (value, 1) + ":1"; };
     const ToText asGate = [] (float value, int)
     {
@@ -84,7 +97,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::driveLevel, "Drive Level", { -24.0f, 12.0f, 0.1f }, 0.0f, v3, asDb));
 
     layout.add (makeSwitch (ParamIDs::modOn, "Mod On", v3, false));
-    layout.add (makeChoice (ParamIDs::modType, "Mod Type", v3, { "Chorus", "Flanger", "Phaser", "Tremolo" }, 0));
+    layout.add (makeChoice (ParamIDs::modType, "Mod Type", v3, effects::Modulation::typeNames, 0));
     layout.add (makeFloat (ParamIDs::modRate, "Mod Rate", skewed (0.05f, 10.0f, 1.0f, 0.01f), 0.8f, v3, asHz));
     layout.add (makeFloat (ParamIDs::modDepth, "Mod Depth", { 0.0f, 1.0f, 0.01f }, 0.45f, v3, asPercent));
     layout.add (makeFloat (ParamIDs::modMix, "Mod Mix", { 0.0f, 1.0f, 0.01f }, 0.5f, v3, asPercent));
@@ -120,5 +133,32 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeChoice (ParamIDs::expressionTarget, "Expression Target", v6, ExpressionTargets::names, ExpressionTargets::off));
     layout.add (makeFloat (ParamIDs::expressionMin, "Expression Min", { 0.0f, 1.0f, 0.01f }, 0.0f, v6, asPercent));
     layout.add (makeFloat (ParamIDs::expressionMax, "Expression Max", { 0.0f, 1.0f, 0.01f }, 1.0f, v6, asPercent));
+
+    // Added in plugin version 8: the graphic EQ. Off by default, so existing
+    // projects and rigs sound the same.
+    constexpr int v8 = 8;
+    layout.add (makeSwitch (ParamIDs::eqOn, "EQ On", v8, false));
+    for (int band = 0; band < ParamIDs::eqBands.size(); ++band)
+        layout.add (makeFloat (ParamIDs::eqBands[band].toRawUTF8(), "EQ " + ParamIDs::eqBandNames[band] + " Hz",
+                               { -effects::GraphicEq::maxGainDb, effects::GraphicEq::maxGainDb, 0.1f }, 0.0f, v8, asDb));
+    layout.add (makeFloat (ParamIDs::eqLevel, "EQ Level", { -12.0f, 12.0f, 0.1f }, 0.0f, v8, asDb));
+
+    // Added in plugin version 9: modulation tempo sync. Off by default, so
+    // existing rigs keep their RATE. (The six new modulation types were
+    // added to the end of Mod Type's list, so saved choices keep their meaning.)
+    layout.add (makeChoice (ParamIDs::modSync, "Mod Sync", 9, effects::Delay::syncNames, 0));
+
+    // Added in plugin version 10. The drive defaults to the Tube Screamer
+    // model; projects and rigs saved before it existed are given the
+    // original model when they load (see ParagonX1AudioProcessor::setStateInformation
+    // and Rig::fromXml), so they sound as they did.
+    constexpr int v10 = 10;
+    layout.add (makeChoice (ParamIDs::driveModel, "Drive Model", v10, effects::Drive::modelNames, (int) effects::Drive::Model::screamer));
+    layout.add (makeSwitch (ParamIDs::fpOn, "Filter/Pitch On", v10, false));
+    layout.add (makeChoice (ParamIDs::fpType, "Filter/Pitch Type", v10, effects::FilterPitch::typeNames, 0));
+    layout.add (makeFloat (ParamIDs::fpSensitivity, "Auto-Wah Sensitivity", { 0.0f, 10.0f, 0.1f }, 5.0f, v10, asKnob));
+    layout.add (makeFloat (ParamIDs::fpResonance, "Auto-Wah Resonance", { 0.0f, 10.0f, 0.1f }, 5.0f, v10, asKnob));
+    layout.add (makeFloat (ParamIDs::fpInterval, "Pitch Interval", { -24.0f, 24.0f, 1.0f }, 12.0f, v10, asSemitones));
+    layout.add (makeFloat (ParamIDs::fpMix, "Filter/Pitch Mix", { 0.0f, 1.0f, 0.01f }, 1.0f, v10, asPercent));
     return layout;
 }

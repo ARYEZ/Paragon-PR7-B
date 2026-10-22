@@ -24,16 +24,28 @@ RigLibrary::RigLibrary (juce::File folderToUse) : folder (std::move (folderToUse
 
 juce::File RigLibrary::defaultFolder()
 {
-    // Windows: %APPDATA%\Paragon\Paragon X1\Rigs
-    // macOS:   ~/Library/Application Support/Paragon/Paragon X1/Rigs (via userApplicationDataDirectory)
-    // Linux:   ~/.config/Paragon/Paragon X1/Rigs
-    return juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
-       #if JUCE_MAC
-        .getChildFile ("Application Support")
-       #endif
-        .getChildFile ("Paragon")
-        .getChildFile ("Paragon X1")
-        .getChildFile ("Rigs");
+    // Windows: %APPDATA%\Paragon\Paragon PR7\Rigs
+    // macOS:   ~/Library/Application Support/Paragon/Paragon PR7/Rigs (via userApplicationDataDirectory)
+    // Linux:   ~/.config/Paragon/Paragon PR7/Rigs
+    const auto paragon = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
+                            #if JUCE_MAC
+                             .getChildFile ("Application Support")
+                            #endif
+                             .getChildFile ("Paragon");
+
+    // The plugin was called Paragon X1 until version 0.11.0: bring its rigs along.
+    carryOverFromOldName (paragon.getChildFile ("Paragon X1"), paragon.getChildFile ("Paragon PR7"));
+    return paragon.getChildFile ("Paragon PR7").getChildFile ("Rigs");
+}
+
+bool RigLibrary::carryOverFromOldName (const juce::File& oldFolder, const juce::File& newFolder)
+{
+    // Copied rather than moved, so an older version still installed keeps
+    // working, and nothing is lost if the copy is interrupted. Only the
+    // first time: once the new folder exists, it's the one in use.
+    if (newFolder.exists() || ! oldFolder.isDirectory())
+        return false;
+    return oldFolder.copyDirectoryTo (newFolder);
 }
 
 void RigLibrary::rescan()
@@ -49,7 +61,8 @@ void RigLibrary::rescan()
 
     if (folder.isDirectory())
     {
-        for (const auto& file : folder.findChildFiles (juce::File::findFiles, false, juce::String ("*") + Rig::fileExtension))
+        for (const auto& file : folder.findChildFiles (juce::File::findFiles, false,
+                                                         juce::String ("*") + Rig::fileExtension + ";*" + Rig::oldFileExtension))
         {
             // Be strict about damaged files (e.g. cut short by a crash):
             // JUCE's parser accepts an unclosed opening tag without an error,

@@ -2,6 +2,85 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.11.0
+
+**Paragon X1 is now Paragon PR7, and the expression pedal can bend pitch.**
+
+**Upgrading from Paragon X1:** the plugin file is now `Paragon PR7.vst3`. Close your DAW, delete the old `Paragon X1.vst3` from your VST3 folder, then copy in the new one. Keeping both would give your DAW two copies of the same plugin. Your projects still open: the plugin keeps the identity DAWs know it by, only the name has changed.
+
+- **New name and logo:** PR7 is a heavy, forward-slanted mark with speed cuts, in the spirit of late-'90s floor processors. It appears in the header, on the unit's badge, and engraved on the expression pedal.
+- **Your rigs come with you:** the rigs folder is now `Paragon\Paragon PR7\Rigs`. The first time the new version runs, it copies your rigs over from `Paragon\Paragon X1` and leaves the originals in place. New rigs save as `.pr7rig` files, and `.x1rig` files still load.
+- **PITCH / WHAMMY** (new EXPRESSION ASSIGN target): the expression pedal bends the pitch shifter, from no shift at the heel to its INTERVAL at the toe. For example, set INTERVAL to +12 for an octave dive-up, or -24 for a two-octave drop. Assigning it switches the FILTER / PITCH block on as a pitch shifter, so it works straight away. MIN and MAX limit the sweep as usual. It sits fourth on the pedal's assign buttons and in the EXPRESSION ASSIGN panel.
+
+## 0.10.0
+
+**Tube Screamer drive, pitch shifter, auto-wah and doubler.**
+
+- **Screamer drive:** the OD / DISTORTION block has a new MODEL setting, and its new default, **Screamer (TS)**, is modelled on the Ibanez TS808 Tube Screamer's circuit:
+  - The op-amp only amplifies above about 720 Hz. Its diodes clip just that part, which is added back on top of the clean guitar, so the bass stays clean and tight while the mids are pushed (the famous mid "hump").
+  - The diodes round the peaks off softly and symmetrically.
+  - TONE works against a fixed 723 Hz treble cut, from dark to slightly bright.
+  - DRIVE has the pedal's audio-taper pot.
+  - It's the classic boost in front of a driven amp: try DRIVE low and LEVEL up.
+- **Classic** is the original overdrive. Projects and rigs saved with earlier versions load with Classic, so they sound exactly as before.
+- **New FILTER / PITCH block,** after the compressor and before the drive (where these pedals go on a real board). Click it in the signal chain to open it. Two types:
+  - **Auto-Wah:** an envelope filter. A resonant wah sweeps open as you pick and closes as the note fades. SENSITIVITY sets how hard you need to play to open it fully; RESONANCE sets how sharp and vocal it is.
+  - **Pitch Shifter:** two octaves down to two up, in semitones. Use MIX 100% for an all-wet pitch drop, or blend it in for octaves and harmonies (+12 for an octave up, +7 for a fifth). Each time it splices, it finds the point where the waveform matches and cross-fades there, so notes keep a clean, steady pitch instead of warbling.
+- **Doubler** (new MODULATION type): two extra "takes" of your part, one each side, each a little late and drifting slightly in timing and pitch, so it sounds double-tracked. DEPTH sets how loose the takes are, RATE how fast they drift, and MIX how loud they are.
+- Four new factory rigs: Octave Lead and Harmony Fifths (bank B), Funk Envelope (bank C) and Wide Doubler (bank D).
+- With nine blocks now, the signal chain's gaps are a little narrower, and the RIG SUMMARY cards use short titles (hover for the full name).
+
+## 0.9.0
+
+**Six new modulation effects, and tempo sync.**
+
+The MODULATION block's TYPE list grows from four to ten. The original chorus, flanger, phaser and tremolo sound exactly as before.
+
+- **Dimension Chorus:** after the Roland Dimension D and Boss CE-1. Two chorus voices swept in opposite directions, so their pitch changes largely cancel. The result is wide and lush without the seasick wobble, and is slightly darkened like the originals' bucket-brigade chips.
+- **Uni-Vibe:** after the Shin-ei Uni-Vibe. Four phase-shift stages tuned far apart, swept by a simulated lamp that brightens quickly, fades slowly and lingers dark, which gives the Vibe its lopsided throb. MIX works as the original's switch: all the way up is VIBRATO, halfway is CHORUS.
+- **Rotary:** a Leslie speaker. The sound splits at 800 Hz into a treble horn and a bass drum, each spinning past two microphones with its own Doppler pitch shift and level swing, in stereo. RATE sets the speed. The heavy drum takes longer to spin up and down than the horn, so turning RATE (or assigning it to automation) gives the classic chorale-to-tremolo ramp.
+- **Vibrato:** pure pitch vibrato, with no dry signal.
+- **Harmonic Tremolo:** the early-'60s Fender "brownface" tremolo. Lows and highs pulse in turn, for a softer, swirling throb with a hint of phaser.
+- **Auto-Pan:** sweeps the sound between the speakers, at constant loudness.
+- **SYNC** (new, for every type): Off, or a note length from 1/1 to 1/16, including dotted and triplet values. The rate then follows the tapped tempo, or the DAW's. RATE greys out while synced, and the footswitch shows the note value.
+- MIX greys out for types that have no dry/wet blend (tremolo, vibrato, harmonic tremolo, auto-pan). For those, MORPH / FX on the expression pedal moves DEPTH instead, as it already did for tremolo.
+- Six new factory rigs to try them: Leslie Spin, Machine Gun Vibe, Dimension Clean, Warble Vibrato (bank D), and Brownface Trem and Wide Pan (bank C, tempo-synced).
+- Effect panels now size their cards by contents: drop-down lists get more room and ON lights less, so long names like "Harmonic Tremolo" and "1/4 triplet" fit.
+
+## 0.8.1
+
+- The graphic EQ now glows in the plugin's neon orange-red (its curve, faders, icon and signal-chain block), with a white-hot core on the curve like the unit's neon LEDs.
+
+## 0.8.0
+
+**9-band graphic EQ.**
+
+- A graphic EQ with one band per octave (63, 125, 250, 500 Hz, 1, 2, 4, 8 and 16 kHz), each cutting or boosting up to 12 dB, plus an output LEVEL. It sits after the cabinet and PRESENCE, before modulation, delay and reverb, where hardware modellers put theirs: it shapes the amp and cab's tone without colouring the echoes separately.
+- Click the new **EQ** block in the signal chain (or its card in RIG SUMMARY) to open it: nine faders standing at their frequencies over a live drawing of the EQ's response, which passes through the faders' caps as you move them. Double-click a fader for 0 dB; **FLAT** resets every band in one step (and one undo).
+- Saved with each rig. It's off by default, so existing rigs and projects sound exactly the same.
+
+## 0.7.5
+
+**The mockup's own expression pedal.**
+
+- The expression pedal is now the mockup's artwork itself (with X1 in place of RPX): the chrome housing with its neon-lit rail, and the treadle with its two black pads. It still rocks in 3D: the artwork is drawn through the same perspective as it tilts, so the lifted end comes towards you and the lowered end drops away, over a dark recess with the treadle's shadow.
+- Hover over the pedal (or drag it) to see what it controls and its position.
+
+## 0.7.4
+
+**A real rocking pedal, piano-black keys and neon LEDs.**
+
+- **Expression pedal in 3D:** the treadle is now modelled as a solid slab rocking on an axle, seen through a perspective camera, the way Neural DSP and IK Multimedia show theirs. As it rocks, the lifted end comes towards you, the lowered end drops away, its thick edge and its shadow on the base show, and the gloss on its pads slides with the tilt. It still glides smoothly between positions.
+- **Piano-black keys:** footswitches, the AMP / CABINET / RIG blocks and the small buttons are now glossy black keys with chamfered edges: a light catch along the top bevel and the red glow reflected in the side bevels, as in the mockup.
+- **Neon LEDs:** lit LEDs (footswitch bars, button stripes, ring lights) have a white-hot core inside a red-orange outline, like the mockup's; unlit ones are a dimmer solid red.
+
+## 0.7.3
+
+**The mockup's knobs, and a moving expression pedal.**
+
+- **OUTPUT LEVEL and PRESENCE** are now drawn like the mockup's: a black cylinder seen slightly from above with a spun-metal top, red light reflected up its sides, and a thin neon ring round its base. The ring is open at the front, with hooked ends and marks at the sides. A fine engraved line on the top shows the setting.
+- **The expression pedal moves:** as it goes towards the heel the treadle tilts back, its toe lifting, so it looks shorter and the well shows beyond its tip. It glides smoothly to each new position, whether you drag it, use the mouse wheel, automate it, or play a MIDI pedal.
+
 ## 0.7.2
 
 **Richer metal and the mockup's LCD.** Colours were measured off the mockup and matched point by point.

@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include "Parameters.h"
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
 
@@ -62,7 +63,7 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
     {
         processor.saveCurrentRigAs ("Cyber Drive");
         processor.saveCurrentRigAs ("Sunday Worship Clean");
-        processor.loadRig (*processor.getRigLibrary().find (rigFolder.getChildFile ("Cyber Drive.x1rig")));
+        processor.loadRig (*processor.getRigLibrary().find (rigFolder.getChildFile (juce::String ("Cyber Drive") + Rig::fileExtension)));
         processor.getParameters().getParameter ("driveGain")->setValueNotifyingHost (0.8f);   // shows the * marker
     }
 
@@ -92,6 +93,27 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
             processor.processBlock (buffer, midi);
         }
     }
+
+    // PARAGON_SNAPSHOT_EQ=g1,g2,...,g9 switches the graphic EQ on with these band gains (dB).
+    if (const auto eq = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_EQ", {}); eq.isNotEmpty())
+    {
+        const auto gains = juce::StringArray::fromTokens (eq, ",", {});
+        processor.getParameters().getParameter ("eqOn")->setValueNotifyingHost (1.0f);
+        for (int band = 0; band < juce::jmin (gains.size(), ParamIDs::eqBands.size()); ++band)
+        {
+            auto* p = processor.getParameters().getParameter (ParamIDs::eqBands[band]);
+            p->setValueNotifyingHost (p->convertTo0to1 (gains[band].getFloatValue()));
+        }
+    }
+
+    // PARAGON_SNAPSHOT_EXPRESSION=0..1 sets the expression pedal's position.
+    if (const auto pedal = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_EXPRESSION", {}); pedal.isNotEmpty())
+        processor.getParameters().getParameter ("expression")->setValueNotifyingHost (pedal.getFloatValue());
+
+    // PARAGON_SNAPSHOT_PARAMS=id=value,id=value sets any parameters (plain values, e.g. modType=8).
+    for (const auto& setting : juce::StringArray::fromTokens (juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_PARAMS", {}), ",", {}))
+        if (auto* p = processor.getParameters().getParameter (setting.upToFirstOccurrenceOf ("=", false, false)))
+            p->setValueNotifyingHost (p->convertTo0to1 (setting.fromFirstOccurrenceOf ("=", false, false).getFloatValue()));
 
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
     if (showTuner)
