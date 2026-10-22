@@ -2,6 +2,13 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.7.3
+
+**The mockup's knobs, and a moving expression pedal.**
+
+- **OUTPUT LEVEL and PRESENCE** are now drawn like the mockup's: a black cylinder seen slightly from above with a spun-metal top, red light reflected up its sides, and a thin neon ring round its base. The ring is open at the front, with hooked ends and marks at the sides. A fine engraved line on the top shows the setting.
+- **The expression pedal moves:** as it goes towards the heel the treadle tilts back, its toe lifting, so it looks shorter and the well shows beyond its tip. It glides smoothly to each new position, whether you drag it, use the mouse wheel, automate it, or play a MIDI pedal.
+
 ## 0.7.2
 
 **Richer metal and the mockup's LCD.** Colours were measured off the mockup and matched point by point.

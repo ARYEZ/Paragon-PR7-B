@@ -111,6 +111,7 @@ private:
     ParagonX1AudioProcessor& processor;
     juce::ParameterAttachment attachment;
     float position = 1.0f, dragStartPosition = 1.0f;
+    float shownPosition = 1.0f;   // where the drawn treadle is; eases towards `position` so it glides
     int target = 0;
 };
 

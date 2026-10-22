@@ -160,6 +160,7 @@ ExpressionPedal::ExpressionPedal (ParagonX1AudioProcessor& processorToUse)
     setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
     startTimerHz (30);   // follows a MIDI pedal smoothly
     timerCallback();
+    shownPosition = position;   // start where the pedal is, rather than gliding there
 }
 
 void ExpressionPedal::timerCallback()
@@ -170,6 +171,16 @@ void ExpressionPedal::timerCallback()
     {
         position = newPosition;
         target = newTarget;
+        repaint();
+    }
+
+    // Glide the drawn treadle to the new position over a few frames (a
+    // stepped MIDI pedal or a click then looks like a foot rocking it).
+    if (std::abs (position - shownPosition) > 1.0e-3f)
+    {
+        shownPosition += (position - shownPosition) * 0.35f;
+        if (std::abs (position - shownPosition) <= 1.0e-3f)
+            shownPosition = position;
         repaint();
     }
 }
@@ -201,7 +212,19 @@ void ExpressionPedal::paint (juce::Graphics& g)
     // short toe pad on top and a long heel pad below. As the pedal rocks
     // towards the toe the toe pad catches more light, towards the heel the
     // heel pad does.
-    const auto pads = well.reduced (9.0f);
+    // The treadle rocks: towards the heel its toe end lifts towards you, so
+    // seen from above it looks shorter (foreshortened) and the dark well
+    // shows beyond its tip, in its shadow.
+    const auto lift = 1.0f - shownPosition;
+    const auto pads = well.reduced (9.0f).withTrimmedTop (well.getHeight() * 0.18f * lift);
+    if (lift > 0.0f)
+    {
+        juce::Graphics::ScopedSaveState state (g);
+        g.reduceClipRegion (wellPath);
+        g.setGradientFill (juce::ColourGradient (juce::Colours::black.withAlpha (0.0f), 0.0f, well.getY(),
+                                                 juce::Colours::black.withAlpha (0.75f * lift), 0.0f, pads.getY(), false));
+        g.fillRect (well.withBottom (pads.getY() + 4.0f));
+    }
     const auto gap = 26.0f;
     const auto splitLeft = pads.getY() + pads.getHeight() * 0.40f;    // the strip climbs to the right
     const auto splitRight = pads.getY() + pads.getHeight() * 0.22f;
@@ -235,8 +258,8 @@ void ExpressionPedal::paint (juce::Graphics& g)
         g.setColour (juce::Colours::white.withAlpha (0.03f));
         g.fillRect (box.withHeight (box.getHeight() * 0.25f));   // faint sheen on the upper part
     };
-    drawPad (toe, position);
-    drawPad (heel, 1.0f - position);
+    drawPad (toe, shownPosition);
+    drawPad (heel, 1.0f - shownPosition);
 
     // A soft red reflection from the unit's glow along the bottom of the heel pad.
     g.setColour (ParagonColours::glow.withAlpha (0.25f));
