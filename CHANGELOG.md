@@ -2,6 +2,14 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.12.2
+
+- **Expression pedal sits in the unit:** the treadle now sits down in a well in the housing, as on a real floor unit like the DigiTech RP6, rather than being drawn on top of it.
+  - It's set slightly inside the opening, with a gap all round.
+  - It's drawn only within the well, with a chrome rim and the rim's shadow on top.
+  - As it rocks, its ends tuck under the rim instead of sliding over the side rails or above the unit.
+  - The rocking shows as the raised end catching the light and the lowered end dropping away into shadow, with the gap at that end opening up.
+
 ## 0.12.1
 
 - **Expression pedal:** only the treadle rocks now. Its artwork had been cut from the mockup as a rectangle, so it carried pieces of the housing with it: the chrome strip down the right, the base's lip and corner along the bottom, and a dark band across the top. Those moved with the treadle, as if part of the unit were tilting. Everything outside the treadle's own outline is now transparent. Its sides, shadow and shading follow that outline, and the perspective is slightly gentler, so the lifted end stays within the housing's rails.

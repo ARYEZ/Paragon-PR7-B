@@ -227,10 +227,14 @@ void ExpressionPedal::timerCallback()
 
 namespace
 {
-    // The pedal artwork's own layout: the housing image is 211 x 490 px and
-    // the treadle sits in it at (5, 6), 158 x 462 px (as cut from the mockup).
+    // The pedal artwork's own layout, in the housing image's pixels (211 x
+    // 490). The opening is the well the treadle sits down in, at (5, 6),
+    // 160 x 462 px. The treadle is set slightly inside it, with a gap all
+    // round as on a real pedal, at its artwork's proportions (158 x 462).
     constexpr float housingWidth = 211.0f, housingHeight = 490.0f;
-    const juce::Rectangle<float> treadleInHousing { 5.0f, 6.0f, 158.0f, 462.0f };
+    const juce::Rectangle<float> openingInHousing { 5.0f, 6.0f, 160.0f, 462.0f };
+    const juce::Rectangle<float> treadleInHousing { 10.0f, 15.0f, 151.0f, 441.6f };
+    constexpr float openingCorner = 12.0f;   // in housing pixels
 }
 
 juce::Rectangle<float> ExpressionPedal::housingArea() const
@@ -250,27 +254,34 @@ juce::Rectangle<float> ExpressionPedal::trackArea() const
 
 void ExpressionPedal::paint (juce::Graphics& g)
 {
-    // The housing (from the mockup), with a dark recess where the treadle sits.
+    // The housing (from the mockup): its walls, and the well the treadle sits in.
     g.setImageResamplingQuality (juce::Graphics::highResamplingQuality);
     g.drawImage (housing, housingArea(), juce::RectanglePlacement::stretchToFit);
 
     //==========================================================================
-    // The treadle (also the mockup's artwork), rocking in 3D the way Neural
-    // DSP and IK Multimedia show theirs: a slab pivoting on an axle across
-    // its middle, seen through a perspective camera a little in front of it.
-    // The end that lifts comes towards you (larger, moving outwards), the
-    // end that drops goes away, and its thickness and shadow show.
+    // The treadle (the mockup's artwork), rocking in 3D the way Neural DSP and
+    // IK Multimedia show theirs, and as a real floor unit's pedal sits: down
+    // in a well in the housing, pivoting on an axle across its middle. It's
+    // drawn only inside the well, and the housing's rim is drawn over its
+    // edges afterwards, so as it rocks its ends tuck under the rim rather
+    // than sliding over the unit. The rocking shows as the far end dropping
+    // away (narrower, darker, the gap at that end opening up) and the near
+    // end coming up (lit, its shadow spreading on the floor of the well).
     //
     // World units are pixels. X runs across the pedal, Y along it (toe at
     // -Y, heel at +Y), Z up towards the camera.
     const auto flat = trackArea();
-    constexpr float maxTilt = 0.14f;                                   // about 8 degrees each way
+    const auto scale = housingArea().getWidth() / housingWidth;
+    const auto opening = openingInHousing * scale + housingArea().getPosition();
+    juce::Path well;
+    well.addRoundedRectangle (opening, openingCorner * scale);
+
+    constexpr float maxTilt = 0.16f;                                   // about 9 degrees each way
     const auto tilt = (shownPosition * 2.0f - 1.0f) * maxTilt;         // + = toe down
     const auto length = flat.getHeight(), width = flat.getWidth();
     const auto thickness = width * 0.07f;   // the artwork has its own bevelled edge; this is the body under it
-    const auto pivotZ = thickness * 1.2f;                              // axle height above the base
+    const auto pivotZ = thickness * 1.2f;                              // axle height above the floor of the well
     const auto cameraZ = length * 3.0f;                                // camera height: how strong the perspective is
-                                                                       // (far enough that the lifted end stays within the housing's rails)
     const auto cameraY = length * 0.6f;                                // camera a little towards the player
     const auto centre = flat.getCentre();
     const auto topZ = pivotZ + thickness * 0.5f;
@@ -296,76 +307,104 @@ void ExpressionPedal::paint (juce::Graphics& g)
     // The treadle's outline within its artwork (0-1 across and along it).
     // The mockup drew the pedal from slightly to the left, so its right edge
     // leans out a little towards the heel; everything outside the outline is
-    // transparent in the artwork, so only the treadle itself moves.
+    // transparent in the artwork.
     constexpr float outlineLeft = 3.5f / 158.0f, outlineTop = 2.0f / 462.0f, outlineBottom = 450.5f / 462.0f;
     constexpr float outlineRightTop = 146.4f / 158.0f, outlineRightBottom = 159.5f / 158.0f;
     const std::array<juce::Point<float>, 4> outline { juce::Point<float> { outlineLeft, outlineTop }, { outlineRightTop, outlineTop },
                                                       { outlineRightBottom, outlineBottom }, { outlineLeft, outlineBottom } };
 
-    juce::Path recess;
-    recess.addRoundedRectangle (flat, 11.0f);
-
-    // Shadow on the floor of the recess, spreading under whichever end lifts.
     {
-        juce::Path shadow;
-        const auto onBase = [&] (float u, float v)
+        juce::Graphics::ScopedSaveState insideWell (g);
+        g.reduceClipRegion (well);
+
+        // The floor of the well, darker towards its walls.
+        g.setColour (juce::Colour (0xff0d0a0c));
+        g.fillPath (well);
+
+        // The treadle's shadow on the floor, spreading under whichever end lifts.
         {
-            const auto p = rotate ({ (u - 0.5f) * width, (v - 0.5f) * length, pivotZ - thickness * 0.5f });
-            return project ({ p.x + p.z * 0.1f, p.y + p.z * 0.3f, 0.0f });
-        };
-        shadow.startNewSubPath (onBase (outline[0].x, outline[0].y));
-        for (size_t i = 1; i < outline.size(); ++i)
-            shadow.lineTo (onBase (outline[i].x, outline[i].y));
-        shadow.closeSubPath();
-        juce::Graphics::ScopedSaveState state (g);
-        g.reduceClipRegion (recess);
-        juce::DropShadow (juce::Colours::black.withAlpha (0.9f), 12, {}).drawForPath (g, shadow);
+            juce::Path shadow;
+            const auto onBase = [&] (float u, float v)
+            {
+                const auto p = rotate ({ (u - 0.5f) * width, (v - 0.5f) * length, pivotZ - thickness * 0.5f });
+                return project ({ p.x + p.z * 0.1f, p.y + p.z * 0.3f, 0.0f });
+            };
+            shadow.startNewSubPath (onBase (outline[0].x, outline[0].y));
+            for (size_t i = 1; i < outline.size(); ++i)
+                shadow.lineTo (onBase (outline[i].x, outline[i].y));
+            shadow.closeSubPath();
+            juce::DropShadow (juce::Colours::black, 14, {}).drawForPath (g, shadow);
+        }
+
+        // The treadle's sides (its thickness): chrome, lit along the top.
+        for (size_t i = 0; i < outline.size(); ++i)
+        {
+            const auto a = outline[i], b = outline[(i + 1) % outline.size()];
+            juce::Path wall;
+            wall.startNewSubPath (corner (a.x, a.y, topZ));
+            wall.lineTo (corner (b.x, b.y, topZ));
+            wall.lineTo (corner (b.x, b.y, topZ - thickness));
+            wall.lineTo (corner (a.x, a.y, topZ - thickness));
+            wall.closeSubPath();
+            g.setGradientFill (juce::ColourGradient (juce::Colour (0xffcdb6c1), corner (a.x, a.y, topZ),
+                                                     juce::Colour (0xff3e3037), corner (a.x, a.y, topZ - thickness), false));
+            g.fillPath (wall);
+        }
+
+        // The artwork itself, drawn in thin horizontal slices: each slice is
+        // placed and sized where the tilted treadle puts it, which bends the
+        // whole picture through the perspective.
+        const auto sourceHeight = treadle.getHeight();
+        constexpr int sliceRows = 2;
+        for (int row = 0; row < sourceHeight; row += sliceRows)
+        {
+            const auto rows = juce::jmin (sliceRows, sourceHeight - row);
+            const auto v0 = (float) row / (float) sourceHeight, v1 = (float) (row + rows) / (float) sourceHeight;
+            const auto topLeft = corner (0, v0, topZ), topRight = corner (1, v0, topZ);
+            const auto bottomLeft = corner (0, v1, topZ), bottomRight = corner (1, v1, topZ);
+            const auto x0 = (topLeft.x + bottomLeft.x) * 0.5f, x1 = (topRight.x + bottomRight.x) * 0.5f;
+            const auto y0 = topLeft.y, y1 = bottomLeft.y + 0.6f;   // a hair of overlap hides the seams
+            const auto slice = treadle.getClippedImage ({ 0, row, treadle.getWidth(), rows });
+            g.drawImageTransformed (slice, juce::AffineTransform::scale ((x1 - x0) / (float) treadle.getWidth(), (y1 - y0) / (float) rows)
+                                               .translated (x0, y0));
+        }
+
+        // Light from above and in front: the end tipped up towards it
+        // brightens and the end tipped away darkens, along the treadle.
+        {
+            juce::Path face;
+            face.startNewSubPath (corner (outline[0].x, outline[0].y, topZ));
+            for (size_t i = 1; i < outline.size(); ++i)
+                face.lineTo (corner (outline[i].x, outline[i].y, topZ));
+            face.closeSubPath();
+            const auto amount = tilt / maxTilt;   // +1 toe down (heel up), -1 heel down (toe up)
+            const auto toeEnd = corner (0.5f, 0.0f, topZ), heelEnd = corner (0.5f, 1.0f, topZ);
+            const auto lit = juce::Colours::white.withAlpha (0.10f * std::abs (amount));
+            const auto shaded = juce::Colours::black.withAlpha (0.35f * std::abs (amount));
+            g.setGradientFill (juce::ColourGradient (amount < 0.0f ? lit : shaded, toeEnd,
+                                                     amount < 0.0f ? shaded : lit, heelEnd, false));
+            g.fillPath (face.createPathWithRoundedCorners (7.0f));
+        }
+
+        // The rim's shadow falling into the well and onto the treadle's edges.
+        for (int ring = 1; ring <= 4; ++ring)
+        {
+            g.setColour (juce::Colours::black.withAlpha (0.22f - 0.045f * (float) ring));
+            g.strokePath (well, juce::PathStrokeType ((float) ring * 2.2f * scale + 1.0f));
+        }
     }
 
-    // The treadle's edges (its thickness): chrome, lit along the top.
-    for (size_t i = 0; i < outline.size(); ++i)
+    // The housing's rim round the well, over the treadle's edges: a chrome
+    // lip, lit from above, with a dark line where it meets the well.
     {
-        const auto a = outline[i], b = outline[(i + 1) % outline.size()];
-        juce::Path wall;
-        wall.startNewSubPath (corner (a.x, a.y, topZ));
-        wall.lineTo (corner (b.x, b.y, topZ));
-        wall.lineTo (corner (b.x, b.y, topZ - thickness));
-        wall.lineTo (corner (a.x, a.y, topZ - thickness));
-        wall.closeSubPath();
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xffcdb6c1), corner (a.x, a.y, topZ),
-                                                 juce::Colour (0xff3e3037), corner (a.x, a.y, topZ - thickness), false));
-        g.fillPath (wall);
-    }
-
-    // The artwork itself, drawn in thin horizontal slices: each slice is
-    // placed and sized where the tilted treadle puts it, which bends the
-    // whole picture through the perspective.
-    const auto sourceHeight = treadle.getHeight();
-    constexpr int sliceRows = 2;
-    for (int row = 0; row < sourceHeight; row += sliceRows)
-    {
-        const auto rows = juce::jmin (sliceRows, sourceHeight - row);
-        const auto v0 = (float) row / (float) sourceHeight, v1 = (float) (row + rows) / (float) sourceHeight;
-        const auto topLeft = corner (0, v0, topZ), topRight = corner (1, v0, topZ);
-        const auto bottomLeft = corner (0, v1, topZ), bottomRight = corner (1, v1, topZ);
-        const auto x0 = (topLeft.x + bottomLeft.x) * 0.5f, x1 = (topRight.x + bottomRight.x) * 0.5f;
-        const auto y0 = topLeft.y, y1 = bottomLeft.y + 0.6f;   // a hair of overlap hides the seams
-        const auto slice = treadle.getClippedImage ({ 0, row, treadle.getWidth(), rows });
-        g.drawImageTransformed (slice, juce::AffineTransform::scale ((x1 - x0) / (float) treadle.getWidth(), (y1 - y0) / (float) rows)
-                                           .translated (x0, y0));
-    }
-
-    // Light: the treadle's face brightens a touch as it tips towards the
-    // light (toe down) and darkens tipped away.
-    {
-        juce::Path face;
-        face.startNewSubPath (corner (outline[0].x, outline[0].y, topZ));
-        for (size_t i = 1; i < outline.size(); ++i)
-            face.lineTo (corner (outline[i].x, outline[i].y, topZ));
-        face.closeSubPath();
-        const auto amount = tilt / maxTilt;
-        g.setColour (amount > 0.0f ? juce::Colours::white.withAlpha (0.06f * amount) : juce::Colours::black.withAlpha (-0.18f * amount));
-        g.fillPath (face.createPathWithRoundedCorners (7.0f));
+        const auto rim = opening.expanded (1.2f * scale);
+        juce::Path lip;
+        lip.addRoundedRectangle (rim, (openingCorner + 1.2f) * scale);
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfff3e6ec), rim.getTopLeft(),
+                                                 juce::Colour (0xff8d7a84), rim.getBottomRight(), false));
+        g.strokePath (lip, juce::PathStrokeType (2.6f * scale));
+        g.setColour (juce::Colours::black.withAlpha (0.7f));
+        g.strokePath (well, juce::PathStrokeType (0.9f * scale));
     }
 
     // While you hover or drag: what the pedal controls and where it is.
