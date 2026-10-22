@@ -276,6 +276,56 @@ TEST_CASE ("Expression pedal as WAH and MORPH FX", "[expression]")
     CHECK (std::abs (rig.play (0.5) - clean) > 0.02f);
 }
 
+TEST_CASE ("Expression pedal as a WHAMMY bends the pitch shifter", "[expression][pitch]")
+{
+    // The pitch shifter set an octave up, all wet; the pedal sweeps from
+    // no shift at the heel to the full octave at the toe.
+    ParagonX1AudioProcessor processor;
+    processor.setPlayConfigDetails (1, 1, 48000.0, 256);
+    processor.prepareToPlay (48000.0, 256);
+    const auto set = [&] (const char* id, float plainValue)
+    {
+        auto* parameter = processor.getParameters().getParameter (id);
+        parameter->setValueNotifyingHost (parameter->convertTo0to1 (plainValue));
+    };
+    set (ParamIDs::fpOn, 1.0f);
+    set (ParamIDs::fpType, (float) effects::FilterPitch::Type::pitchShifter);
+    set (ParamIDs::fpInterval, 12.0f);
+    set (ParamIDs::fpMix, 1.0f);
+    set (ParamIDs::expressionTarget, (float) ExpressionTargets::pitch);
+
+    // Plays a 300 Hz tone for half a second; returns its level at `hz` over the last 0.3 s.
+    const auto levelAt = [&] (double hz)
+    {
+        std::vector<float> output;
+        juce::AudioBuffer<float> buffer (1, 256);
+        juce::MidiBuffer midi;
+        for (int start = 0; start < 24000; start += 256)
+        {
+            for (int i = 0; i < 256; ++i)
+                buffer.setSample (0, i, 0.3f * (float) std::sin (juce::MathConstants<double>::twoPi * 300.0 * (start + i) / 48000.0));
+            processor.processBlock (buffer, midi);
+            output.insert (output.end(), buffer.getReadPointer (0), buffer.getReadPointer (0) + 256);
+        }
+        const auto coefficient = 2.0 * std::cos (juce::MathConstants<double>::twoPi * hz / 48000.0);
+        double s1 = 0.0, s2 = 0.0;
+        for (size_t i = 9600; i < output.size(); ++i)
+        {
+            const auto s0 = output[i] + coefficient * s1 - s2;
+            s2 = s1;
+            s1 = s0;
+        }
+        return std::sqrt (std::max (0.0, s1 * s1 + s2 * s2 - coefficient * s1 * s2));
+    };
+
+    set (ParamIDs::expression, 0.0f);
+    CHECK (levelAt (300.0) > 10.0 * levelAt (600.0));   // heel: the note as played
+    set (ParamIDs::expression, 1.0f);
+    CHECK (levelAt (600.0) > 10.0 * levelAt (300.0));   // toe: an octave up
+    set (ParamIDs::expression, 7.0f / 12.0f);
+    CHECK (levelAt (300.0 * std::exp2 (7.0 / 12.0)) > 10.0 * levelAt (300.0));   // part way: a fifth up
+}
+
 TEST_CASE ("SETTINGS: the pedal's MIDI CC and the tuner's reference are saved with the project", "[expression][settings]")
 {
     TestRig rig;

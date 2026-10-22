@@ -1,6 +1,7 @@
 #include "PerformanceControls.h"
 
 #include "Parameters.h"
+#include "ui/Logo.h"
 #include "ui/ParagonLookAndFeel.h"
 #include "ui/SlotWindow.h"
 
@@ -8,8 +9,8 @@
 
 namespace
 {
-    const Icons::Type targetIcons[] = { Icons::Type::volume, Icons::Type::wah, Icons::Type::rig };
-    const char* pedalNames[] = { "VOLUME", "WAH / FILTER", "MORPH / FX" };
+    const Icons::Type targetIcons[] = { Icons::Type::volume, Icons::Type::wah, Icons::Type::rig, Icons::Type::filterPitch };
+    const char* pedalNames[] = { "VOLUME", "WAH / FILTER", "MORPH / FX", "PITCH / WHAMMY" };
 
     juce::RangedAudioParameter& parameter (juce::AudioProcessorValueTreeState& state, const char* id)
     {
@@ -68,9 +69,10 @@ void IconButton::paintButton (juce::Graphics& g, bool highlighted, bool down)
 }
 
 //==============================================================================
-ExpressionAssign::ExpressionAssign (juce::AudioProcessorValueTreeState& state, Style lookStyle)
+ExpressionAssign::ExpressionAssign (juce::AudioProcessorValueTreeState& stateToUse, Style lookStyle)
     : style (lookStyle),
-      attachment (parameter (state, ParamIDs::expressionTarget), [this] (float value)
+      state (stateToUse),
+      attachment (parameter (stateToUse, ParamIDs::expressionTarget), [this] (float value)
       {
           currentTarget = juce::roundToInt (value);
           for (size_t i = 0; i < buttons.size(); ++i)
@@ -78,7 +80,7 @@ ExpressionAssign::ExpressionAssign (juce::AudioProcessorValueTreeState& state, S
           repaint();
       })
 {
-    for (int target = ExpressionTargets::volume; target <= ExpressionTargets::morph; ++target)
+    for (int target = ExpressionTargets::volume; target <= ExpressionTargets::pitch; ++target)
     {
         const auto index = (size_t) (target - 1);
         std::unique_ptr<juce::Button> button;
@@ -111,7 +113,24 @@ ExpressionAssign::ExpressionAssign (juce::AudioProcessorValueTreeState& state, S
 void ExpressionAssign::select (int target)
 {
     // Clicking the lit one again turns the pedal off.
-    attachment.setValueAsCompleteGesture ((float) (target == currentTarget ? ExpressionTargets::off : target));
+    const auto newTarget = target == currentTarget ? ExpressionTargets::off : target;
+
+    // PITCH / WHAMMY bends the pitch shifter, so make sure there's one
+    // running: switch the FILTER / PITCH block on as a pitch shifter.
+    if (newTarget == ExpressionTargets::pitch)
+    {
+        const auto set = [this] (const char* id, float plainValue)
+        {
+            auto* parameter = state.getParameter (id);
+            parameter->beginChangeGesture();
+            parameter->setValueNotifyingHost (parameter->convertTo0to1 (plainValue));
+            parameter->endChangeGesture();
+        };
+        set (ParamIDs::fpOn, 1.0f);
+        set (ParamIDs::fpType, (float) effects::FilterPitch::Type::pitchShifter);
+    }
+
+    attachment.setValueAsCompleteGesture ((float) newTarget);
 }
 
 void ExpressionAssign::paint (juce::Graphics& g)
@@ -161,7 +180,17 @@ ExpressionPedal::ExpressionPedal (ParagonX1AudioProcessor& processorToUse)
                 "a MIDI expression pedal moves it too (CC 11, or the one chosen in SETTINGS). Assign it with the EXPRESSION buttons.");
     setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
     housing = juce::ImageCache::getFromMemory (ParagonImages::ExpressionHousing_png, ParagonImages::ExpressionHousing_pngSize);
-    treadle = juce::ImageCache::getFromMemory (ParagonImages::ExpressionTreadle_png, ParagonImages::ExpressionTreadle_pngSize);
+    treadle = juce::ImageCache::getFromMemory (ParagonImages::ExpressionTreadle_png, ParagonImages::ExpressionTreadle_pngSize).createCopy();
+
+    // Engrave the PR7 mark on the plate under the toe pad (the artwork
+    // leaves it blank), so it rocks with the treadle.
+    {
+        juce::Graphics g (treadle);
+        const auto plate = juce::Rectangle<float> (62.0f, 416.0f, 51.0f, 22.0f);
+        Logo::drawPR7 (g, plate, juce::Justification::centred,
+                       { juce::Colour (0xfff4f0f2), juce::Colour (0xfff4f0f2), juce::Colours::white.withAlpha (0.5f),
+                         juce::Colour (0xff3a3236), 0.9f });
+    }
     setRepaintsOnMouseActivity (true);   // shows the pedal's position while you hover
     startTimerHz (30);   // follows a MIDI pedal smoothly
     timerCallback();
@@ -331,7 +360,7 @@ void ExpressionPedal::paint (juce::Graphics& g)
     if (isMouseOverOrDragging())
     {
         const auto active = target != ExpressionTargets::off;
-        const auto text = (active ? juce::String (pedalNames[juce::jlimit (0, 2, target - 1)]) : juce::String ("NOT ASSIGNED"))
+        const auto text = (active ? juce::String (pedalNames[juce::jlimit (0, (int) std::size (pedalNames) - 1, target - 1)]) : juce::String ("NOT ASSIGNED"))
                           + "  " + juce::String (juce::roundToInt (position * 100.0f)) + "%";
         const auto font = juce::FontOptions (11.0f, juce::Font::bold);
         const auto pill = juce::Rectangle<float> ((float) juce::GlyphArrangement::getStringWidthInt (font, text) + 18.0f, 20.0f)

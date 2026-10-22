@@ -2,7 +2,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
-// Colours taken from the Paragon X1 mockup: near-black panels with an
+// Colours taken from the mockup: near-black panels with an
 // orange accent.
 namespace ParagonColours
 {
@@ -65,7 +65,7 @@ public:
     static constexpr int eqFaderThumbRadius = 7;
 
     // Every font in the plugin is Inter, built in: semibold for bold text,
-    // and the heavy display italic for bold italic (the PARAGON X1 badge).
+    // and the heavy display italic for bold italic (the PARAGON badge).
     juce::Typeface::Ptr getTypefaceForFont (const juce::Font&) override;
 
     void drawRotarySlider (juce::Graphics&, int x, int y, int width, int height,

@@ -1,6 +1,7 @@
 #include "MainView.h"
 
 #include "Parameters.h"
+#include "ui/Logo.h"
 #include "dsp/effects/Modulation.h"
 
 namespace
@@ -560,9 +561,8 @@ void MainView::paint (juce::Graphics& g)
     g.setColour (ParagonColours::text);
     g.drawText ("PARAGON", nameArea, juce::Justification::centredLeft, false);
     const auto nameWidth = (float) juce::GlyphArrangement::getStringWidthInt (nameFont, "PARAGON ");
-    g.setColour (ParagonColours::glow);
-    g.setFont (juce::FontOptions (21.0f, juce::Font::bold));
-    g.drawText ("X1", nameArea.withTrimmedLeft (nameWidth), juce::Justification::centredLeft, false);
+    Logo::drawPR7 (g, nameArea.withTrimmedLeft (nameWidth).withSizeKeepingCentre (nameArea.getWidth() - nameWidth, 17.0f),
+                   juce::Justification::centredLeft, { ParagonColours::glow, ParagonColours::glow, {}, {}, 1.0f, true });
 
     // Framed groups: the tabs, the rig selector and the tempo.
     for (const auto& group : { tabsGroup, rigGroup, tempoGroup })

@@ -2,6 +2,16 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.11.0
+
+**Paragon X1 is now Paragon PR7, and the expression pedal can bend pitch.**
+
+**Upgrading from Paragon X1:** the plugin file is now `Paragon PR7.vst3`. Close your DAW, delete the old `Paragon X1.vst3` from your VST3 folder, then copy in the new one. Keeping both would give your DAW two copies of the same plugin. Your projects still open: the plugin keeps the identity DAWs know it by, only the name has changed.
+
+- **New name and logo:** PR7 is a heavy, forward-slanted mark with speed cuts, in the spirit of late-'90s floor processors. It appears in the header, on the unit's badge, and engraved on the expression pedal.
+- **Your rigs come with you:** the rigs folder is now `Paragon\Paragon PR7\Rigs`. The first time the new version runs, it copies your rigs over from `Paragon\Paragon X1` and leaves the originals in place. New rigs save as `.pr7rig` files, and `.x1rig` files still load.
+- **PITCH / WHAMMY** (new EXPRESSION ASSIGN target): the expression pedal bends the pitch shifter, from no shift at the heel to its INTERVAL at the toe. For example, set INTERVAL to +12 for an octave dive-up, or -24 for a two-octave drop. Assigning it switches the FILTER / PITCH block on as a pitch shifter, so it works straight away. MIN and MAX limit the sweep as usual. It sits fourth on the pedal's assign buttons and in the EXPRESSION ASSIGN panel.
+
 ## 0.10.0
 
 **Tube Screamer drive, pitch shifter, auto-wah and doubler.**

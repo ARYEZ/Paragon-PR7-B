@@ -618,11 +618,11 @@ void SettingsPage::paint (juce::Graphics& g)
     section (tunerArea, "TUNER", "Hold TAP or press TUNER on the pedal to tune. Reference pitch for A4:");
     section (expressionArea, "EXPRESSION PEDAL",
              "A MIDI expression pedal moves the on-screen pedal. Pick the MIDI controller it sends "
-             "(most send CC 11), and route the MIDI track to Paragon X1 in your DAW.");
+             "(most send CC 11), and route the MIDI track to Paragon PR7 in your DAW.");
     section (rigsArea, "RIGS", "Your rigs are files in this folder, so you can back them up or share them:\n"
                                + processor.getRigLibrary().getFolder().getFullPathName());
     section (aboutArea, "ABOUT",
-             juce::String ("Paragon X1 v") + JucePlugin_VersionString
+             juce::String ("Paragon PR7 v") + JucePlugin_VersionString
                  + ". Free and open source under the GNU AGPLv3.\n"
                    "Built with JUCE (AGPLv3), NeuralAmpModelerCore (MIT), Eigen (MPL 2.0) and the Inter typeface (SIL OFL).");
 }

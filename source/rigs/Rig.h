@@ -43,5 +43,7 @@ struct Rig
     // Returns nothing if the XML isn't a rig.
     static std::optional<Rig> fromXml (const juce::XmlElement&);
 
-    static constexpr const char* fileExtension = ".x1rig";
+    static constexpr const char* fileExtension = ".pr7rig";
+    // From when the plugin was called Paragon X1: still read, never written.
+    static constexpr const char* oldFileExtension = ".x1rig";
 };

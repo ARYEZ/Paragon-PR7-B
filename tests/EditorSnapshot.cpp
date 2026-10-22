@@ -63,7 +63,7 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
     {
         processor.saveCurrentRigAs ("Cyber Drive");
         processor.saveCurrentRigAs ("Sunday Worship Clean");
-        processor.loadRig (*processor.getRigLibrary().find (rigFolder.getChildFile ("Cyber Drive.x1rig")));
+        processor.loadRig (*processor.getRigLibrary().find (rigFolder.getChildFile (juce::String ("Cyber Drive") + Rig::fileExtension)));
         processor.getParameters().getParameter ("driveGain")->setValueNotifyingHost (0.8f);   // shows the * marker
     }
 

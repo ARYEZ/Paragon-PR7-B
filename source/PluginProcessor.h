@@ -274,7 +274,7 @@ private:
     LevelMeterSource inputMeter, outputMeter;
 
     // Declared last so it is destroyed first: its jobs use the members above.
-    juce::ThreadPool loader { juce::ThreadPoolOptions{}.withThreadName ("Paragon X1 loader").withNumberOfThreads (1) };
+    juce::ThreadPool loader { juce::ThreadPoolOptions{}.withThreadName ("Paragon PR7 loader").withNumberOfThreads (1) };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParagonX1AudioProcessor)
 };

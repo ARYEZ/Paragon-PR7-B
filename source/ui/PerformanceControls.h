@@ -63,7 +63,7 @@ private:
 };
 
 //==============================================================================
-// VOLUME / WAH-FILTER / MORPH-FX: what the expression pedal controls. Click
+// VOLUME / WAH-FILTER / MORPH-FX / PITCH-WHAMMY: what the expression pedal controls. Click
 // one to assign the pedal to it, or click the lit one again to switch the
 // pedal off. Comes in two looks: the pedal face's small buttons, and the
 // dock's list with icons.
@@ -81,6 +81,7 @@ private:
     void select (int target);
 
     Style style;
+    juce::AudioProcessorValueTreeState& state;
     std::vector<std::unique_ptr<juce::Button>> buttons;   // one per target, in order (not "Off")
     juce::ParameterAttachment attachment;
     int currentTarget = 0;

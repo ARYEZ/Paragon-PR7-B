@@ -246,9 +246,12 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
 
     compGate.process (monoBlock, { isOn (ParamIDs::compOn), param (ParamIDs::compThreshold), param (ParamIDs::compRatio),
                                    param (ParamIDs::compLevel), param (ParamIDs::gateThreshold) });
+    // PITCH / WHAMMY: the pedal bends the pitch shifter from no shift at
+    // the heel to its INTERVAL at the toe, like a DigiTech Whammy.
+    const auto whammy = expressionTarget == ExpressionTargets::pitch ? pedal : 1.0f;
     filterPitch.process (monoBlock, { isOn (ParamIDs::fpOn), (effects::FilterPitch::Type) (int) param (ParamIDs::fpType),
                                       param (ParamIDs::fpSensitivity), param (ParamIDs::fpResonance),
-                                      param (ParamIDs::fpInterval), param (ParamIDs::fpMix) });
+                                      param (ParamIDs::fpInterval) * whammy, param (ParamIDs::fpMix) });
     drive.process (monoBlock, { isOn (ParamIDs::driveOn), (effects::Drive::Model) (int) param (ParamIDs::driveModel),
                                 param (ParamIDs::driveGain), param (ParamIDs::driveTone), param (ParamIDs::driveLevel) });
 

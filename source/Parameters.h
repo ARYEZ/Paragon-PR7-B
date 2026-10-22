@@ -87,8 +87,9 @@ namespace ParamIDs
 
 namespace ExpressionTargets
 {
-    enum { off, volume, wah, morph };
-    inline const juce::StringArray names { "Off", "Volume", "Wah / Filter", "Morph FX" };
+    // Saved by number: only ever add to the end.
+    enum { off, volume, wah, morph, pitch };
+    inline const juce::StringArray names { "Off", "Volume", "Wah / Filter", "Morph FX", "Pitch / Whammy" };
 }
 
 namespace ParamRanges

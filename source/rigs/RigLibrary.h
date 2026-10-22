@@ -5,7 +5,7 @@
 #include <vector>
 
 // All the rigs the user can choose from: the built-in factory rigs plus the
-// user's own, which are files in a folder (one .x1rig file per rig) so they
+// user's own, which are files in a folder (one .pr7rig file per rig) so they
 // can be backed up, shared, and used from any DAW project.
 //
 // Message thread only.
@@ -19,10 +19,14 @@ public:
         bool isFactory = false;
     };
 
-    // `folder` defaults to the user's Paragon X1 rigs folder; tests pass a temporary one.
+    // `folder` defaults to the user's Paragon PR7 rigs folder; tests pass a temporary one.
     explicit RigLibrary (juce::File folder = defaultFolder());
 
     static juce::File defaultFolder();
+
+    // Copies the folder the plugin used under its old name (Paragon X1) to
+    // the new one, the first time only. Returns true if it copied.
+    static bool carryOverFromOldName (const juce::File& oldFolder, const juce::File& newFolder);
     const juce::File& getFolder() const noexcept { return folder; }
 
     // Re-reads the folder. Files that aren't valid rigs are skipped.
