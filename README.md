@@ -1,5 +1,8 @@
 # Paragon X1
 
+[![Build](https://github.com/ARYEZ/Paragon-X1/actions/workflows/build.yml/badge.svg)](https://github.com/ARYEZ/Paragon-X1/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/ARYEZ/Paragon-X1)](https://github.com/ARYEZ/Paragon-X1/releases/latest)
+
 A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://github.com/sdatkinson/NeuralAmpModelerCore)
 (`.nam`) amp captures, with a cabinet IR loader and built-in effects. Built with [JUCE](https://juce.com).
 
@@ -66,7 +69,7 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 
 ## Download
 
-Get the latest version from the **[Releases](../../releases)** page: download the zip for your
+Get the latest version from the **[Releases](https://github.com/ARYEZ/Paragon-X1/releases/latest)** page: download the zip for your
 computer. (Builds of every push also appear under **Actions** → a run → **Artifacts**.)
 
 Unzip it and copy `Paragon X1.vst3` to your VST3 folder:
