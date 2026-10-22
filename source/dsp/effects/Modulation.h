@@ -13,6 +13,7 @@ namespace effects
     //   vibrato        pure pitch vibrato
     //   harmonicTremolo  Fender brownface: lows and highs pulse in turn
     //   autoPan        sweeps between the speakers at constant loudness
+    //   doubler        two extra "takes" of the part, one each side (ADT)
     //
     // Chorus and flanger are built here rather than using juce::dsp::Chorus,
     // because JUCE's version moves both channels together. Running the right
@@ -22,15 +23,15 @@ namespace effects
     {
     public:
         // Saved by number in rigs and projects: only ever add to the end.
-        enum class Type { chorus, flanger, phaser, tremolo, dimension, uniVibe, rotary, vibrato, harmonicTremolo, autoPan };
+        enum class Type { chorus, flanger, phaser, tremolo, dimension, uniVibe, rotary, vibrato, harmonicTremolo, autoPan, doubler };
         static inline const juce::StringArray typeNames { "Chorus", "Flanger", "Phaser", "Tremolo", "Dimension Chorus", "Uni-Vibe",
-                                                          "Rotary", "Vibrato", "Harmonic Tremolo", "Auto-Pan" };
+                                                          "Rotary", "Vibrato", "Harmonic Tremolo", "Auto-Pan", "Doubler" };
 
         // Types for which MIX means something (the others are fully "wet" by nature).
         static bool usesMix (Type type) noexcept
         {
             return type == Type::chorus || type == Type::flanger || type == Type::phaser || type == Type::dimension
-                || type == Type::uniVibe || type == Type::rotary;
+                || type == Type::uniVibe || type == Type::rotary || type == Type::doubler;
         }
 
         struct Settings
@@ -55,6 +56,7 @@ namespace effects
         void processVibrato (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept;
         void processHarmonicTremolo (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept;
         void processAutoPan (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept;
+        void processDoubler (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept;
         float advanceLfo (float rateHz) noexcept;
 
         double sampleRate = 48000.0;

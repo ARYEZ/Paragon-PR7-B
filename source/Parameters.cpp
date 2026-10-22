@@ -2,6 +2,8 @@
 
 #include "dsp/effects/CompGate.h"
 #include "dsp/effects/Delay.h"
+#include "dsp/effects/Drive.h"
+#include "dsp/effects/FilterPitch.h"
 #include "dsp/effects/GraphicEq.h"
 #include "dsp/effects/Modulation.h"
 
@@ -15,6 +17,15 @@ namespace
     const ToText asPercent = [] (float value, int) { return juce::String (juce::roundToInt (value * 100.0f)) + "%"; };
     const ToText asHz = [] (float value, int) { return juce::String (value, value < 1.0f ? 2 : 1) + " Hz"; };
     const ToText asMs = [] (float value, int) { return juce::String (juce::roundToInt (value)) + " ms"; };
+    const ToText asSemitones = [] (float value, int)
+    {
+        const auto semitones = juce::roundToInt (value);
+        if (semitones == 0)
+            return juce::String ("Unison");
+        if (std::abs (semitones) % 12 == 0)
+            return juce::String (semitones > 0 ? "+" : "-") + juce::String (std::abs (semitones) / 12) + " oct";
+        return (semitones > 0 ? "+" : "") + juce::String (semitones) + " st";
+    };
     const ToText asRatio = [] (float value, int) { return juce::String (value, 1) + ":1"; };
     const ToText asGate = [] (float value, int)
     {
@@ -136,5 +147,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     // existing rigs keep their RATE. (The six new modulation types were
     // added to the end of Mod Type's list, so saved choices keep their meaning.)
     layout.add (makeChoice (ParamIDs::modSync, "Mod Sync", 9, effects::Delay::syncNames, 0));
+
+    // Added in plugin version 10. The drive defaults to the Tube Screamer
+    // model; projects and rigs saved before it existed are given the
+    // original model when they load (see ParagonX1AudioProcessor::setStateInformation
+    // and Rig::fromXml), so they sound as they did.
+    constexpr int v10 = 10;
+    layout.add (makeChoice (ParamIDs::driveModel, "Drive Model", v10, effects::Drive::modelNames, (int) effects::Drive::Model::screamer));
+    layout.add (makeSwitch (ParamIDs::fpOn, "Filter/Pitch On", v10, false));
+    layout.add (makeChoice (ParamIDs::fpType, "Filter/Pitch Type", v10, effects::FilterPitch::typeNames, 0));
+    layout.add (makeFloat (ParamIDs::fpSensitivity, "Auto-Wah Sensitivity", { 0.0f, 10.0f, 0.1f }, 5.0f, v10, asKnob));
+    layout.add (makeFloat (ParamIDs::fpResonance, "Auto-Wah Resonance", { 0.0f, 10.0f, 0.1f }, 5.0f, v10, asKnob));
+    layout.add (makeFloat (ParamIDs::fpInterval, "Pitch Interval", { -24.0f, 24.0f, 1.0f }, 12.0f, v10, asSemitones));
+    layout.add (makeFloat (ParamIDs::fpMix, "Filter/Pitch Mix", { 0.0f, 1.0f, 0.01f }, 1.0f, v10, asPercent));
     return layout;
 }

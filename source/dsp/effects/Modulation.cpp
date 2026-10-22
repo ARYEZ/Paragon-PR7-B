@@ -15,7 +15,7 @@ namespace effects
         constexpr DelaySweep chorusSweep { 14.0f, 6.0f, 0.0f };
         constexpr DelaySweep flangerSweep { 3.0f, 2.5f, 0.6f };   // feedback gives the flanger its "jet" ring
 
-        constexpr float maxDelayMs = 25.0f;
+        constexpr float maxDelayMs = 40.0f;
 
         // A one-pole low-pass coefficient for a cutoff, and a smoothing
         // coefficient for a time constant.
@@ -26,7 +26,7 @@ namespace effects
         float triangle (float phase) { phase -= std::floor (phase); return 4.0f * std::abs (phase - 0.5f) - 1.0f; }
     }
 
-    Modulation::Modulation() : delayLine (4096), hornDelay (2048), drumDelay (2048) {}
+    Modulation::Modulation() : delayLine (8192), hornDelay (2048), drumDelay (2048) {}
 
     void Modulation::prepare (double newSampleRate, int maxBlockSize)
     {
@@ -104,6 +104,7 @@ namespace effects
                 case Type::vibrato:          processVibrato (wet, settings); break;
                 case Type::harmonicTremolo:  processHarmonicTremolo (wet, settings); break;
                 case Type::autoPan:          processAutoPan (wet, settings); break;
+                case Type::doubler:          processDoubler (wet, settings); break;
             }
         });
     }
@@ -365,6 +366,52 @@ namespace effects
             mix.skip (1);
             left[i] *= juce::MathConstants<float>::sqrt2 * std::cos (angle);
             right[i] *= juce::MathConstants<float>::sqrt2 * std::sin (angle);
+        }
+    }
+
+    void Modulation::processDoubler (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept
+    {
+        // Automatic double tracking: sounds like the part was played three
+        // times, the original in the middle and a "take" each side. Each
+        // take is the guitar a little late (19 and 27 ms, so they don't line
+        // up into a chorus), with its timing and pitch drifting slowly and
+        // independently, as no two takes are ever played exactly alike.
+        // DEPTH is how loose the takes are; RATE how quickly they drift; MIX
+        // how loud they are against the original.
+        const auto msToSamples = (float) sampleRate * 0.001f;
+        const auto numChannels = (int) block.getNumChannels();
+        constexpr float takeMs[2] = { 19.0f, 27.0f };
+
+        for (size_t i = 0; i < block.getNumSamples(); ++i)
+        {
+            // A slow wander for each take: two sines at unrelated speeds, so it never quite repeats.
+            const auto phase = advanceLfo (settings.rateHz * 0.25f);
+            const auto depthNow = depth.getNextValue();
+            const auto mixNow = mix.getNextValue();
+            const auto wanderMs = 0.15f + 1.2f * depthNow;
+
+            const auto dry = block.getChannelPointer (0)[i];
+            delayLine.pushSample (0, dry);
+
+            float takes[2];
+            for (int take = 0; take < 2; ++take)
+            {
+                const auto offset = 0.37f * (float) take;
+                const auto wander = 0.6f * std::sin (twoPi * (phase + offset)) + 0.4f * std::sin (twoPi * (2.71f * phase + 0.13f + offset));
+                takes[take] = delayLine.popSample (0, (takeMs[take] + wanderMs * wander) * msToSamples, take == 1);
+            }
+
+            // The original stays in the middle at full level; the takes come up beside it.
+            if (numChannels == 1)
+            {
+                block.getChannelPointer (0)[i] = dry + 0.5f * mixNow * (takes[0] + takes[1]);
+            }
+            else
+            {
+                const auto original = block.getChannelPointer (1)[i];   // same as the left: the chain is mono up to here
+                block.getChannelPointer (0)[i] = dry + mixNow * takes[0];
+                block.getChannelPointer (1)[i] = original + mixNow * takes[1];
+            }
         }
     }
 }

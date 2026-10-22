@@ -31,7 +31,8 @@ namespace ParagonColours
     inline const juce::Colour modulation { 0xffb86dff };
     inline const juce::Colour delay      { 0xff45b4ff };
     inline const juce::Colour reverb     { 0xff4fe3dd };
-    inline const juce::Colour eq         { 0xffff5a2c };   // the plugin's neon orange-red
+    inline const juce::Colour eq         { 0xffff5a2c };
+    inline const juce::Colour filterPitch { 0xffb8f040 };   // lime   // the plugin's neon orange-red
 }
 
 class ParagonLookAndFeel final : public juce::LookAndFeel_V4

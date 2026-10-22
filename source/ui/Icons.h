@@ -12,7 +12,9 @@ namespace Icons
                       // Phase 7: header and dock
                       save, settings, star, user, factory, plus, chevronLeft, chevronRight, flame,
                       // Phase 8
-                      eq };
+                      eq,
+                      // Version 0.10
+                      filterPitch };
 
     juce::Path get (Type type);
 

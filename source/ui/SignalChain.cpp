@@ -45,7 +45,7 @@ void SignalChain::resized()
 
     // Blocks spread evenly with gaps for the dotted connectors.
     const auto count = (float) blocks.size();
-    const auto gap = 34.0f;
+    const auto gap = 24.0f;
     const auto blockWidth = (area.getWidth() - gap * (count + 1.0f)) / count;
     blockAreas.clear();
     area.removeFromLeft (gap);
@@ -121,8 +121,8 @@ void SignalChain::paint (juce::Graphics& g)
                      on ? block.colour : block.colour.withAlpha (0.35f), 1.6f, on);
         content.removeFromLeft (6.0f);
         g.setColour (on ? ParagonColours::text : ParagonColours::textDim);
-        g.setFont (juce::FontOptions (12.0f, juce::Font::bold));
-        g.drawFittedText (block.name, content.toNearestInt(), juce::Justification::centredLeft, 2, 0.8f);
+        g.setFont (juce::FontOptions (11.5f, juce::Font::bold));
+        g.drawFittedText (block.name, content.toNearestInt(), juce::Justification::centredLeft, 2, 0.65f);
     }
 
     drawConnector (previousRight, outputArea.getX(), midY, ParagonColours::glow.withAlpha (0.55f));

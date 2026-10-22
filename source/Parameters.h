@@ -68,6 +68,16 @@ namespace ParamIDs
     // Modulation tempo sync: Off, or a note length at the tapped or host tempo.
     inline constexpr auto modSync = "modSync";
 
+    // Version 10: the drive's model (Tube Screamer or the original), and
+    // the FILTER / PITCH block: auto-wah and pitch shifter.
+    inline constexpr auto driveModel    = "driveModel";
+    inline constexpr auto fpOn          = "fpOn";
+    inline constexpr auto fpType        = "fpType";
+    inline constexpr auto fpSensitivity = "fpSensitivity";   // auto-wah
+    inline constexpr auto fpResonance   = "fpResonance";     // auto-wah
+    inline constexpr auto fpInterval    = "fpInterval";      // pitch shifter, in semitones
+    inline constexpr auto fpMix         = "fpMix";
+
     // Global settings: kept when switching rigs. Everything else is part of a rig.
     // The expression pedal's position is global for the same reason a real
     // pedal's is: it's where your foot is, not part of the sound. What the

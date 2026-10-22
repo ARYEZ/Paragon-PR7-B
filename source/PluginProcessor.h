@@ -10,6 +10,7 @@
 #include "dsp/effects/CompGate.h"
 #include "dsp/effects/Delay.h"
 #include "dsp/effects/Drive.h"
+#include "dsp/effects/FilterPitch.h"
 #include "dsp/effects/GraphicEq.h"
 #include "dsp/effects/Modulation.h"
 #include "dsp/effects/Presence.h"
@@ -228,6 +229,7 @@ private:
     // -> graphic EQ -> modulation -> delay -> reverb. Up to the cab it's mono; from
     // modulation on it's stereo when the track is.
     effects::CompGate compGate;
+    effects::FilterPitch filterPitch;   // after the compressor, before the drive
     effects::Drive drive;
     effects::Presence presence;
     effects::Modulation modulation;

@@ -24,7 +24,9 @@ namespace
     constexpr float syncOff = 0, quarter = 3, eighth = 6, dottedEighth = 7;
     // Modulation types (index into effects::Modulation::typeNames).
     constexpr float chorus = 0, flanger = 1, tremolo = 3, dimension = 4, uniVibe = 5, rotary = 6, vibrato = 7,
-                    harmonicTremolo = 8, autoPan = 9;
+                    harmonicTremolo = 8, autoPan = 9, doubler = 10;
+    // FILTER / PITCH types.
+    constexpr float autoWah = 0, pitchShifter = 1;
 }
 
 std::vector<Rig> makeFactoryRigs()
@@ -100,6 +102,28 @@ std::vector<Rig> makeFactoryRigs()
         make ("Warble Vibrato", D, 5, "Modulation,Lo-Fi", {
             { modOn, 1 }, { modType, vibrato }, { modRate, 5.5f }, { modDepth, 0.35f },
             { reverbOn, 1 }, { reverbSize, 0.5f }, { reverbTone, 4 }, { reverbMix, 0.3f } }),
+
+        make ("Octave Lead", B, 3, "Lead,Pitch,Drive", {
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 3 },
+            { fpOn, 1 }, { fpType, pitchShifter }, { fpInterval, 12 }, { fpMix, 0.45f },
+            { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 }, { driveLevel, 2 },
+            { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.3f }, { delayMix, 0.2f },
+            { reverbOn, 1 }, { reverbMix, 0.2f } }),
+
+        make ("Harmony Fifths", B, 4, "Lead,Pitch", {
+            { fpOn, 1 }, { fpType, pitchShifter }, { fpInterval, 7 }, { fpMix, 0.4f },
+            { driveOn, 1 }, { driveGain, 4 }, { driveTone, 5 },
+            { reverbOn, 1 }, { reverbSize, 0.6f }, { reverbMix, 0.25f } }),
+
+        make ("Funk Envelope", C, 6, "Funk,Filter,Clean", {
+            { compOn, 1 }, { compThreshold, -26 }, { compRatio, 4 }, { compLevel, 4 },
+            { fpOn, 1 }, { fpType, autoWah }, { fpSensitivity, 6 }, { fpResonance, 6 }, { fpMix, 1 },
+            { reverbOn, 1 }, { reverbSize, 0.3f }, { reverbMix, 0.15f } }),
+
+        make ("Wide Doubler", D, 6, "Rhythm,Modulation", {
+            { driveOn, 1 }, { driveGain, 3 }, { driveTone, 5 },
+            { modOn, 1 }, { modType, doubler }, { modRate, 0.8f }, { modDepth, 0.4f }, { modMix, 0.7f },
+            { reverbOn, 1 }, { reverbSize, 0.35f }, { reverbMix, 0.15f } }),
 
         // These two follow the tempo (tapped, or the DAW's).
         make ("Brownface Trem", C, 4, "Modulation,Clean,Vintage", {

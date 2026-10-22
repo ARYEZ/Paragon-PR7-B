@@ -96,6 +96,7 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     amp.prepare (sampleRate, preparedBlockSize);
     cab.prepare (sampleRate, preparedBlockSize);
     compGate.prepare (sampleRate, preparedBlockSize);
+    filterPitch.prepare (sampleRate, preparedBlockSize);
     drive.prepare (sampleRate, preparedBlockSize);
     presence.prepare (sampleRate, preparedBlockSize);
     graphicEq.prepare (sampleRate, preparedBlockSize);
@@ -245,8 +246,11 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
 
     compGate.process (monoBlock, { isOn (ParamIDs::compOn), param (ParamIDs::compThreshold), param (ParamIDs::compRatio),
                                    param (ParamIDs::compLevel), param (ParamIDs::gateThreshold) });
-    drive.process (monoBlock, { isOn (ParamIDs::driveOn), param (ParamIDs::driveGain), param (ParamIDs::driveTone),
-                                param (ParamIDs::driveLevel) });
+    filterPitch.process (monoBlock, { isOn (ParamIDs::fpOn), (effects::FilterPitch::Type) (int) param (ParamIDs::fpType),
+                                      param (ParamIDs::fpSensitivity), param (ParamIDs::fpResonance),
+                                      param (ParamIDs::fpInterval), param (ParamIDs::fpMix) });
+    drive.process (monoBlock, { isOn (ParamIDs::driveOn), (effects::Drive::Model) (int) param (ParamIDs::driveModel),
+                                param (ParamIDs::driveGain), param (ParamIDs::driveTone), param (ParamIDs::driveLevel) });
 
     amp.process (mono, numSamples, ampOn->load() > 0.5f, ampNormalise->load() > 0.5f);
     cab.process (mono, numSamples, cabOn->load() > 0.5f);
@@ -780,7 +784,16 @@ void ParagonX1AudioProcessor::setStateInformation (const void* data, int sizeInB
     if (xml == nullptr || ! xml->hasTagName (parameters.state.getType()))
         return;
 
-    const auto state = juce::ValueTree::fromXml (*xml);
+    auto state = juce::ValueTree::fromXml (*xml);
+
+    // Saved before the drive had a MODEL: it was the original overdrive.
+    if (! state.getChildWithProperty ("id", ParamIDs::driveModel).isValid())
+    {
+        juce::ValueTree model ("PARAM");
+        model.setProperty ("id", ParamIDs::driveModel, nullptr);
+        model.setProperty ("value", (int) effects::Drive::Model::classic, nullptr);
+        state.appendChild (model, nullptr);
+    }
     parameters.replaceState (state);
 
     const auto restore = [] (const juce::var& path, auto load, auto clear)

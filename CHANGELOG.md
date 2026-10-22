@@ -2,6 +2,24 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.10.0
+
+**Tube Screamer drive, pitch shifter, auto-wah and doubler.**
+
+- **Screamer drive:** the OD / DISTORTION block has a new MODEL setting, and its new default, **Screamer (TS)**, is modelled on the Ibanez TS808 Tube Screamer's circuit:
+  - The op-amp only amplifies above about 720 Hz. Its diodes clip just that part, which is added back on top of the clean guitar, so the bass stays clean and tight while the mids are pushed (the famous mid "hump").
+  - The diodes round the peaks off softly and symmetrically.
+  - TONE works against a fixed 723 Hz treble cut, from dark to slightly bright.
+  - DRIVE has the pedal's audio-taper pot.
+  - It's the classic boost in front of a driven amp: try DRIVE low and LEVEL up.
+- **Classic** is the original overdrive. Projects and rigs saved with earlier versions load with Classic, so they sound exactly as before.
+- **New FILTER / PITCH block,** after the compressor and before the drive (where these pedals go on a real board). Click it in the signal chain to open it. Two types:
+  - **Auto-Wah:** an envelope filter. A resonant wah sweeps open as you pick and closes as the note fades. SENSITIVITY sets how hard you need to play to open it fully; RESONANCE sets how sharp and vocal it is.
+  - **Pitch Shifter:** two octaves down to two up, in semitones. Use MIX 100% for an all-wet pitch drop, or blend it in for octaves and harmonies (+12 for an octave up, +7 for a fifth). Each time it splices, it finds the point where the waveform matches and cross-fades there, so notes keep a clean, steady pitch instead of warbling.
+- **Doubler** (new MODULATION type): two extra "takes" of your part, one each side, each a little late and drifting slightly in timing and pitch, so it sounds double-tracked. DEPTH sets how loose the takes are, RATE how fast they drift, and MIX how loud they are.
+- Four new factory rigs: Octave Lead and Harmony Fifths (bank B), Funk Envelope (bank C) and Wide Doubler (bank D).
+- With nine blocks now, the signal chain's gaps are a little narrower, and the RIG SUMMARY cards use short titles (hover for the full name).
+
 ## 0.9.0
 
 **Six new modulation effects, and tempo sync.**

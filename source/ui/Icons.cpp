@@ -275,6 +275,21 @@ namespace Icons
                 break;
             }
 
+            case Type::filterPitch:
+                // A resonant filter's peak, and an up / down arrow for pitch.
+                p.startNewSubPath (0.04f, 0.72f);
+                p.cubicTo (0.25f, 0.72f, 0.3f, 0.18f, 0.42f, 0.18f);
+                p.cubicTo (0.52f, 0.18f, 0.55f, 0.85f, 0.66f, 0.92f);
+                p.startNewSubPath (0.84f, 0.12f);
+                p.lineTo (0.84f, 0.62f);
+                p.startNewSubPath (0.74f, 0.24f);
+                p.lineTo (0.84f, 0.12f);
+                p.lineTo (0.94f, 0.24f);
+                p.startNewSubPath (0.74f, 0.5f);
+                p.lineTo (0.84f, 0.62f);
+                p.lineTo (0.94f, 0.5f);
+                break;
+
             case Type::flame:
                 // The mockup's "All Rigs" icon.
                 p.startNewSubPath (0.5f, 0.05f);

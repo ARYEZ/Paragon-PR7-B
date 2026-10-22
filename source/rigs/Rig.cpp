@@ -5,6 +5,11 @@ namespace
     // Bump when the file layout changes in a way older code can't read.
     constexpr int fileVersion = 1;
 
+    // Which plugin version's parameters the rig was saved with, for the
+    // occasional parameter whose default changed (older plugins ignore it).
+    // 10: the drive's MODEL, defaulting to the Tube Screamer model.
+    constexpr int parameterVersion = 10;
+
     const juce::Identifier rigTag { "ParagonRig" };
     const juce::Identifier parameterTag { "Param" };
 }
@@ -23,6 +28,7 @@ std::unique_ptr<juce::XmlElement> Rig::toXml() const
 {
     auto xml = std::make_unique<juce::XmlElement> (rigTag);
     xml->setAttribute ("version", fileVersion);
+    xml->setAttribute ("parameterVersion", parameterVersion);
     xml->setAttribute ("name", name);
     xml->setAttribute ("bank", bankName (bank));
     xml->setAttribute ("number", number);
@@ -66,6 +72,11 @@ std::optional<Rig> Rig::fromXml (const juce::XmlElement& xml)
     for (const auto* parameter : xml.getChildWithTagNameIterator (parameterTag))
         if (const auto id = parameter->getStringAttribute ("id"); id.isNotEmpty())
             rig.parameters[id] = (float) parameter->getDoubleAttribute ("value");
+
+    // Saved before the drive had a MODEL: it was the original overdrive,
+    // model 0. Without this it would load as the newer default.
+    if (xml.getIntAttribute ("parameterVersion", 0) < 10 && rig.parameters.count ("driveModel") == 0)
+        rig.parameters["driveModel"] = 0.0f;
 
     return rig;
 }

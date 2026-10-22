@@ -169,6 +169,7 @@ TEST_CASE ("Overdrive adds harmonics, and oversampling keeps aliasing down", "[e
 {
     EffectRig rig;
     rig.set (ParamIDs::driveOn, 1.0f);
+    rig.set (ParamIDs::driveModel, (float) effects::Drive::Model::classic);
     rig.set (ParamIDs::driveTone, 10.0f);
 
     SECTION ("Harmonics: odd from clipping, even from the asymmetry")
@@ -199,6 +200,67 @@ TEST_CASE ("Overdrive adds harmonics, and oversampling keeps aliasing down", "[e
 
         rig.set (ParamIDs::driveLevel, 6.0f);
         CHECK_THAT (dB (rms (rig.runMono (input), 0.2) / rms (input, 0.2)), WithinAbs (6.0, 1.0));
+    }
+}
+
+TEST_CASE ("The Screamer drive behaves like a Tube Screamer", "[effects][drive]")
+{
+    EffectRig rig;
+    rig.set (ParamIDs::driveOn, 1.0f);
+    rig.set (ParamIDs::driveModel, (float) effects::Drive::Model::screamer);
+
+    SECTION ("It's the default for new rigs")
+    {
+        EffectRig fresh;
+        CHECK (juce::roundToInt (fresh.processor.getParameters().getRawParameterValue (ParamIDs::driveModel)->load())
+               == (int) effects::Drive::Model::screamer);
+    }
+
+    SECTION ("Mid hump: the bass passes clean while the mids are boosted")
+    {
+        // A quiet signal, so nothing clips and this is just the frequency response.
+        rig.set (ParamIDs::driveGain, 0.0f);
+        rig.set (ParamIDs::driveTone, 10.0f);
+        const auto gainAt = [&] (double hz)
+        {
+            const auto input = sine (hz, 0.003f, 0.5);
+            return dB (rms (rig.runMono (input), 0.2) / rms (input, 0.2));
+        };
+        CHECK (gainAt (1000.0) - gainAt (100.0) > 9.0f);
+
+        // TONE: dark at 0 (the top well below the mids), bright at 10.
+        const auto brightTreble = gainAt (6000.0) - gainAt (1000.0);
+        rig.set (ParamIDs::driveTone, 0.0f);
+        const auto darkTreble = gainAt (6000.0) - gainAt (1000.0);
+        CHECK (darkTreble < -10.0f);
+        CHECK (brightTreble - darkTreble > 12.0f);
+    }
+
+    SECTION ("Its diodes clip both halves alike: odd harmonics, hardly any even")
+    {
+        rig.set (ParamIDs::driveGain, 7.0f);
+        rig.set (ParamIDs::driveTone, 10.0f);
+        const auto output = rig.runMono (sine (500.0, 0.3f, 0.5));
+        REQUIRE (allFinite (output));
+        const auto fundamental = levelAt (output, 500.0);
+        CHECK (dB (levelAt (output, 1500.0) / fundamental) > -25.0f);
+        CHECK (dB (levelAt (output, 1000.0) / fundamental) < -50.0f);
+    }
+
+    SECTION ("Its level at noon is close to the guitar's own")
+    {
+        rig.set (ParamIDs::driveGain, 5.0f);
+        rig.set (ParamIDs::driveTone, 5.0f);
+        const auto input = sine (440.0, 0.3f, 0.5);
+        CHECK_THAT (dB (rms (rig.runMono (input), 0.2) / rms (input, 0.2)), WithinAbs (0.0, 3.0));
+    }
+
+    SECTION ("Aliasing stays down at full drive")
+    {
+        rig.set (ParamIDs::driveGain, 10.0f);
+        rig.set (ParamIDs::driveTone, 10.0f);
+        const auto output = rig.runMono (sine (5000.0, 0.5f, 0.5));
+        CHECK (dB (levelAt (output, 13000.0) / levelAt (output, 5000.0)) < -45.0f);
     }
 }
 
@@ -357,6 +419,100 @@ TEST_CASE ("The newer modulation types", "[effects][mod]")
         };
         CHECK (correlation (pulse (150.0), pulse (5000.0)) < -0.8);
     }
+}
+
+TEST_CASE ("The pitch shifter moves notes by its interval", "[effects][pitch]")
+{
+    const auto shifted = [] (float semitones, double hz)
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::fpOn, 1.0f);
+        rig.set (ParamIDs::fpType, (float) effects::FilterPitch::Type::pitchShifter);
+        rig.set (ParamIDs::fpInterval, semitones);
+        rig.set (ParamIDs::fpMix, 1.0f);
+        return rig.runMono (sine (hz, 0.3f, 1.0));
+    };
+
+    for (const auto [semitones, ratio] : { std::pair { 12.0f, 2.0 }, { -12.0f, 0.5 }, { 7.0f, 1.4983 }, { -5.0f, 0.7492 }, { 24.0f, 4.0 } })
+    {
+        INFO (semitones << " semitones");
+        const auto output = shifted (semitones, 330.0);
+        REQUIRE (allFinite (output));
+        const auto target = levelAt (output, 330.0 * ratio, 0.2);
+        CHECK (dB (target / levelAt (output, 330.0, 0.2)) > 20.0f);   // the original pitch is gone
+        CHECK (dB (target / 0.3f) > -6.0f);                           // and the new one is about as loud
+    }
+}
+
+TEST_CASE ("The auto-wah opens up as you play harder", "[effects][wah]")
+{
+    // A bright test note: a 220 Hz tone with its first 15 harmonics.
+    std::vector<float> note ((size_t) sampleRate);
+    for (size_t i = 0; i < note.size(); ++i)
+        for (int harmonic = 1; harmonic <= 15; ++harmonic)
+            note[i] += (float) std::sin (juce::MathConstants<double>::twoPi * 220.0 * harmonic * (double) i / sampleRate) / (float) harmonic;
+
+    const auto brightness = [&] (float level)
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::fpOn, 1.0f);
+        rig.set (ParamIDs::fpType, (float) effects::FilterPitch::Type::autoWah);
+        rig.set (ParamIDs::fpSensitivity, 5.0f);
+        auto input = note;
+        for (auto& sample : input)
+            sample *= level;
+        const auto output = rig.runMono (input);
+        REQUIRE (allFinite (output));
+        return dB (levelAt (output, 220.0 * 11) / levelAt (output, 220.0 * 2));   // 2.4 kHz against 440 Hz
+    };
+
+    CHECK (brightness (0.3f) - brightness (0.003f) > 12.0f);
+}
+
+TEST_CASE ("The doubler adds a take on each side", "[effects][mod]")
+{
+    EffectRig rig;
+    rig.set (ParamIDs::modOn, 1.0f);
+    rig.set (ParamIDs::modType, typeIndex (ModType::doubler));
+    rig.set (ParamIDs::modMix, 0.7f);
+    const auto input = sine (440.0, 0.3f, 1.0);
+    const auto output = rig.run (input);
+    REQUIRE (allFinite (output[0]));
+    REQUIRE (allFinite (output[1]));
+
+    std::vector<float> difference (output[0].size());
+    for (size_t i = 0; i < difference.size(); ++i)
+        difference[i] = output[0][i] - output[1][i];
+    CHECK (rms (difference, 0.2) > 0.1f * rms (output[0], 0.2));   // the two sides differ
+    CHECK (rms (output[0], 0.2) < 2.0f * rms (input, 0.2));
+}
+
+TEST_CASE ("Projects saved before the drive MODEL keep the original overdrive", "[effects][drive]")
+{
+    EffectRig original;
+    juce::MemoryBlock saved;
+    original.processor.getStateInformation (saved);
+
+    // As an older version saved it: no driveModel parameter at all.
+    auto xml = juce::AudioProcessor::getXmlFromBinary (saved.getData(), (int) saved.getSize());
+    REQUIRE (xml != nullptr);
+    for (auto* child : xml->getChildIterator())
+        if (child->getStringAttribute ("id") == ParamIDs::driveModel)
+        {
+            xml->removeChildElement (child, true);
+            break;
+        }
+    juce::MemoryBlock older;
+    juce::AudioProcessor::copyXmlToBinary (*xml, older);
+
+    const auto modelAfterLoading = [] (const juce::MemoryBlock& state)
+    {
+        EffectRig rig;
+        rig.processor.setStateInformation (state.getData(), (int) state.getSize());
+        return juce::roundToInt (rig.processor.getParameters().getRawParameterValue (ParamIDs::driveModel)->load());
+    };
+    CHECK (modelAfterLoading (older) == (int) effects::Drive::Model::classic);
+    CHECK (modelAfterLoading (saved) == (int) effects::Drive::Model::screamer);
 }
 
 TEST_CASE ("Modulation syncs to the tempo", "[effects][mod]")
@@ -568,8 +724,13 @@ TEST_CASE ("Full chain runs comfortably faster than real time", "[effects][perfo
     EffectRig rig;
     rig.processor.loadAmpModel (juce::File (PARAGON_NAM_EXAMPLE_MODELS).getChildFile ("wavenet.nam"));
     REQUIRE (rig.processor.waitForLoads (20000));
-    for (const auto* id : { ParamIDs::compOn, ParamIDs::driveOn, ParamIDs::modOn, ParamIDs::delayOn, ParamIDs::reverbOn })
+    for (const auto* id : { ParamIDs::compOn, ParamIDs::fpOn, ParamIDs::driveOn, ParamIDs::eqOn, ParamIDs::modOn, ParamIDs::delayOn,
+                            ParamIDs::reverbOn })
         rig.set (id, 1.0f);
+    // The costliest settings: the pitch shifter two octaves up (it jumps most often) and the rotary.
+    rig.set (ParamIDs::fpType, (float) effects::FilterPitch::Type::pitchShifter);
+    rig.set (ParamIDs::fpInterval, 24.0f);
+    rig.set (ParamIDs::modType, (float) effects::Modulation::Type::rotary);
 
     const auto input = sine (220.0, 0.3f, 5.0);
     const auto startMs = juce::Time::getMillisecondCounterHiRes();

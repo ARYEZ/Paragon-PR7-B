@@ -18,11 +18,35 @@ namespace effects
         // guitar's own level at any drive setting, so Level 0 dB is unity
         // and the Level knob is a real boost or cut into the amp.
         constexpr float driveCompensation = 0.5f;
+
+        // TS808 component values: the op-amp's gain is 1 + (51k + DRIVE pot)
+        // / 4.7k above the 4.7k / 0.047 uF corner (720 Hz); the 51 pF across
+        // the feedback softens the very top; the 1k / 0.22 uF after the
+        // diodes is the fixed treble cut the TONE knob works against.
+        constexpr float screamerLowCutHz = 720.0f;
+        constexpr float feedbackR = 51.0e3f, drivePotR = 500.0e3f, groundR = 4.7e3f, feedbackC = 51.0e-12f;
+        constexpr float toneCornerHz = 723.0f;
+        constexpr float diodeVolts = 0.6f;         // about where a silicon diode starts conducting
+        constexpr float screamerOutputScale = 0.35f;   // so LEVEL 0 dB is roughly the guitar's own level
+
+        float onePoleCoefficient (double rate, float hz)
+        {
+            return 1.0f - std::exp (-juce::MathConstants<float>::twoPi * juce::jmin (hz, (float) rate * 0.45f) / (float) rate);
+        }
     }
 
     Drive::Drive()
-        : oversampling (1, 3, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true)   // 3 stages = 8x, steep filters
+        : oversampling (1, 3, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true),   // 3 stages = 8x, steep filters
+          screamerOversampling (2, 3, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true)
     {
+    }
+
+    float Drive::diodeClip (float x) noexcept
+    {
+        // Diodes in the feedback loop round the peaks off gradually rather
+        // than flattening them (softer than tanh), levelling out at about 0.6 V.
+        const auto ratio = std::abs (x) / diodeVolts;
+        return x / std::pow (1.0f + std::pow (ratio, 2.5f), 0.4f);
     }
 
     float Drive::shape (float x) noexcept
@@ -37,6 +61,15 @@ namespace effects
 
         oversampling.initProcessing ((size_t) maxBlockSize);
         oversampling.reset();
+        screamerOversampling.initProcessing ((size_t) maxBlockSize);
+        screamerOversampling.reset();
+        screamerPaths.setSize (2, maxBlockSize);
+        screamerLowCut.coefficients = juce::dsp::IIR::Coefficients<float>::makeFirstOrderHighPass (sampleRate, screamerLowCutHz);
+        screamerLowCut.prepare (spec);
+        clipLowPassState = toneState = outputCouplingState = 0.0f;
+        screamerGain.reset (sampleRate, 0.02);
+        screamerTone.reset (sampleRate, 0.02);
+        screamerLevel.reset (sampleRate, 0.02);
 
         lowCut.coefficients = juce::dsp::IIR::Coefficients<float>::makeFirstOrderHighPass (sampleRate, lowCutHz);
         toneFilter.coefficients = juce::dsp::IIR::Coefficients<float>::makeLowPass (sampleRate, 4000.0f);
@@ -53,32 +86,106 @@ namespace effects
     {
         bypass.process (monoBlock, settings.on, [&] (juce::dsp::AudioBlock<float> block)
         {
-            // Tone: a high cut from 1 kHz (dark) to 12 kHz (bright). Retuned
-            // in place only when the knob moves: no allocation.
-            if (! juce::approximatelyEqual (settings.tone, lastTone))
+            // Switching model: start the other model's filters from silence
+            // rather than from whatever they last held.
+            if (settings.model != lastModel)
             {
-                *toneFilter.coefficients = juce::dsp::IIR::ArrayCoefficients<float>::makeLowPass (
-                    sampleRate, knobToFrequency (settings.tone, 1000.0f, 12000.0f), 0.707f);
-                lastTone = settings.tone;
+                lastModel = settings.model;
+                screamerLowCut.reset();
+                screamerOversampling.reset();
+                oversampling.reset();
+                lowCut.reset();
+                toneFilter.reset();
+                clipLowPassState = toneState = outputCouplingState = 0.0f;
             }
 
-            juce::dsp::ProcessContextReplacing<float> context (block);
-            lowCut.process (context);
-
-            const auto driveDb = maxDriveDb * juce::jlimit (0.0f, 10.0f, settings.drive) / 10.0f;
-            inputGain.setTargetValue (juce::Decibels::decibelsToGain (driveDb));
-            inputGain.applyGain (block.getChannelPointer (0), (int) block.getNumSamples());
-
-            auto upsampled = oversampling.processSamplesUp (block);
-            auto* samples = upsampled.getChannelPointer (0);
-            for (size_t i = 0; i < upsampled.getNumSamples(); ++i)
-                samples[i] = shape (samples[i]);
-            oversampling.processSamplesDown (block);
-
-            toneFilter.process (context);
-
-            outputGain.setTargetValue (juce::Decibels::decibelsToGain (settings.levelDb - driveDb * driveCompensation));
-            outputGain.applyGain (block.getChannelPointer (0), (int) block.getNumSamples());
+            if (settings.model == Model::screamer)
+                processScreamer (block, settings);
+            else
+                processClassic (block, settings);
         });
+    }
+
+    void Drive::processClassic (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept
+    {
+        // Tone: a high cut from 1 kHz (dark) to 12 kHz (bright). Retuned
+        // in place only when the knob moves: no allocation.
+        if (! juce::approximatelyEqual (settings.tone, lastTone))
+        {
+            *toneFilter.coefficients = juce::dsp::IIR::ArrayCoefficients<float>::makeLowPass (
+                sampleRate, knobToFrequency (settings.tone, 1000.0f, 12000.0f), 0.707f);
+            lastTone = settings.tone;
+        }
+
+        juce::dsp::ProcessContextReplacing<float> context (block);
+        lowCut.process (context);
+
+        const auto driveDb = maxDriveDb * juce::jlimit (0.0f, 10.0f, settings.drive) / 10.0f;
+        inputGain.setTargetValue (juce::Decibels::decibelsToGain (driveDb));
+        inputGain.applyGain (block.getChannelPointer (0), (int) block.getNumSamples());
+
+        auto upsampled = oversampling.processSamplesUp (block);
+        auto* samples = upsampled.getChannelPointer (0);
+        for (size_t i = 0; i < upsampled.getNumSamples(); ++i)
+            samples[i] = shape (samples[i]);
+        oversampling.processSamplesDown (block);
+
+        toneFilter.process (context);
+
+        outputGain.setTargetValue (juce::Decibels::decibelsToGain (settings.levelDb - driveDb * driveCompensation));
+        outputGain.applyGain (block.getChannelPointer (0), (int) block.getNumSamples());
+    }
+
+    void Drive::processScreamer (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept
+    {
+        const auto numSamples = (int) block.getNumSamples();
+        auto* samples = block.getChannelPointer (0);
+
+        // DRIVE is a 500k audio-taper (logarithmic) pot, as on the pedal.
+        const auto knob = juce::jlimit (0.0f, 10.0f, settings.drive) / 10.0f;
+        const auto potR = drivePotR * (std::pow (10.0f, 2.0f * knob) - 1.0f) / 99.0f;
+        screamerGain.setTargetValue ((feedbackR + potR) / groundR);   // the part above unity: what reaches the diodes
+        const auto feedbackHz = 1.0f / (juce::MathConstants<float>::twoPi * (feedbackR + potR) * feedbackC);
+
+        // Channel 0: the clean guitar. Channel 1: the low-cut, amplified
+        // signal the diodes will clip.
+        screamerPaths.copyFrom (0, 0, samples, numSamples);
+        screamerPaths.copyFrom (1, 0, samples, numSamples);
+        auto paths = juce::dsp::AudioBlock<float> (screamerPaths).getSubBlock (0, (size_t) numSamples);
+        auto clipPathBlock = paths.getSingleChannelBlock (1);
+        juce::dsp::ProcessContextReplacing<float> clipContext (clipPathBlock);
+        screamerLowCut.process (clipContext);
+        auto* clipPath = paths.getChannelPointer (1);
+        for (int i = 0; i < numSamples; ++i)
+            clipPath[i] *= screamerGain.getNextValue();
+
+        // At 8x the rate: soften the top (51 pF), clip, and add to the clean guitar.
+        auto upsampled = screamerOversampling.processSamplesUp (paths);
+        const auto fastRate = sampleRate * (double) screamerOversampling.getOversamplingFactor();
+        const auto softening = onePoleCoefficient (fastRate, feedbackHz);
+        auto* clean = upsampled.getChannelPointer (0);
+        auto* driven = upsampled.getChannelPointer (1);
+        for (size_t i = 0; i < upsampled.getNumSamples(); ++i)
+        {
+            clipLowPassState += (driven[i] - clipLowPassState) * softening;
+            clean[i] += diodeClip (clipLowPassState);
+        }
+        screamerOversampling.processSamplesDown (paths);
+
+        // TONE: the fixed 723 Hz treble cut, with the TONE stage adding the
+        // treble back: from a little (dark) to a little more than flat (bright).
+        const auto toneCut = onePoleCoefficient (sampleRate, toneCornerHz);
+        const auto coupling = onePoleCoefficient (sampleRate, 20.0f);   // the output capacitor: blocks any DC from the clipping
+        screamerTone.setTargetValue (0.03f + 1.37f * std::pow (juce::jlimit (0.0f, 10.0f, settings.tone) / 10.0f, 1.5f));
+        screamerLevel.setTargetValue (screamerOutputScale * juce::Decibels::decibelsToGain (settings.levelDb));
+
+        const auto* summed = paths.getChannelPointer (0);
+        for (int i = 0; i < numSamples; ++i)
+        {
+            toneState += (summed[i] - toneState) * toneCut;
+            const auto toned = toneState + screamerTone.getNextValue() * (summed[i] - toneState);
+            outputCouplingState += (toned - outputCouplingState) * coupling;
+            samples[i] = (toned - outputCouplingState) * screamerLevel.getNextValue();
+        }
     }
 }
