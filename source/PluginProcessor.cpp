@@ -273,12 +273,18 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     // mix, so sweeping the pedal doesn't click.)
     const auto morph = expressionTarget == ExpressionTargets::morph ? pedal : 1.0f;
 
-    // Tremolo has no dry/wet mix (it's a volume effect), so morph its depth instead.
+    // Types with no dry/wet mix (tremolo, vibrato, auto-pan...) morph their depth instead.
     const auto modType = (effects::Modulation::Type) (int) param (ParamIDs::modType);
-    const auto isTremolo = modType == effects::Modulation::Type::tremolo;
-    modulation.process (stereoBlock, { isOn (ParamIDs::modOn), modType, param (ParamIDs::modRate),
-                                       param (ParamIDs::modDepth) * (isTremolo ? morph : 1.0f),
-                                       param (ParamIDs::modMix) * (isTremolo ? 1.0f : morph) });
+    const auto morphsDepth = ! effects::Modulation::usesMix (modType);
+
+    // SYNC: one LFO cycle per note length at the tapped (or host) tempo.
+    auto modRate = param (ParamIDs::modRate);
+    if (const auto sync = (int) param (ParamIDs::modSync); sync > 0 && sync < (int) std::size (effects::Delay::syncBeats))
+        modRate = juce::jlimit (0.02f, 20.0f, (float) (getTempoBpm() / 60.0) / effects::Delay::syncBeats[sync]);
+
+    modulation.process (stereoBlock, { isOn (ParamIDs::modOn), modType, modRate,
+                                       param (ParamIDs::modDepth) * (morphsDepth ? morph : 1.0f),
+                                       param (ParamIDs::modMix) * (morphsDepth ? 1.0f : morph) });
     delay.process (stereoBlock, { isOn (ParamIDs::delayOn), param (ParamIDs::delayTime), (int) param (ParamIDs::delaySync),
                                   param (ParamIDs::delayFeedback), param (ParamIDs::delayTone), param (ParamIDs::delayMix) * morph,
                                   isOn (ParamIDs::delayPingPong) },

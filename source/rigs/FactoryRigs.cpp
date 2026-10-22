@@ -21,9 +21,10 @@ namespace
     }
 
     // Delay sync choices (index into effects::Delay::syncNames).
-    constexpr float syncOff = 0, quarter = 3, dottedEighth = 7;
-    // Modulation types.
-    constexpr float chorus = 0, flanger = 1, tremolo = 3;
+    constexpr float syncOff = 0, quarter = 3, eighth = 6, dottedEighth = 7;
+    // Modulation types (index into effects::Modulation::typeNames).
+    constexpr float chorus = 0, flanger = 1, tremolo = 3, dimension = 4, uniVibe = 5, rotary = 6, vibrato = 7,
+                    harmonicTremolo = 8, autoPan = 9;
 }
 
 std::vector<Rig> makeFactoryRigs()
@@ -79,5 +80,36 @@ std::vector<Rig> makeFactoryRigs()
         make ("Jet Flanger", D, 1, "Modulation,Drive", {
             { driveOn, 1 }, { driveGain, 3 },
             { modOn, 1 }, { modType, flanger }, { modRate, 0.2f }, { modDepth, 0.8f }, { modMix, 0.5f } }),
+
+        make ("Leslie Spin", D, 2, "Modulation,Clean", {
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 3 },
+            { modOn, 1 }, { modType, rotary }, { modRate, 6.5f }, { modDepth, 0.7f }, { modMix, 0.85f },
+            { reverbOn, 1 }, { reverbSize, 0.4f }, { reverbMix, 0.2f } }),
+
+        make ("Machine Gun Vibe", D, 3, "Modulation,Drive,Lead", {
+            { driveOn, 1 }, { driveGain, 6 }, { driveTone, 5 }, { driveLevel, 3 },
+            { modOn, 1 }, { modType, uniVibe }, { modRate, 1.2f }, { modDepth, 0.75f }, { modMix, 0.5f },
+            { reverbOn, 1 }, { reverbMix, 0.18f } }),
+
+        make ("Dimension Clean", D, 4, "Clean,Modulation", {
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 }, { compLevel, 2 },
+            { modOn, 1 }, { modType, dimension }, { modRate, 0.4f }, { modDepth, 0.5f }, { modMix, 0.5f },
+            { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.25f }, { delayMix, 0.15f },
+            { reverbOn, 1 }, { reverbSize, 0.6f }, { reverbMix, 0.25f } }),
+
+        make ("Warble Vibrato", D, 5, "Modulation,Lo-Fi", {
+            { modOn, 1 }, { modType, vibrato }, { modRate, 5.5f }, { modDepth, 0.35f },
+            { reverbOn, 1 }, { reverbSize, 0.5f }, { reverbTone, 4 }, { reverbMix, 0.3f } }),
+
+        // These two follow the tempo (tapped, or the DAW's).
+        make ("Brownface Trem", C, 4, "Modulation,Clean,Vintage", {
+            { modOn, 1 }, { modType, harmonicTremolo }, { modSync, eighth }, { modDepth, 0.7f },
+            { reverbOn, 1 }, { reverbSize, 0.55f }, { reverbTone, 6 }, { reverbMix, 0.3f } }),
+
+        make ("Wide Pan", C, 5, "Modulation,Ambient", {
+            { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 },
+            { modOn, 1 }, { modType, autoPan }, { modSync, quarter }, { modDepth, 0.8f },
+            { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.35f }, { delayMix, 0.2f },
+            { reverbOn, 1 }, { reverbSize, 0.8f }, { reverbMix, 0.35f } }),
     };
 }

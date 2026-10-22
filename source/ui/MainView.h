@@ -79,6 +79,7 @@ private:
     void refreshRig();
     void saveRig();
     juce::String valueText (const char* parameterId) const;
+    float rawValue (const char* parameterId) const;
 
     ParagonX1AudioProcessor& audioProcessor;
 

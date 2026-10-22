@@ -39,7 +39,8 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
   below. Signal chain: comp/gate → overdrive → amp → cabinet → presence → graphic EQ → modulation → delay → reverb.
   - **1 Comp / Gate:** compressor (threshold, ratio, level) and noise gate (threshold; all the way down is off).
   - **2 OD / Distortion:** overdrive (drive, tone, level), 8x oversampled to avoid harsh aliasing.
-  - **3 Modulation:** chorus, flanger, phaser or tremolo. Chorus and flanger are stereo.
+  - **3 Modulation:** ten types: chorus, flanger, phaser, tremolo, Dimension chorus, Uni-Vibe, rotary
+    (Leslie), vibrato, harmonic tremolo and auto-pan. SYNC locks the rate to the tapped or DAW tempo.
   - **4 Reverb / Delay:** switches both; each also has its own ON switch. The delay syncs to your
     DAW's tempo (or set SYNC to Off for milliseconds), has a tone control for darker repeats, and
     optional ping-pong. Both let their tails ring out when switched off.

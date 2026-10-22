@@ -2,6 +2,23 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.9.0
+
+**Six new modulation effects, and tempo sync.**
+
+The MODULATION block's TYPE list grows from four to ten. The original chorus, flanger, phaser and tremolo sound exactly as before.
+
+- **Dimension Chorus:** after the Roland Dimension D and Boss CE-1. Two chorus voices swept in opposite directions, so their pitch changes largely cancel. The result is wide and lush without the seasick wobble, and is slightly darkened like the originals' bucket-brigade chips.
+- **Uni-Vibe:** after the Shin-ei Uni-Vibe. Four phase-shift stages tuned far apart, swept by a simulated lamp that brightens quickly, fades slowly and lingers dark, which gives the Vibe its lopsided throb. MIX works as the original's switch: all the way up is VIBRATO, halfway is CHORUS.
+- **Rotary:** a Leslie speaker. The sound splits at 800 Hz into a treble horn and a bass drum, each spinning past two microphones with its own Doppler pitch shift and level swing, in stereo. RATE sets the speed. The heavy drum takes longer to spin up and down than the horn, so turning RATE (or assigning it to automation) gives the classic chorale-to-tremolo ramp.
+- **Vibrato:** pure pitch vibrato, with no dry signal.
+- **Harmonic Tremolo:** the early-'60s Fender "brownface" tremolo. Lows and highs pulse in turn, for a softer, swirling throb with a hint of phaser.
+- **Auto-Pan:** sweeps the sound between the speakers, at constant loudness.
+- **SYNC** (new, for every type): Off, or a note length from 1/1 to 1/16, including dotted and triplet values. The rate then follows the tapped tempo, or the DAW's. RATE greys out while synced, and the footswitch shows the note value.
+- MIX greys out for types that have no dry/wet blend (tremolo, vibrato, harmonic tremolo, auto-pan). For those, MORPH / FX on the expression pedal moves DEPTH instead, as it already did for tremolo.
+- Six new factory rigs to try them: Leslie Spin, Machine Gun Vibe, Dimension Clean, Warble Vibrato (bank D), and Brownface Trem and Wide Pan (bank C, tempo-synced).
+- Effect panels now size their cards by contents: drop-down lists get more room and ON lights less, so long names like "Harmonic Tremolo" and "1/4 triplet" fit.
+
 ## 0.8.1
 
 - The graphic EQ now glows in the plugin's neon orange-red (its curve, faders, icon and signal-chain block), with a white-hot core on the curve like the unit's neon LEDs.

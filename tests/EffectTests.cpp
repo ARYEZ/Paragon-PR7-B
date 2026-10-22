@@ -3,6 +3,7 @@
 
 #include "Parameters.h"
 #include "PluginProcessor.h"
+#include "dsp/effects/Modulation.h"
 
 using Catch::Matchers::WithinAbs;
 
@@ -247,6 +248,137 @@ TEST_CASE ("Modulation effects", "[effects][mod]")
             CHECK (maxAbsDifference (input, output, (size_t) (0.2 * sampleRate)) > 0.01f);
         }
     }
+}
+
+namespace
+{
+    // Loudness in 10 ms windows from `fromSeconds` on: how the volume moves.
+    std::vector<float> envelope (const std::vector<float>& samples, double fromSeconds = 0.2)
+    {
+        std::vector<float> levels;
+        for (auto t = fromSeconds; (t + 0.01) * sampleRate <= (double) samples.size(); t += 0.01)
+            levels.push_back (rms (samples, t, t + 0.01));
+        return levels;
+    }
+
+    // +1 when two envelopes rise and fall together, -1 when one rises as the other falls.
+    double correlation (const std::vector<float>& a, const std::vector<float>& b)
+    {
+        const auto n = std::min (a.size(), b.size());
+        double meanA = 0.0, meanB = 0.0;
+        for (size_t i = 0; i < n; ++i) { meanA += a[i]; meanB += b[i]; }
+        meanA /= (double) n;
+        meanB /= (double) n;
+        double ab = 0.0, aa = 0.0, bb = 0.0;
+        for (size_t i = 0; i < n; ++i)
+        {
+            ab += (a[i] - meanA) * (b[i] - meanB);
+            aa += (a[i] - meanA) * (a[i] - meanA);
+            bb += (b[i] - meanB) * (b[i] - meanB);
+        }
+        return ab / std::sqrt (aa * bb + 1.0e-30);
+    }
+
+    using ModType = effects::Modulation::Type;
+    float typeIndex (ModType type) { return (float) (int) type; }
+}
+
+TEST_CASE ("The newer modulation types", "[effects][mod]")
+{
+    const auto input = sine (440.0, 0.3f, 1.0);
+
+    SECTION ("Every type changes the sound and stays stable")
+    {
+        for (const auto type : { ModType::dimension, ModType::uniVibe, ModType::rotary, ModType::vibrato,
+                                 ModType::harmonicTremolo, ModType::autoPan })
+        {
+            EffectRig rig;
+            rig.set (ParamIDs::modOn, 1.0f);
+            rig.set (ParamIDs::modType, typeIndex (type));
+            rig.set (ParamIDs::modDepth, 0.8f);
+            rig.set (ParamIDs::modMix, 0.5f);
+            const auto output = rig.run (input);
+            INFO (effects::Modulation::typeNames[(int) type]);
+            REQUIRE (allFinite (output[0]));
+            REQUIRE (allFinite (output[1]));
+            CHECK (maxAbsDifference (input, output[0], (size_t) (0.2 * sampleRate)) > 0.01f);
+            CHECK (rms (output[0], 0.2) < 2.0f * rms (input, 0.2));   // nothing runs away
+        }
+    }
+
+    SECTION ("Dimension chorus and rotary are stereo")
+    {
+        for (const auto type : { ModType::dimension, ModType::rotary })
+        {
+            EffectRig rig;
+            rig.set (ParamIDs::modOn, 1.0f);
+            rig.set (ParamIDs::modType, typeIndex (type));
+            rig.set (ParamIDs::modMix, 1.0f);
+            const auto output = rig.run (input);
+            std::vector<float> difference (output[0].size());
+            for (size_t i = 0; i < difference.size(); ++i)
+                difference[i] = output[0][i] - output[1][i];
+            INFO (effects::Modulation::typeNames[(int) type]);
+            CHECK (rms (difference, 0.2) > 0.05f * rms (output[0], 0.2));
+        }
+    }
+
+    SECTION ("Uni-Vibe's wet signal only shifts phase, so it keeps the level")
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::modOn, 1.0f);
+        rig.set (ParamIDs::modType, typeIndex (ModType::uniVibe));
+        rig.set (ParamIDs::modMix, 1.0f);
+        rig.set (ParamIDs::modDepth, 1.0f);
+        CHECK_THAT (rms (rig.runMono (input), 0.2) / rms (input, 0.2), WithinAbs (1.0, 0.05));
+    }
+
+    SECTION ("Auto-pan moves the sound from one speaker to the other")
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::modOn, 1.0f);
+        rig.set (ParamIDs::modType, typeIndex (ModType::autoPan));
+        rig.set (ParamIDs::modRate, 2.0f);
+        rig.set (ParamIDs::modDepth, 1.0f);
+        const auto output = rig.run (input);
+        CHECK (correlation (envelope (output[0]), envelope (output[1])) < -0.9);
+    }
+
+    SECTION ("Harmonic tremolo pulses the lows and highs in turn")
+    {
+        const auto pulse = [] (double hz)
+        {
+            EffectRig rig;
+            rig.set (ParamIDs::modOn, 1.0f);
+            rig.set (ParamIDs::modType, typeIndex (ModType::harmonicTremolo));
+            rig.set (ParamIDs::modRate, 3.0f);
+            rig.set (ParamIDs::modDepth, 1.0f);
+            return envelope (rig.runMono (sine (hz, 0.3f, 1.0)));
+        };
+        CHECK (correlation (pulse (150.0), pulse (5000.0)) < -0.8);
+    }
+}
+
+TEST_CASE ("Modulation syncs to the tempo", "[effects][mod]")
+{
+    // Tremolo synced to quarter notes at the DAW's 120 BPM is two pulses a
+    // second, whatever RATE says: the same as RATE at 2 Hz unsynced.
+    const auto input = sine (440.0, 0.3f, 1.0);
+    const auto tremolo = [&] (float rate, float sync)
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::modOn, 1.0f);
+        rig.set (ParamIDs::modType, typeIndex (ModType::tremolo));
+        rig.set (ParamIDs::modDepth, 1.0f);
+        rig.set (ParamIDs::modRate, rate);
+        rig.set (ParamIDs::modSync, sync);
+        return rig.runMono (input);
+    };
+
+    const auto synced = tremolo (7.0f, 3.0f);   // sync 3 = "1/4"
+    const auto free = tremolo (2.0f, 0.0f);
+    CHECK (maxAbsDifference (synced, free, 0) < 0.01f);
+    CHECK (maxAbsDifference (tremolo (7.0f, 0.0f), free, (size_t) (0.2 * sampleRate)) > 0.05f);   // and RATE alone does matter
 }
 
 TEST_CASE ("Delay repeats at the set time", "[effects][delay]")

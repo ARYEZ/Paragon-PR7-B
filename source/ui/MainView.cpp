@@ -1,6 +1,7 @@
 #include "MainView.h"
 
 #include "Parameters.h"
+#include "dsp/effects/Modulation.h"
 
 namespace
 {
@@ -238,7 +239,10 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     footswitches[1] = std::make_unique<Footswitch> (2, "OD / DISTORTION", state, juce::StringArray { ParamIDs::driveOn });
     footswitches[1]->describe = [this] { return "Drive " + valueText (ParamIDs::driveGain) + "  Tone " + valueText (ParamIDs::driveTone); };
     footswitches[2] = std::make_unique<Footswitch> (3, "MODULATION", state, juce::StringArray { ParamIDs::modOn });
-    footswitches[2]->describe = [this] { return valueText (ParamIDs::modType) + "  " + valueText (ParamIDs::modRate); };
+    footswitches[2]->describe = [this]
+    {
+        return valueText (ParamIDs::modType) + "  " + valueText (rawValue (ParamIDs::modSync) > 0.5f ? ParamIDs::modSync : ParamIDs::modRate);
+    };
     footswitches[3] = std::make_unique<Footswitch> (4, "REVERB / DELAY", state, juce::StringArray { ParamIDs::delayOn, ParamIDs::reverbOn });
     footswitches[3]->describe = [this]
     {
@@ -281,11 +285,14 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     panels[cabBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "CABINET (IR)", { { ParamIDs::cabOn, "ON" }, { ParamIDs::presence, "PRESENCE" } } } });
     panels[modBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
-        { "MODULATION", { { ParamIDs::modOn, "ON" }, { ParamIDs::modType, "TYPE" }, { ParamIDs::modRate, "RATE" },
-                          { ParamIDs::modDepth, "DEPTH" }, { ParamIDs::modMix, "MIX" } } } });
+        { "MODULATION", { { ParamIDs::modOn, "ON" }, { ParamIDs::modType, "TYPE" }, { ParamIDs::modSync, "SYNC" },
+                          { ParamIDs::modRate, "RATE", [this] { return rawValue (ParamIDs::modSync) < 0.5f; } },
+                          { ParamIDs::modDepth, "DEPTH" },
+                          { ParamIDs::modMix, "MIX", [this] {
+                              return effects::Modulation::usesMix ((effects::Modulation::Type) juce::roundToInt (rawValue (ParamIDs::modType))); } } } } });
     panels[delayBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "DELAY", { { ParamIDs::delayOn, "ON" }, { ParamIDs::delaySync, "SYNC" },
-                     { ParamIDs::delayTime, "TIME", [this] { return audioProcessor.getParameters().getRawParameterValue (ParamIDs::delaySync)->load() < 0.5f; } },
+                     { ParamIDs::delayTime, "TIME", [this] { return rawValue (ParamIDs::delaySync) < 0.5f; } },
                      { ParamIDs::delayFeedback, "FEEDBACK" }, { ParamIDs::delayTone, "TONE" }, { ParamIDs::delayMix, "MIX" },
                      { ParamIDs::delayPingPong, "PING-PONG" } } } });
     panels[reverbBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
@@ -349,6 +356,11 @@ MainView::~MainView()
 juce::String MainView::valueText (const char* parameterId) const
 {
     return audioProcessor.getParameters().getParameter (parameterId)->getCurrentValueAsText();
+}
+
+float MainView::rawValue (const char* parameterId) const
+{
+    return audioProcessor.getParameters().getRawParameterValue (parameterId)->load();
 }
 
 void MainView::selectBlock (int block)

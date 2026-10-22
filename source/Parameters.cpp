@@ -3,6 +3,7 @@
 #include "dsp/effects/CompGate.h"
 #include "dsp/effects/Delay.h"
 #include "dsp/effects/GraphicEq.h"
+#include "dsp/effects/Modulation.h"
 
 namespace
 {
@@ -85,7 +86,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::driveLevel, "Drive Level", { -24.0f, 12.0f, 0.1f }, 0.0f, v3, asDb));
 
     layout.add (makeSwitch (ParamIDs::modOn, "Mod On", v3, false));
-    layout.add (makeChoice (ParamIDs::modType, "Mod Type", v3, { "Chorus", "Flanger", "Phaser", "Tremolo" }, 0));
+    layout.add (makeChoice (ParamIDs::modType, "Mod Type", v3, effects::Modulation::typeNames, 0));
     layout.add (makeFloat (ParamIDs::modRate, "Mod Rate", skewed (0.05f, 10.0f, 1.0f, 0.01f), 0.8f, v3, asHz));
     layout.add (makeFloat (ParamIDs::modDepth, "Mod Depth", { 0.0f, 1.0f, 0.01f }, 0.45f, v3, asPercent));
     layout.add (makeFloat (ParamIDs::modMix, "Mod Mix", { 0.0f, 1.0f, 0.01f }, 0.5f, v3, asPercent));
@@ -130,5 +131,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
         layout.add (makeFloat (ParamIDs::eqBands[band].toRawUTF8(), "EQ " + ParamIDs::eqBandNames[band] + " Hz",
                                { -effects::GraphicEq::maxGainDb, effects::GraphicEq::maxGainDb, 0.1f }, 0.0f, v8, asDb));
     layout.add (makeFloat (ParamIDs::eqLevel, "EQ Level", { -12.0f, 12.0f, 0.1f }, 0.0f, v8, asDb));
+
+    // Added in plugin version 9: modulation tempo sync. Off by default, so
+    // existing rigs keep their RATE. (The six new modulation types were
+    // added to the end of Mod Type's list, so saved choices keep their meaning.)
+    layout.add (makeChoice (ParamIDs::modSync, "Mod Sync", 9, effects::Delay::syncNames, 0));
     return layout;
 }
