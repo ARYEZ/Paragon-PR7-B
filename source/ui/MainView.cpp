@@ -116,7 +116,8 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
           { "EQ", Icons::Type::eq, ParagonColours::eq, ParamIDs::eqOn },
           { "MODULATION", Icons::Type::modulation, ParagonColours::modulation, ParamIDs::modOn },
           { "DELAY", Icons::Type::delay, ParagonColours::delay, ParamIDs::delayOn },
-          { "REVERB", Icons::Type::reverb, ParagonColours::reverb, ParamIDs::reverbOn } }),
+          { "REVERB", Icons::Type::reverb, ParagonColours::reverb, ParamIDs::reverbOn },
+          { "LO-FI", Icons::Type::loFi, ParagonColours::loFi, ParamIDs::lofiOn } }),
       rigBrowser (processorToShow),
       settingsPage (processorToShow)
 {
@@ -314,14 +315,17 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     panels[reverbBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "REVERB", { { ParamIDs::reverbOn, "ON" }, { ParamIDs::reverbSize, "SIZE" }, { ParamIDs::reverbTone, "TONE" },
                       { ParamIDs::reverbMix, "MIX" } } } });
+    panels[loFiBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
+        { "LO-FI", { { ParamIDs::lofiOn, "ON" }, { ParamIDs::lofiType, "TYPE" }, { ParamIDs::lofiAmount, "AMOUNT" },
+                     { ParamIDs::lofiNoise, "NOISE" }, { ParamIDs::lofiMix, "MIX" }, { ParamIDs::lofiLevel, "LEVEL" } } } });
     const std::pair<Icons::Type, juce::Colour> headers[] = {
         { Icons::Type::comp, ParagonColours::comp }, { Icons::Type::filterPitch, ParagonColours::filterPitch },
         { Icons::Type::drive, ParagonColours::drive },
         { Icons::Type::amp, ParagonColours::amp }, { Icons::Type::cabinet, ParagonColours::cab },
         { Icons::Type::eq, ParagonColours::eq },
         { Icons::Type::modulation, ParagonColours::modulation }, { Icons::Type::delay, ParagonColours::delay },
-        { Icons::Type::reverb, ParagonColours::reverb } };
-    const char* titles[] = { "COMP / GATE", "FILTER / PITCH", "OD / DISTORTION", "AMP (NAM)", "CABINET (IR)", "GRAPHIC EQ", "MODULATION", "DELAY", "REVERB" };
+        { Icons::Type::reverb, ParagonColours::reverb }, { Icons::Type::loFi, ParagonColours::loFi } };
+    const char* titles[] = { "COMP / GATE", "FILTER / PITCH", "OD / DISTORTION", "AMP (NAM)", "CABINET (IR)", "GRAPHIC EQ", "MODULATION", "DELAY", "REVERB", "LO-FI" };
     for (size_t i = 0; i < panels.size(); ++i)
     {
         if (panels[i] == nullptr)

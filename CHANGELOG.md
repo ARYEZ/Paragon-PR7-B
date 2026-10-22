@@ -2,6 +2,22 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.12.0
+
+**LO-FI: telephone, radio, megaphone, cassette and bitcrusher, for intros and breakdowns.**
+
+- A new **LO-FI** block, last in the signal chain after the reverb, so the whole sound (echoes and reverb included) goes "through the phone", as it's done in the studio. Click LO-FI in the signal chain to open it. Five types:
+  - **Telephone:** only 300 Hz to 3.4 kHz gets through, with steep edges and a little carbon-mic grit, in mono.
+  - **AM Radio:** a small radio speaker: wider than a phone, a nasal midrange bump, gentle saturation, in mono.
+  - **Megaphone:** a horn speaker: narrow, honky and driven hard, in mono.
+  - **Cassette:** a worn tape: the pitch wobbles (slow wow, fast flutter and a random drift), the top end dulls, and the tape saturates and hisses.
+  - **Bitcrusher:** fewer bits (down to 3) and a lower sample rate (down to 3 kHz), for early-sampler and video-game crunch.
+- **AMOUNT** sets how strong it is: narrower, dirtier, wobblier or crunchier. **NOISE** adds line hiss, static or tape hiss. **MIX** and **LEVEL** blend it and match its volume.
+- **LO-FI on the expression pedal** (new EXPRESSION ASSIGN target): fades the effect in, from the full band at the heel to full lo-fi at the toe. Start toe-down for a phone-sounding intro, then rock back to the heel as the band comes in. Assigning it switches LO-FI on.
+- To switch it at a set point in a song, automate **Lo-Fi On** (or **Lo-Fi Mix**) in your DAW.
+- Five new factory rigs: Phone Intro and Megaphone Verse (bank B), Old Radio (bank C), Cassette Dreams and 8-Bit Crunch (bank D).
+- The EXPRESSION ASSIGN list has larger text, and the signal chain's gaps are narrower to fit the tenth block.
+
 ## 0.11.0
 
 **Paragon X1 is now Paragon PR7, and the expression pedal can bend pitch.**

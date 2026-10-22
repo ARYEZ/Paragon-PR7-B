@@ -37,8 +37,10 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 - **PRESENCE** (under the cabinet) cuts or boosts the top end after the cab, like an amp's presence knob.
 - **Footswitches 1-4** turn the effect blocks on and off. Click a footswitch's name to show its knobs
   below. Signal chain: comp/gate → filter / pitch → overdrive → amp → cabinet → presence → graphic EQ → modulation
-  → delay → reverb.
+  → delay → reverb → lo-fi.
   - **1 Comp / Gate:** compressor (threshold, ratio, level) and noise gate (threshold; all the way down is off).
+  - **Lo-Fi** (last in the chain; no footswitch): telephone, AM radio, megaphone, cassette (wow, flutter, hiss)
+    or bitcrusher, for intros and breakdowns. AMOUNT, NOISE, MIX and LEVEL.
   - **Filter / Pitch** (in the signal chain; no footswitch): an auto-wah (envelope filter) or a pitch shifter
     (two octaves down to two up, blended with the dry guitar for harmonies and octaves).
   - **2 OD / Distortion:** two models: **Screamer**, modelled on the Ibanez TS808 Tube Screamer's circuit, and
@@ -65,8 +67,8 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 - **Expression pedal** (right of the unit): drag it, use the mouse wheel, or send MIDI CC 11 (or the CC chosen in SETTINGS) from a
   real expression pedal (route your MIDI track to the plugin). Assign it with EXPRESSION ASSIGN to
   **VOLUME**, **WAH / FILTER** (a wah before the drive), **MORPH / FX** (fades modulation, delay and
-  reverb in from the heel) or **PITCH / WHAMMY** (bends the pitch shifter from no shift at the heel to its
-  INTERVAL at the toe). MIN and MAX set where the heel and toe land. The assignment and range
+  reverb in from the heel), **PITCH / WHAMMY** (bends the pitch shifter from no shift at the heel to its
+  INTERVAL at the toe) or **LO-FI** (fades the lo-fi effect in: full band at the heel, lo-fi at the toe). MIN and MAX set where the heel and toe land. The assignment and range
   are saved with each rig.
 - **Bottom panels:** RIG BROWSER jumps to the PRESETS page filtered; SELECTED RIG files and saves the
   current rig; TAGS and RIG SUMMARY show the rig at a glance. Click a summary card (or a footswitch name,

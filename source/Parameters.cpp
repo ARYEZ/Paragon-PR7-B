@@ -4,6 +4,7 @@
 #include "dsp/effects/Delay.h"
 #include "dsp/effects/Drive.h"
 #include "dsp/effects/FilterPitch.h"
+#include "dsp/effects/LoFi.h"
 #include "dsp/effects/GraphicEq.h"
 #include "dsp/effects/Modulation.h"
 
@@ -160,5 +161,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::fpResonance, "Auto-Wah Resonance", { 0.0f, 10.0f, 0.1f }, 5.0f, v10, asKnob));
     layout.add (makeFloat (ParamIDs::fpInterval, "Pitch Interval", { -24.0f, 24.0f, 1.0f }, 12.0f, v10, asSemitones));
     layout.add (makeFloat (ParamIDs::fpMix, "Filter/Pitch Mix", { 0.0f, 1.0f, 0.01f }, 1.0f, v10, asPercent));
+
+    // Added in plugin version 12: the LO-FI block. Off by default.
+    constexpr int v12 = 12;
+    layout.add (makeSwitch (ParamIDs::lofiOn, "Lo-Fi On", v12, false));
+    layout.add (makeChoice (ParamIDs::lofiType, "Lo-Fi Type", v12, effects::LoFi::typeNames, 0));
+    layout.add (makeFloat (ParamIDs::lofiAmount, "Lo-Fi Amount", { 0.0f, 10.0f, 0.1f }, 5.0f, v12, asKnob));
+    layout.add (makeFloat (ParamIDs::lofiNoise, "Lo-Fi Noise", { 0.0f, 10.0f, 0.1f }, 3.0f, v12, asKnob));
+    layout.add (makeFloat (ParamIDs::lofiMix, "Lo-Fi Mix", { 0.0f, 1.0f, 0.01f }, 1.0f, v12, asPercent));
+    layout.add (makeFloat (ParamIDs::lofiLevel, "Lo-Fi Level", { -12.0f, 12.0f, 0.1f }, 0.0f, v12, asDb));
     return layout;
 }

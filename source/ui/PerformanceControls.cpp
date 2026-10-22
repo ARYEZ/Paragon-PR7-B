@@ -9,8 +9,8 @@
 
 namespace
 {
-    const Icons::Type targetIcons[] = { Icons::Type::volume, Icons::Type::wah, Icons::Type::rig, Icons::Type::filterPitch };
-    const char* pedalNames[] = { "VOLUME", "WAH / FILTER", "MORPH / FX", "PITCH / WHAMMY" };
+    const Icons::Type targetIcons[] = { Icons::Type::volume, Icons::Type::wah, Icons::Type::rig, Icons::Type::filterPitch, Icons::Type::loFi };
+    const char* pedalNames[] = { "VOLUME", "WAH / FILTER", "MORPH / FX", "PITCH / WHAMMY", "LO-FI" };
 
     juce::RangedAudioParameter& parameter (juce::AudioProcessorValueTreeState& state, const char* id)
     {
@@ -53,7 +53,7 @@ void IconButton::paintButton (juce::Graphics& g, bool highlighted, bool down)
         return;
     }
 
-    const auto font = juce::FontOptions (juce::jmin (15.0f, bounds.getHeight() * 0.42f), on ? juce::Font::bold : juce::Font::plain);
+    const auto font = juce::FontOptions (juce::jmin (15.0f, bounds.getHeight() * 0.55f), on ? juce::Font::bold : juce::Font::plain);
     const auto textWidth = (float) juce::GlyphArrangement::getStringWidthInt (font, text);
     const auto gap = iconSize * 0.45f;
 
@@ -80,7 +80,7 @@ ExpressionAssign::ExpressionAssign (juce::AudioProcessorValueTreeState& stateToU
           repaint();
       })
 {
-    for (int target = ExpressionTargets::volume; target <= ExpressionTargets::pitch; ++target)
+    for (int target = ExpressionTargets::volume; target <= ExpressionTargets::loFi; ++target)
     {
         const auto index = (size_t) (target - 1);
         std::unique_ptr<juce::Button> button;
@@ -115,20 +115,25 @@ void ExpressionAssign::select (int target)
     // Clicking the lit one again turns the pedal off.
     const auto newTarget = target == currentTarget ? ExpressionTargets::off : target;
 
+    const auto set = [this] (const char* id, float plainValue)
+    {
+        auto* parameter = state.getParameter (id);
+        parameter->beginChangeGesture();
+        parameter->setValueNotifyingHost (parameter->convertTo0to1 (plainValue));
+        parameter->endChangeGesture();
+    };
+
     // PITCH / WHAMMY bends the pitch shifter, so make sure there's one
     // running: switch the FILTER / PITCH block on as a pitch shifter.
     if (newTarget == ExpressionTargets::pitch)
     {
-        const auto set = [this] (const char* id, float plainValue)
-        {
-            auto* parameter = state.getParameter (id);
-            parameter->beginChangeGesture();
-            parameter->setValueNotifyingHost (parameter->convertTo0to1 (plainValue));
-            parameter->endChangeGesture();
-        };
         set (ParamIDs::fpOn, 1.0f);
         set (ParamIDs::fpType, (float) effects::FilterPitch::Type::pitchShifter);
     }
+
+    // LO-FI fades the LO-FI block in, so switch it on.
+    if (newTarget == ExpressionTargets::loFi)
+        set (ParamIDs::lofiOn, 1.0f);
 
     attachment.setValueAsCompleteGesture ((float) newTarget);
 }
@@ -161,13 +166,14 @@ void ExpressionAssign::resized()
         area.removeFromTop (36);
         const auto rowHeight = area.getHeight() / (int) buttons.size();
         for (auto& button : buttons)
-            button->setBounds (area.removeFromTop (rowHeight).withSizeKeepingCentre (juce::jmin (82, area.getWidth()), 20));
+            button->setBounds (area.removeFromTop (rowHeight).withSizeKeepingCentre (juce::jmin (82, area.getWidth()),
+                                                                                     juce::jmin (20, rowHeight - 3)));
     }
     else
     {
         const auto rowHeight = area.getHeight() / (int) buttons.size();
         for (auto& button : buttons)
-            button->setBounds (area.removeFromTop (rowHeight).reduced (0, 3));
+            button->setBounds (area.removeFromTop (rowHeight).reduced (0, 2));
     }
 }
 

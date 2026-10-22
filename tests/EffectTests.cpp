@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <set>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "Parameters.h"
@@ -513,6 +514,94 @@ TEST_CASE ("Projects saved before the drive MODEL keep the original overdrive", 
     };
     CHECK (modelAfterLoading (older) == (int) effects::Drive::Model::classic);
     CHECK (modelAfterLoading (saved) == (int) effects::Drive::Model::screamer);
+}
+
+TEST_CASE ("LO-FI: telephone, radio, megaphone, cassette and bitcrusher", "[effects][lofi]")
+{
+    using LoFiType = effects::LoFi::Type;
+    const auto makeRig = [] (LoFiType type, float amount = 5.0f)
+    {
+        auto rig = std::make_unique<EffectRig>();
+        rig->set (ParamIDs::lofiOn, 1.0f);
+        rig->set (ParamIDs::lofiType, (float) type);
+        rig->set (ParamIDs::lofiAmount, amount);
+        rig->set (ParamIDs::lofiNoise, 0.0f);   // measure the tone without hiss
+        return rig;
+    };
+
+    SECTION ("Telephone lets only the voice band through")
+    {
+        auto rig = makeRig (LoFiType::telephone);
+        const auto gainAt = [&] (double hz)
+        {
+            const auto input = sine (hz, 0.05f, 0.5);
+            return dB (rms (rig->runMono (input), 0.2) / rms (input, 0.2));
+        };
+        const auto mid = gainAt (1000.0);
+        CHECK (mid - gainAt (100.0) > 25.0f);
+        CHECK (mid - gainAt (8000.0) > 20.0f);
+        CHECK_THAT (mid, WithinAbs (0.0, 6.0));   // and the voice band is about as loud as before
+    }
+
+    SECTION ("The speaker types are mono, the way a phone or radio is")
+    {
+        for (const auto type : { LoFiType::telephone, LoFiType::amRadio, LoFiType::megaphone })
+        {
+            auto rig = makeRig (type);
+            rig->set (ParamIDs::modOn, 1.0f);   // chorus first, so the input to LO-FI is stereo
+            const auto output = rig->run (sine (800.0, 0.3f, 0.6));
+            INFO (effects::LoFi::typeNames[(int) type]);
+            REQUIRE (allFinite (output[0]));
+            CHECK (maxAbsDifference (output[0], output[1], (size_t) (0.1 * sampleRate)) < 1.0e-6f);   // after its 20 ms fade-in
+        }
+    }
+
+    SECTION ("Megaphone is driven harder than the telephone: more harmonics")
+    {
+        const auto thirdHarmonic = [&] (LoFiType type)
+        {
+            auto rig = makeRig (type, 8.0f);
+            const auto output = rig->runMono (sine (500.0, 0.3f, 0.5));
+            return dB (levelAt (output, 1500.0) / levelAt (output, 500.0));
+        };
+        CHECK (thirdHarmonic (LoFiType::megaphone) > thirdHarmonic (LoFiType::telephone) + 6.0f);
+    }
+
+    SECTION ("Cassette wobbles the pitch")
+    {
+        // A steady 1 kHz tone comes out smeared across neighbouring frequencies.
+        auto rig = makeRig (LoFiType::cassette, 10.0f);
+        const auto output = rig->runMono (sine (1000.0, 0.3f, 2.0));
+        REQUIRE (allFinite (output));
+        auto clean = makeRig (LoFiType::cassette, 0.0f);
+        const auto steady = clean->runMono (sine (1000.0, 0.3f, 2.0));
+        CHECK (levelAt (output, 1000.0, 0.3) < 0.7f * levelAt (steady, 1000.0, 0.3));
+    }
+
+    SECTION ("Bitcrusher at full AMOUNT leaves only a few levels and holds samples")
+    {
+        auto rig = makeRig (LoFiType::bitcrusher, 10.0f);
+        const auto output = rig->runMono (sine (220.0, 0.8f, 1.0));
+        std::set<int> levels;
+        int repeats = 0;
+        for (size_t i = 24000; i < output.size(); ++i)
+        {
+            levels.insert (juce::roundToInt (output[i] * 10000.0f));
+            repeats += juce::approximatelyEqual (output[i], output[i - 1]) ? 1 : 0;
+        }
+        CHECK (levels.size() <= 9);   // 3 bits: up to 9 levels from -1 to +1
+        CHECK (repeats > (int) (0.8 * (double) (output.size() - 24000)));   // each sample held for many
+    }
+
+    SECTION ("NOISE adds hiss")
+    {
+        auto rig = makeRig (LoFiType::telephone);
+        rig->set (ParamIDs::lofiNoise, 10.0f);
+        const auto output = rig->runMono (silence (0.5));
+        REQUIRE (allFinite (output));
+        CHECK (dB (rms (output, 0.1)) > -60.0f);
+        CHECK (dB (rms (output, 0.1)) < -25.0f);
+    }
 }
 
 TEST_CASE ("Modulation syncs to the tempo", "[effects][mod]")

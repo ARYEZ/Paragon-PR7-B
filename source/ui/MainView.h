@@ -63,7 +63,7 @@ public:
 private:
     // The blocks in signal-chain order; footswitches, the chain strip and
     // the summary cards select these to show their knobs.
-    enum Block { compBlock, filterPitchBlock, driveBlock, ampBlock, cabBlock, eqBlock, modBlock, delayBlock, reverbBlock, numBlocks };
+    enum Block { compBlock, filterPitchBlock, driveBlock, ampBlock, cabBlock, eqBlock, modBlock, delayBlock, reverbBlock, loFiBlock, numBlocks };
     static constexpr int noBlock = -1;   // the dock shows the rig summary
 
     enum class Page { processor, presets, settings };

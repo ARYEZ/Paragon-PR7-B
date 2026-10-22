@@ -81,11 +81,11 @@ TEST_CASE ("The chain, footswitches and summary cards pick which block's knobs s
     ParagonX1AudioProcessor processor;
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
 
-    // The knob panels in signal-chain order: eight EffectPanels, with the
+    // The knob panels in signal-chain order: nine EffectPanels, with the
     // graphic EQ's own panel as block 5 (after the cabinet).
     std::vector<EffectPanel*> effectPanels;
     findAll (*editor, effectPanels);
-    REQUIRE (effectPanels.size() == 8);
+    REQUIRE (effectPanels.size() == 9);
     std::vector<GraphicEqPanel*> eqPanels;
     findAll (*editor, eqPanels);
     REQUIRE (eqPanels.size() == 1);
@@ -112,7 +112,7 @@ TEST_CASE ("The chain, footswitches and summary cards pick which block's knobs s
     std::vector<SignalChain*> chains;
     findAll (*editor, chains);
     REQUIRE (chains.size() == 1);
-    for (int block = 0; block < 9; ++block)
+    for (int block = 0; block < 10; ++block)
     {
         chains[0]->onSelect (block);
         CHECK (visiblePanel() == block);

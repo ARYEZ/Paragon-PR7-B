@@ -45,7 +45,7 @@ void SignalChain::resized()
 
     // Blocks spread evenly with gaps for the dotted connectors.
     const auto count = (float) blocks.size();
-    const auto gap = 24.0f;
+    const auto gap = 16.0f;
     const auto blockWidth = (area.getWidth() - gap * (count + 1.0f)) / count;
     blockAreas.clear();
     area.removeFromLeft (gap);

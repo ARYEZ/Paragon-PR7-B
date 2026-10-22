@@ -326,6 +326,23 @@ TEST_CASE ("Expression pedal as a WHAMMY bends the pitch shifter", "[expression]
     CHECK (levelAt (300.0 * std::exp2 (7.0 / 12.0)) > 10.0 * levelAt (300.0));   // part way: a fifth up
 }
 
+TEST_CASE ("Expression pedal as LO-FI sweeps from the full band into the phone", "[expression][lofi]")
+{
+    TestRig rig;
+    const auto clean = rig.play (0.3);
+
+    // A 220 Hz tone is below the telephone's band: it passes at the heel
+    // (no lo-fi) and is mostly cut at the toe (all lo-fi).
+    rig.turn (ParamIDs::lofiOn, 1.0f);
+    rig.turn (ParamIDs::lofiType, (float) effects::LoFi::Type::telephone);
+    rig.turn (ParamIDs::lofiNoise, 0.0f);
+    rig.turn (ParamIDs::expressionTarget, (float) ExpressionTargets::loFi);
+    rig.turn (ParamIDs::expression, 0.0f);
+    CHECK_THAT (rig.play (0.5), WithinAbs (clean, 0.01));
+    rig.turn (ParamIDs::expression, 1.0f);
+    CHECK (rig.play (0.5) < 0.3f * clean);
+}
+
 TEST_CASE ("SETTINGS: the pedal's MIDI CC and the tuner's reference are saved with the project", "[expression][settings]")
 {
     TestRig rig;

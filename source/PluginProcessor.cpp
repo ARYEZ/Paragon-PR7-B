@@ -103,6 +103,7 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     modulation.prepare (sampleRate, preparedBlockSize);
     delay.prepare (sampleRate, preparedBlockSize);
     reverb.prepare (sampleRate, preparedBlockSize);
+    loFi.prepare (sampleRate, preparedBlockSize);
     wah.prepare (sampleRate, preparedBlockSize);
     inputTap.setSampleRate (sampleRate);
 
@@ -298,6 +299,13 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
                    getTempoBpm());
     reverb.process (stereoBlock, { isOn (ParamIDs::reverbOn), param (ParamIDs::reverbSize), param (ParamIDs::reverbTone),
                                    param (ParamIDs::reverbMix) * morph });
+
+    // LO-FI last, so the whole sound goes through the phone. Assigned to the
+    // expression pedal, the pedal fades it in: full band at the heel, lo-fi at the toe.
+    const auto loFiPedal = expressionTarget == ExpressionTargets::loFi ? pedal : 1.0f;
+    loFi.process (stereoBlock, { isOn (ParamIDs::lofiOn), (effects::LoFi::Type) (int) param (ParamIDs::lofiType),
+                                 param (ParamIDs::lofiAmount), param (ParamIDs::lofiNoise),
+                                 param (ParamIDs::lofiMix) * loFiPedal, param (ParamIDs::lofiLevel) });
 
     // The master OUTPUT knob plus the rig's own OUTPUT LEVEL, and the
     // expression pedal when it's a VOLUME pedal. Squaring the position gives
