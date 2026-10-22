@@ -269,7 +269,8 @@ void ExpressionPedal::paint (juce::Graphics& g)
     const auto length = flat.getHeight(), width = flat.getWidth();
     const auto thickness = width * 0.07f;   // the artwork has its own bevelled edge; this is the body under it
     const auto pivotZ = thickness * 1.2f;                              // axle height above the base
-    const auto cameraZ = length * 2.2f;                                // camera height: how strong the perspective is
+    const auto cameraZ = length * 3.0f;                                // camera height: how strong the perspective is
+                                                                       // (far enough that the lifted end stays within the housing's rails)
     const auto cameraY = length * 0.6f;                                // camera a little towards the player
     const auto centre = flat.getCentre();
     const auto topZ = pivotZ + thickness * 0.5f;
@@ -292,6 +293,15 @@ void ExpressionPedal::paint (juce::Graphics& g)
         return project (rotate ({ (u - 0.5f) * width, (v - 0.5f) * length, z }));
     };
 
+    // The treadle's outline within its artwork (0-1 across and along it).
+    // The mockup drew the pedal from slightly to the left, so its right edge
+    // leans out a little towards the heel; everything outside the outline is
+    // transparent in the artwork, so only the treadle itself moves.
+    constexpr float outlineLeft = 3.5f / 158.0f, outlineTop = 2.0f / 462.0f, outlineBottom = 450.5f / 462.0f;
+    constexpr float outlineRightTop = 146.4f / 158.0f, outlineRightBottom = 159.5f / 158.0f;
+    const std::array<juce::Point<float>, 4> outline { juce::Point<float> { outlineLeft, outlineTop }, { outlineRightTop, outlineTop },
+                                                      { outlineRightBottom, outlineBottom }, { outlineLeft, outlineBottom } };
+
     juce::Path recess;
     recess.addRoundedRectangle (flat, 11.0f);
 
@@ -303,10 +313,9 @@ void ExpressionPedal::paint (juce::Graphics& g)
             const auto p = rotate ({ (u - 0.5f) * width, (v - 0.5f) * length, pivotZ - thickness * 0.5f });
             return project ({ p.x + p.z * 0.1f, p.y + p.z * 0.3f, 0.0f });
         };
-        shadow.startNewSubPath (onBase (0, 0));
-        shadow.lineTo (onBase (1, 0));
-        shadow.lineTo (onBase (1, 1));
-        shadow.lineTo (onBase (0, 1));
+        shadow.startNewSubPath (onBase (outline[0].x, outline[0].y));
+        for (size_t i = 1; i < outline.size(); ++i)
+            shadow.lineTo (onBase (outline[i].x, outline[i].y));
         shadow.closeSubPath();
         juce::Graphics::ScopedSaveState state (g);
         g.reduceClipRegion (recess);
@@ -314,11 +323,9 @@ void ExpressionPedal::paint (juce::Graphics& g)
     }
 
     // The treadle's edges (its thickness): chrome, lit along the top.
-    const std::array<std::pair<juce::Point<float>, juce::Point<float>>, 4> edges {
-        std::pair<juce::Point<float>, juce::Point<float>> { { 0, 0 }, { 1, 0 } },
-        { { 1, 0 }, { 1, 1 } }, { { 1, 1 }, { 0, 1 } }, { { 0, 1 }, { 0, 0 } } };
-    for (const auto& [a, b] : edges)
+    for (size_t i = 0; i < outline.size(); ++i)
     {
+        const auto a = outline[i], b = outline[(i + 1) % outline.size()];
         juce::Path wall;
         wall.startNewSubPath (corner (a.x, a.y, topZ));
         wall.lineTo (corner (b.x, b.y, topZ));
@@ -352,14 +359,13 @@ void ExpressionPedal::paint (juce::Graphics& g)
     // light (toe down) and darkens tipped away.
     {
         juce::Path face;
-        face.startNewSubPath (corner (0, 0, topZ));
-        face.lineTo (corner (1, 0, topZ));
-        face.lineTo (corner (1, 1, topZ));
-        face.lineTo (corner (0, 1, topZ));
+        face.startNewSubPath (corner (outline[0].x, outline[0].y, topZ));
+        for (size_t i = 1; i < outline.size(); ++i)
+            face.lineTo (corner (outline[i].x, outline[i].y, topZ));
         face.closeSubPath();
         const auto amount = tilt / maxTilt;
         g.setColour (amount > 0.0f ? juce::Colours::white.withAlpha (0.06f * amount) : juce::Colours::black.withAlpha (-0.18f * amount));
-        g.fillPath (face.createPathWithRoundedCorners (10.0f));
+        g.fillPath (face.createPathWithRoundedCorners (7.0f));
     }
 
     // While you hover or drag: what the pedal controls and where it is.

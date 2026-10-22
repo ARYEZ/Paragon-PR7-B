@@ -2,6 +2,10 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.12.1
+
+- **Expression pedal:** only the treadle rocks now. Its artwork had been cut from the mockup as a rectangle, so it carried pieces of the housing with it: the chrome strip down the right, the base's lip and corner along the bottom, and a dark band across the top. Those moved with the treadle, as if part of the unit were tilting. Everything outside the treadle's own outline is now transparent. Its sides, shadow and shading follow that outline, and the perspective is slightly gentler, so the lifted end stays within the housing's rails.
+
 ## 0.12.0
 
 **LO-FI: telephone, radio, megaphone, cassette and bitcrusher, for intros and breakdowns.**
