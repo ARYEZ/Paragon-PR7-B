@@ -31,7 +31,7 @@ void IconButton::paintButton (juce::Graphics& g, bool highlighted, bool down)
 
     if (on || outlined || down)
     {
-        g.setColour (on ? ParagonColours::accentDim.withAlpha (0.55f) : juce::Colour (0xff161619));
+        g.setColour (on ? ParagonColours::accentDim.withAlpha (0.55f) : juce::Colour (0xff110e12));
         g.fillRoundedRectangle (bounds, 4.0f);
         g.setColour (on ? ParagonColours::accent.withAlpha (0.8f) : ParagonColours::panelEdge);
         g.drawRoundedRectangle (bounds, 4.0f, 1.0f);
@@ -189,8 +189,8 @@ void ExpressionPedal::paint (juce::Graphics& g)
     // overhangs it, with a light catch along its bottom edge.
     juce::Path wellPath;
     wellPath.addRoundedRectangle (well, 14.0f);
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff6f6369), 0.0f, well.getY(),
-                                             juce::Colour (0xffb9adb3), 0.0f, well.getBottom(), false));
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff7a5664), 0.0f, well.getY(),
+                                             juce::Colour (0xffd0aebd), 0.0f, well.getBottom(), false));
     g.fillPath (wellPath);
     g.setColour (juce::Colours::black.withAlpha (0.45f));
     g.drawRoundedRectangle (well, 14.0f, 1.5f);
@@ -225,15 +225,15 @@ void ExpressionPedal::paint (juce::Graphics& g)
         // Each pad sits in its own shadow, with a lit bevel round the top.
         juce::DropShadow (juce::Colours::black.withAlpha (0.6f), 8, { 0, 4 }).drawForPath (g, pad);
         const auto box = pad.getBounds();
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2c2b30).brighter (0.3f * light), box.getX(), box.getY(),
-                                                 juce::Colour (0xff070708), box.getRight(), box.getBottom(), false));
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff121115).brighter (0.1f * light), box.getX(), box.getY(),
+                                                 juce::Colour (0xff020203), box.getX(), box.getBottom(), false));
         g.fillPath (pad);
         g.setColour (juce::Colours::white.withAlpha (0.12f + 0.15f * light));
         g.strokePath (pad, juce::PathStrokeType (1.4f));
         juce::Graphics::ScopedSaveState state (g);
         g.reduceClipRegion (pad);
-        g.setColour (juce::Colours::white.withAlpha (0.05f));
-        g.fillRect (box.withHeight (box.getHeight() * 0.3f));   // soft sheen on the upper part
+        g.setColour (juce::Colours::white.withAlpha (0.03f));
+        g.fillRect (box.withHeight (box.getHeight() * 0.25f));   // faint sheen on the upper part
     };
     drawPad (toe, position);
     drawPad (heel, 1.0f - position);

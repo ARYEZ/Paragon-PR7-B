@@ -7,8 +7,8 @@ namespace DockStyle
 {
     void drawPanel (juce::Graphics& g, juce::Rectangle<float> area)
     {
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff17171a), 0.0f, area.getY(),
-                                                 juce::Colour (0xff111113), 0.0f, area.getBottom(), false));
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff0e0b0f), 0.0f, area.getY(),
+                                                 juce::Colour (0xff09070a), 0.0f, area.getBottom(), false));
         g.fillRoundedRectangle (area, 8.0f);
         g.setColour (ParagonColours::panelEdge);
         g.drawRoundedRectangle (area.reduced (0.5f), 8.0f, 1.0f);
@@ -26,13 +26,13 @@ namespace
 {
     void styleButton (juce::TextButton& button, bool primary)
     {
-        button.setColour (juce::TextButton::buttonColourId, primary ? ParagonColours::accentDim.withAlpha (0.6f) : juce::Colour (0xff1c1c20));
+        button.setColour (juce::TextButton::buttonColourId, primary ? ParagonColours::accentDim.withAlpha (0.6f) : juce::Colour (0xff151217));
         button.setColour (juce::TextButton::textColourOffId, primary ? ParagonColours::accent : ParagonColours::text);
     }
 
     void styleCombo (juce::ComboBox& box)
     {
-        box.setColour (juce::ComboBox::backgroundColourId, juce::Colour (0xff0e0e10));
+        box.setColour (juce::ComboBox::backgroundColourId, juce::Colour (0xff09070a));
         box.setColour (juce::ComboBox::outlineColourId, ParagonColours::panelEdge);
         box.setColour (juce::ComboBox::textColourId, ParagonColours::text);
         box.setColour (juce::ComboBox::arrowColourId, ParagonColours::text);
@@ -222,7 +222,7 @@ void SelectedRigPanel::paint (juce::Graphics& g)
     DockStyle::drawTitle (g, getLocalBounds().reduced (16, 10).removeFromTop (18), "SELECTED RIG");
 
     // Name box with the favourite star, as in the mockup.
-    g.setColour (juce::Colour (0xff0e0e10));
+    g.setColour (juce::Colour (0xff09070a));
     g.fillRoundedRectangle (nameBox.toFloat(), 6.0f);
     g.setColour (ParagonColours::panelEdge);
     g.drawRoundedRectangle (nameBox.toFloat().reduced (0.5f), 6.0f, 1.0f);
@@ -396,7 +396,7 @@ void RigSummary::paint (juce::Graphics& g)
     g.setFont (juce::FontOptions (12.0f));
     for (size_t i = 0; i < tagAreas.size(); ++i)
     {
-        g.setColour (juce::Colour (0xff1c1c20));
+        g.setColour (juce::Colour (0xff151217));
         g.fillRoundedRectangle (tagAreas[i], 4.0f);
         g.setColour (ParagonColours::panelEdge.brighter (0.2f));
         g.drawRoundedRectangle (tagAreas[i].reduced (0.5f), 4.0f, 1.0f);
@@ -418,7 +418,7 @@ void RigSummary::paint (juce::Graphics& g)
         const auto area = card.area;
         const auto hover = (int) i == hoveredCard;
 
-        g.setColour (hover ? juce::Colour (0xff1e1e22) : juce::Colour (0xff141417));
+        g.setColour (hover ? juce::Colour (0xff19151b) : juce::Colour (0xff0f0c10));
         g.fillRoundedRectangle (area, 5.0f);
         g.setColour (hover ? card.colour.withAlpha (0.7f) : ParagonColours::panelEdge.brighter (card.on ? 0.25f : 0.0f));
         g.drawRoundedRectangle (area.reduced (0.5f), 5.0f, 1.0f);

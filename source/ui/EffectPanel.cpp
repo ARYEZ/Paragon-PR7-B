@@ -25,7 +25,7 @@ struct EffectPanel::Control
         {
             auto box = std::make_unique<juce::ComboBox>();
             box->addItemList (choice->choices, 1);
-            box->setColour (juce::ComboBox::backgroundColourId, juce::Colour (0xff1c1c20));
+            box->setColour (juce::ComboBox::backgroundColourId, juce::Colour (0xff151217));
             box->setColour (juce::ComboBox::outlineColourId, ParagonColours::panelEdge);
             box->setColour (juce::ComboBox::textColourId, ParagonColours::accent);
             box->setColour (juce::ComboBox::arrowColourId, ParagonColours::textDim);
@@ -125,8 +125,8 @@ void EffectPanel::paint (juce::Graphics& g)
 {
     // Same dark panel as the rest of the dock.
     const auto bounds = getLocalBounds().toFloat();
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff17171a), 0.0f, bounds.getY(),
-                                             juce::Colour (0xff111113), 0.0f, bounds.getBottom(), false));
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff0e0b0f), 0.0f, bounds.getY(),
+                                             juce::Colour (0xff09070a), 0.0f, bounds.getBottom(), false));
     g.fillRoundedRectangle (bounds, 8.0f);
     g.setColour (ParagonColours::panelEdge);
     g.drawRoundedRectangle (bounds.reduced (0.5f), 8.0f, 1.0f);
@@ -157,7 +157,7 @@ void EffectPanel::paint (juce::Graphics& g)
     for (const auto& tile : tiles)
     {
         const auto card = tile.toFloat();
-        g.setColour (juce::Colour (0xff141417));
+        g.setColour (juce::Colour (0xff0f0c10));
         g.fillRoundedRectangle (card, 6.0f);
         g.setColour (ParagonColours::panelEdge);
         g.drawRoundedRectangle (card.reduced (0.5f), 6.0f, 1.0f);

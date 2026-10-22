@@ -2,6 +2,16 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.7.2
+
+**Richer metal and the mockup's LCD.** Colours were measured off the mockup and matched point by point.
+
+- **LCD screen:** proper seven-segment digits that lean like the mockup's, sized and spaced the same, with unlit segments hidden. Dark orange-tinted glass in a thick glossy black bezel, a larger rig name, a bigger BANK / PRESET line, and a small glowing red dot for unsaved changes.
+- **Metal:** a deeper rose-silver face that shades towards its edges and picks up pink light at the bottom, a dark mauve chrome rim, pink chrome round the expression pedal, and pure black pedal pads. Smoother brushed finish.
+- **Knobs** sit in a pool of red light, and the button cluster's red stripes glow even when off, as in the mockup.
+- Darker, near-black background and panels, as in the mockup.
+- Fixed stray light arcs on the unit's left edge and on the panels.
+
 ## 0.7.1
 
 **Closer still to the mockup.**

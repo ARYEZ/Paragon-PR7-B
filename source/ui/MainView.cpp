@@ -302,7 +302,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     }
 
     closePanel.setTooltip ("Back to the rig summary");
-    closePanel.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff1c1c20));
+    closePanel.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff151217));
     closePanel.onClick = [this] { selectBlock (noBlock); };
     addChildComponent (closePanel);
 
@@ -531,7 +531,7 @@ void MainView::paint (juce::Graphics& g)
     // Framed groups: the tabs, the rig selector and the tempo.
     for (const auto& group : { tabsGroup, rigGroup, tempoGroup })
     {
-        g.setColour (juce::Colour (0xff111113));
+        g.setColour (juce::Colour (0xff0d0a0e));
         g.fillRoundedRectangle (group, 5.0f);
         g.setColour (ParagonColours::panelEdge);
         g.drawRoundedRectangle (group.reduced (0.5f), 5.0f, 1.0f);
@@ -609,9 +609,9 @@ void MainView::resized()
     placeInCluster (tapLabel, tapPedal, 2, 1);
     holdLabel.setBounds (mock (996, 207, 1070, 220));
 
-    rigLevelKnob.setBounds (mock (1095, 114, 1179, 200));
+    rigLevelKnob.setBounds (mock (1080, 98, 1194, 212));
     rigLevelLabel.setBounds (mock (1077, 196, 1197, 214));
-    presenceKnob.setBounds (mock (1218, 114, 1302, 200));
+    presenceKnob.setBounds (mock (1203, 98, 1317, 212));
     presenceLabel.setBounds (mock (1200, 196, 1320, 214));
 
     ampSlot.setBounds (mock (253, 250, 512, 382));

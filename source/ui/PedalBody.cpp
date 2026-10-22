@@ -42,7 +42,7 @@ void PedalBody::makeBrushedTexture()
         const auto x = random.nextFloat() * (float) width * 1.2f - (float) width * 0.1f;
         const auto length = (float) width * (0.05f + random.nextFloat() * 0.4f);
         const auto light = random.nextBool();
-        g.setColour ((light ? juce::Colours::white : juce::Colour (0xff4a3a42)).withAlpha (0.025f + random.nextFloat() * 0.06f));
+        g.setColour ((light ? juce::Colours::white : juce::Colour (0xff4a3a42)).withAlpha (0.015f + random.nextFloat() * 0.035f));
         g.drawHorizontalLine ((int) y, x, x + length);
     }
 }
@@ -62,28 +62,31 @@ void PedalBody::paint (juce::Graphics& g)
     //    (the unit's thickness), then the top surface is polished chrome:
     //    bright along the top, greyer lower down, with the light and dark
     //    vertical banding of a curved reflective edge.
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff6b5d65), 0.0f, chassis.getBottom() - 30.0f,
-                                             juce::Colour (0xff2e252b), 0.0f, chassis.getBottom(), false));
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff86767f), 0.0f, chassis.getBottom() - 30.0f,
+                                             juce::Colour (0xff52454c), 0.0f, chassis.getBottom(), false));
     g.fillPath (chassisPath);
 
     const auto top = chassis.withTrimmedBottom (12.0f);
     juce::Path topPath;
     topPath.addRoundedRectangle (top, chassisRadius);
     {
-        juce::ColourGradient vertical (juce::Colour (0xfff2edf0), 0.0f, top.getY(), juce::Colour (0xff8e8088), 0.0f, top.getBottom(), false);
-        vertical.addColour (0.08, juce::Colour (0xffe4dde1));
-        vertical.addColour (0.5, juce::Colour (0xffbdb2b8));
-        vertical.addColour (0.88, juce::Colour (0xffa3959d));
+        // Measured off the mockup: the rim is a dark mauve chrome, about
+        // (144,126,134) along the top, (139,121,131) at the sides and
+        // (106,94,101) along the bottom, with bright streaks where it curves.
+        juce::ColourGradient vertical (juce::Colour (0xffd9c9d1), 0.0f, top.getY(), juce::Colour (0xff6a5e65), 0.0f, top.getBottom(), false);
+        vertical.addColour (0.03, juce::Colour (0xff9a8690));
+        vertical.addColour (0.4, juce::Colour (0xff84717b));
+        vertical.addColour (0.85, juce::Colour (0xff7b6a73));
         g.setGradientFill (vertical);
         g.fillPath (topPath);
 
         juce::ColourGradient banding (juce::Colours::black.withAlpha (0.18f), top.getX(), 0.0f,
                                       juce::Colours::black.withAlpha (0.18f), top.getRight(), 0.0f, false);
-        banding.addColour (0.012, juce::Colours::white.withAlpha (0.55f));
-        banding.addColour (0.03, juce::Colours::black.withAlpha (0.1f));
-        banding.addColour (0.5, juce::Colours::white.withAlpha (0.05f));
-        banding.addColour (0.97, juce::Colours::black.withAlpha (0.1f));
-        banding.addColour (0.988, juce::Colours::white.withAlpha (0.45f));
+        banding.addColour (0.008, juce::Colour (0xffffd6e0).withAlpha (0.6f));
+        banding.addColour (0.022, juce::Colours::black.withAlpha (0.24f));
+        banding.addColour (0.5, juce::Colours::white.withAlpha (0.06f));
+        banding.addColour (0.978, juce::Colours::black.withAlpha (0.24f));
+        banding.addColour (0.992, juce::Colour (0xffffd6e0).withAlpha (0.55f));
         g.setGradientFill (banding);
         g.fillPath (topPath);
     }
@@ -91,7 +94,11 @@ void PedalBody::paint (juce::Graphics& g)
     // Rim catch-lights: white along the top edge, pink (reflected glow)
     // along the bottom edge of the top surface.
     g.setColour (juce::Colours::white.withAlpha (0.9f));
-    g.drawRoundedRectangle (top.reduced (1.0f).withTrimmedBottom (top.getHeight() * 0.55f), chassisRadius, 1.2f);
+    {
+        juce::Graphics::ScopedSaveState topOnly (g);   // the top edge only: clip, so the corners don't curl in halfway down
+        g.reduceClipRegion (top.reduced (1.0f).withHeight (top.reduced (1.0f).getHeight() * 0.45f).toNearestInt());
+        g.drawRoundedRectangle (top.reduced (1.0f), chassisRadius, 1.2f);
+    }
     g.setColour (juce::Colour (0xffff8a8a).withAlpha (0.55f));
     g.drawHorizontalLine ((int) top.getBottom() - 1, top.getX() + chassisRadius, top.getRight() - chassisRadius);
     g.setColour (juce::Colours::black.withAlpha (0.45f));
@@ -110,9 +117,12 @@ void PedalBody::paint (juce::Graphics& g)
         g.setColour (juce::Colours::white.withAlpha (0.6f));
         g.drawRoundedRectangle (face.expanded (2.5f).translated (0.0f, 1.5f), faceRadius + 2.0f, 1.0f);
 
-        juce::ColourGradient metal (juce::Colour (0xffeae5e8), face.getX(), face.getY(),
-                                    juce::Colour (0xffc2b6bd), face.getX(), face.getBottom(), false);
-        metal.addColour (0.5, juce::Colour (0xffd9d1d6));
+        // Rose-tinted silver, measured off the mockup: about (217,205,213) in
+        // the middle, pinker (227,203,213) near the bottom where the glow
+        // reflects.
+        juce::ColourGradient metal (juce::Colour (0xffe2d6dd), face.getX(), face.getY(),
+                                    juce::Colour (0xffe2cad4), face.getX(), face.getBottom(), false);
+        metal.addColour (0.55, juce::Colour (0xffd8cad2));
         g.setGradientFill (metal);
         g.fillPath (facePath);
 
@@ -123,12 +133,20 @@ void PedalBody::paint (juce::Graphics& g)
         // A broad diagonal sheen across the top, like light on polished metal.
         juce::ColourGradient sheen (juce::Colours::white.withAlpha (0.0f), face.getX(), face.getY(),
                                     juce::Colours::white.withAlpha (0.0f), face.getX() + face.getWidth() * 0.5f, face.getBottom(), false);
-        sheen.addColour (0.35, juce::Colours::white.withAlpha (0.22f));
+        sheen.addColour (0.35, juce::Colours::white.withAlpha (0.12f));
         g.setGradientFill (sheen);
         g.fillRect (face);
 
-        g.setGradientFill (juce::ColourGradient (ParagonColours::glow.withAlpha (0.0f), 0.0f, face.getBottom() - 90.0f,
-                                                 ParagonColours::glow.withAlpha (0.2f), 0.0f, face.getBottom(), false));
+        // Vignette: the plate darkens towards its edges and corners (about
+        // (190,176,186) in the mockup), which is most of what makes it look
+        // like a curved, lit piece of metal rather than a flat panel.
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff3a2030).withAlpha (0.0f), face.getCentreX(), face.getY() + face.getHeight() * 0.35f,
+                                                 juce::Colour (0xff3a2030).withAlpha (0.2f), face.getX() - face.getWidth() * 0.05f, face.getY(), true));
+        g.fillRect (face);
+
+        // The glow under the unit lights the bottom of the plate pink.
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xffffb3c6).withAlpha (0.0f), 0.0f, face.getBottom() - 90.0f,
+                                                 juce::Colour (0xffffb3c6).withAlpha (0.35f), 0.0f, face.getBottom(), false));
         g.fillRect (face.withTop (face.getBottom() - 90.0f));
         g.setColour (ParagonColours::glow.withAlpha (0.1f));
         g.drawRoundedRectangle (face.reduced (2.0f), faceRadius - 2.0f, 5.0f);
@@ -142,8 +160,8 @@ void PedalBody::paint (juce::Graphics& g)
         juce::Path panel;
         panel.addRoundedRectangle (section, 12.0f);
         juce::DropShadow (juce::Colour (0xff3a2430).withAlpha (0.25f), 10, { 0, 4 }).drawForPath (g, panel);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xffece6ea), 0.0f, section.getY(),
-                                                 juce::Colour (0xffd2c8ce), 0.0f, section.getBottom(), false));
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xffdcd0d7), 0.0f, section.getY(),
+                                                 juce::Colour (0xffd5c7ce), 0.0f, section.getBottom(), false));
         g.fillPath (panel);
         {
             juce::Graphics::ScopedSaveState state (g);
@@ -153,7 +171,11 @@ void PedalBody::paint (juce::Graphics& g)
         g.setColour (ParagonColours::glow.withAlpha (0.14f));
         g.drawRoundedRectangle (section.reduced (2.0f), 10.0f, 3.0f);
         g.setColour (juce::Colours::white.withAlpha (0.85f));
-        g.drawRoundedRectangle (section.reduced (0.5f).withTrimmedBottom (section.getHeight() * 0.5f), 12.0f, 1.0f);
+        {
+            juce::Graphics::ScopedSaveState topOnly (g);   // the top edge only: clip, so the corners don't curl in halfway down
+            g.reduceClipRegion (section.reduced (0.5f).withHeight (section.reduced (0.5f).getHeight() * 0.5f).toNearestInt());
+            g.drawRoundedRectangle (section.reduced (0.5f), 12.0f, 1.0f);
+        }
         g.setColour (juce::Colour (0xff4a3a42).withAlpha (0.3f));
         g.drawRoundedRectangle (section, 12.0f, 1.0f);
     }
@@ -176,17 +198,22 @@ void PedalBody::paint (juce::Graphics& g)
         juce::Path bayPath;
         bayPath.addRoundedRectangle (bay, 22.0f);
         juce::DropShadow (juce::Colours::black.withAlpha (0.45f), 8, { -2, 3 }).drawForPath (g, bayPath);
-        juce::ColourGradient housing (juce::Colour (0xffe9e2e6), bay.getX(), 0.0f, juce::Colour (0xff7e7078), bay.getRight(), 0.0f, false);
-        housing.addColour (0.06, juce::Colours::white);
-        housing.addColour (0.25, juce::Colour (0xffc4b9bf));
-        housing.addColour (0.8, juce::Colour (0xffb0a4ab));
+        // Polished chrome reflecting the red light: pink, about (209,177,190).
+        juce::ColourGradient housing (juce::Colour (0xffe6cfd9), bay.getX(), 0.0f, juce::Colour (0xffc797aa), bay.getRight(), 0.0f, false);
+        housing.addColour (0.05, juce::Colour (0xfffbeef3));
+        housing.addColour (0.22, juce::Colour (0xffd8b5c4));
+        housing.addColour (0.7, juce::Colour (0xffc99fb1));
         g.setGradientFill (housing);
         g.fillPath (bayPath);
         g.setGradientFill (juce::ColourGradient (juce::Colours::black.withAlpha (0.0f), 0.0f, bay.getY(),
-                                                 juce::Colours::black.withAlpha (0.25f), 0.0f, bay.getBottom(), false));
+                                                 juce::Colours::black.withAlpha (0.1f), 0.0f, bay.getBottom(), false));
         g.fillPath (bayPath);
         g.setColour (juce::Colours::white.withAlpha (0.85f));
-        g.drawRoundedRectangle (bay.reduced (1.5f).withTrimmedBottom (bay.getHeight() * 0.6f), 20.0f, 1.0f);
+        {
+            juce::Graphics::ScopedSaveState topOnly (g);   // the top edge only: clip, so the corners don't curl in halfway down
+            g.reduceClipRegion (bay.reduced (1.5f).withHeight (bay.reduced (1.5f).getHeight() * 0.4f).toNearestInt());
+            g.drawRoundedRectangle (bay.reduced (1.5f), 20.0f, 1.0f);
+        }
         g.setColour (juce::Colours::black.withAlpha (0.4f));
         g.drawRoundedRectangle (bay, 22.0f, 1.0f);
     }

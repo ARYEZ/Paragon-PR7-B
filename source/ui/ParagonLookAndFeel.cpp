@@ -139,10 +139,11 @@ void ParagonLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& bu
         const auto stripe = area.withSizeKeepingCentre (area.getWidth() * 0.6f, 3.0f);
         if (on)
         {
-            g.setColour (ParagonColours::glow.withAlpha (0.35f));
-            g.fillRoundedRectangle (stripe.expanded (2.0f, 2.5f), 3.0f);
+            g.setColour (ParagonColours::glow.withAlpha (0.45f));
+            g.fillRoundedRectangle (stripe.expanded (3.0f, 3.0f), 3.0f);
         }
-        g.setColour (on ? ParagonColours::glow : ParagonColours::glow.withAlpha (0.25f));
+        // Even when off the stripe glows dimly red, as in the mockup.
+        g.setColour (on ? juce::Colour (0xffff8a7a) : juce::Colour (0xffd8352c).withAlpha (0.75f));
         g.fillRoundedRectangle (stripe, 1.5f);
         return;
     }
@@ -156,13 +157,16 @@ void ParagonLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& bu
 void ParagonLookAndFeel::drawPedalKnob (juce::Graphics& g, juce::Rectangle<float> bounds, float angle)
 {
     const auto size = juce::jmin (bounds.getWidth(), bounds.getHeight());
-    const auto body = bounds.withSizeKeepingCentre (size, size).reduced (size * 0.08f);
+    const auto body = bounds.withSizeKeepingCentre (size, size).reduced (size * 0.2f);
     const auto centre = body.getCentre();
 
-    // Red-orange glow on the metal around the knob, as in the mockup.
-    g.setGradientFill (juce::ColourGradient (ParagonColours::glow.withAlpha (0.45f), centre,
-                                             ParagonColours::glow.withAlpha (0.0f), centre.translated (size * 0.55f, 0.0f), true));
-    g.fillEllipse (body.expanded (size * 0.08f));
+    // Red-pink light pooling on the metal round the knob, as in the mockup:
+    // strongest right at its edge, fading out well beyond it.
+    juce::ColourGradient halo (juce::Colour (0xffff3a4a).withAlpha (0.7f), centre,
+                               juce::Colour (0xffff3a4a).withAlpha (0.0f), centre.translated (size * 0.5f, 0.0f), true);
+    halo.addColour (0.55, juce::Colour (0xffff3a4a).withAlpha (0.45f));
+    g.setGradientFill (halo);
+    g.fillEllipse (bounds.withSizeKeepingCentre (size, size));
 
     // Shadow, then the knurled black body: a ring of fine ridges round the edge.
     g.setColour (juce::Colours::black.withAlpha (0.4f));

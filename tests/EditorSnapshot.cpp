@@ -57,7 +57,8 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
         for (const auto* id : { "driveOn", "delayOn", "reverbOn" })
             processor.getParameters().getParameter (id)->setValueNotifyingHost (1.0f);
 
-    if (showPresets)
+    // PARAGON_SNAPSHOT_RIG=1: a saved rig loaded on the main page, as in the mockup.
+    if (showPresets || juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_RIG", {}) == "1")
     {
         processor.saveCurrentRigAs ("Cyber Drive");
         processor.saveCurrentRigAs ("Sunday Worship Clean");

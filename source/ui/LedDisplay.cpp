@@ -50,65 +50,114 @@ void LedDisplay::setContents (const Contents& newContents)
 
 void LedDisplay::drawDigit (juce::Graphics& g, juce::juce_wchar digit, juce::Rectangle<float> area, juce::Colour lit)
 {
+    // A classic seven-segment digit: each segment a long hexagon with
+    // pointed ends and a small gap at the joints, leaning forwards like
+    // the mockup's italic "001". Unlit segments are all but invisible, as
+    // on a real LED display behind tinted glass.
     const auto w = area.getWidth(), h = area.getHeight();
-    const auto t = w * 0.16f;                 // segment thickness
-    const auto slant = w * 0.12f;             // italic lean, like the mockup's digits
+    const auto t = w * 0.19f;            // segment thickness
+    const auto gap = t * 0.18f;          // space at each joint
+    const auto lean = h * 0.2f;          // how far the top leans right of the bottom
     const auto lit7 = segmentsFor (digit);
 
-    // Segment end points in an upright cell; the slant is applied after.
-    const auto top = t / 2.0f, middle = h / 2.0f, bottom = h - t / 2.0f;
-    const auto left = t / 2.0f, right = w - t / 2.0f - slant;
-    const std::array<juce::Line<float>, 7> segments {
-        juce::Line<float> { left + t, top, right - t, top },             // a
-        juce::Line<float> { right, top + t, right, middle - t * 0.6f },  // b
-        juce::Line<float> { right, middle + t * 0.6f, right, bottom - t }, // c
-        juce::Line<float> { left + t, bottom, right - t, bottom },       // d
-        juce::Line<float> { left, middle + t * 0.6f, left, bottom - t }, // e
-        juce::Line<float> { left, top + t, left, middle - t * 0.6f },    // f
-        juce::Line<float> { left + t, middle, right - t, middle },       // g
+    // Upright cell (x 0..cellW, y 0..h); leaned with a shear afterwards.
+    const auto cellW = w - lean;
+    const auto half = t * 0.5f;
+
+    const auto horizontal = [&] (float y)
+    {
+        juce::Path p;
+        const auto x1 = half + gap, x2 = cellW - half - gap;
+        p.startNewSubPath (x1, y);
+        p.lineTo (x1 + half, y - half);
+        p.lineTo (x2 - half, y - half);
+        p.lineTo (x2, y);
+        p.lineTo (x2 - half, y + half);
+        p.lineTo (x1 + half, y + half);
+        p.closeSubPath();
+        return p;
+    };
+    const auto vertical = [&] (float x, float y1, float y2)
+    {
+        juce::Path p;
+        y1 += gap;
+        y2 -= gap;
+        p.startNewSubPath (x, y1);
+        p.lineTo (x + half, y1 + half);
+        p.lineTo (x + half, y2 - half);
+        p.lineTo (x, y2);
+        p.lineTo (x - half, y2 - half);
+        p.lineTo (x - half, y1 + half);
+        p.closeSubPath();
+        return p;
     };
 
-    const auto shear = juce::AffineTransform::shear (-slant / h, 0.0f).translated (area.getX() + slant, area.getY());
+    const auto top = half, middle = h * 0.5f, bottom = h - half;
+    const auto left = half, right = cellW - half;
+    const std::array<juce::Path, 7> segments {
+        horizontal (top),                     // a
+        vertical (right, top, middle),        // b
+        vertical (right, middle, bottom),     // c
+        horizontal (bottom),                  // d
+        vertical (left, middle, bottom),      // e
+        vertical (left, top, middle),         // f
+        horizontal (middle),                  // g
+    };
 
+    const auto shear = juce::AffineTransform::shear (-lean / h, 0.0f).translated (area.getX() + lean, area.getY());
+
+    juce::Path litPath, unlitPath;
     for (size_t i = 0; i < segments.size(); ++i)
-    {
-        juce::Path segment;
-        segment.addLineSegment (segments[i], t);
-        segment = segment.createPathWithRoundedCorners (t * 0.4f);
-        segment.applyTransform (shear);
+        (lit7[i] ? litPath : unlitPath).addPath (segments[i], shear);
 
-        if (lit7[i])
-        {
-            g.setColour (lit.withAlpha (0.25f));
-            g.strokePath (segment, juce::PathStrokeType (t * 0.9f));   // glow
-            g.setColour (lit);
-        }
-        else
-        {
-            g.setColour (lit.withAlpha (0.06f));                       // unlit segments faintly visible
-        }
-        g.fillPath (segment);
-    }
+    g.setColour (lit.withAlpha (0.05f));
+    g.fillPath (unlitPath);
+
+    // Glow: the light bleeding into the glass round each lit segment.
+    g.setColour (lit.withAlpha (0.12f));
+    g.strokePath (litPath, juce::PathStrokeType (t * 1.1f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.setColour (lit.withAlpha (0.22f));
+    g.strokePath (litPath, juce::PathStrokeType (t * 0.45f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.setColour (lit);
+    g.fillPath (litPath);
+    g.setColour (juce::Colour (0xffffc28a).withAlpha (0.5f));   // hotter centre line, like a lit LED segment
+    g.strokePath (litPath, juce::PathStrokeType (t * 0.12f), juce::AffineTransform());
 }
 
 void LedDisplay::paint (juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat();
 
-    // Bezel and black glass.
-    g.setColour (juce::Colours::black.withAlpha (0.3f));
-    g.fillRoundedRectangle (bounds.translated (0.0f, 2.0f), 8.0f);
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2a2a2e), bounds.getTopLeft(),
-                                             juce::Colour (0xff0a0a0b), bounds.getBottomLeft(), false));
-    g.fillRoundedRectangle (bounds, 8.0f);
-    auto glass = bounds.reduced (8.0f);
-    g.setColour (juce::Colour (0xff070605));
-    g.fillRoundedRectangle (glass, 5.0f);
-    g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.06f), glass.getTopLeft(),
-                                             juce::Colours::transparentWhite, glass.getCentre(), false));
-    g.fillRoundedRectangle (glass, 5.0f);
+    // Bezel: thick glossy black plastic with a soft shadow on the metal and
+    // a fine highlight round its top edge.
+    juce::Path bezel;
+    bezel.addRoundedRectangle (bounds.reduced (1.0f), 10.0f);
+    juce::DropShadow (juce::Colours::black.withAlpha (0.55f), 8, { 0, 3 }).drawForPath (g, bezel);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2b292c), bounds.getTopLeft(),
+                                             juce::Colour (0xff070607), bounds.getBottomLeft(), false));
+    g.fillPath (bezel);
+    g.setColour (juce::Colours::white.withAlpha (0.18f));
+    {
+        juce::Graphics::ScopedSaveState topOnly (g);   // the top edge only: clip, so the corners don't curl in halfway down
+        g.reduceClipRegion (bounds.reduced (1.5f).withHeight (bounds.reduced (1.5f).getHeight() * 0.4f).toNearestInt());
+        g.drawRoundedRectangle (bounds.reduced (1.5f), 10.0f, 1.0f);
+    }
 
-    auto content = glass.reduced (glass.getHeight() * 0.14f, glass.getHeight() * 0.12f);
+    // Tinted glass: very dark, warmed by the orange light behind it, with a
+    // faint reflection across the top.
+    auto glass = bounds.reduced (9.0f);
+    juce::Path glassPath;
+    glassPath.addRoundedRectangle (glass, 5.0f);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1c0b06), glass.getX() + glass.getWidth() * 0.25f, glass.getCentreY(),
+                                             juce::Colour (0xff070302), glass.getRight(), glass.getY(), true));
+    g.fillPath (glassPath);
+    g.setColour (juce::Colours::black.withAlpha (0.7f));
+    g.drawRoundedRectangle (glass, 5.0f, 1.5f);
+    g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.07f), glass.getX(), glass.getY(),
+                                             juce::Colours::white.withAlpha (0.0f), glass.getX(), glass.getCentreY(), false));
+    g.fillRoundedRectangle (glass.withHeight (glass.getHeight() * 0.5f), 5.0f);
+
+    auto content = glass.reduced (glass.getWidth() * 0.05f, glass.getHeight() * 0.18f);
     const auto colour = contents.bypassed ? ledOrange.withAlpha (0.45f) : ledOrange;
 
     if (contents.tuner.active)
@@ -117,40 +166,54 @@ void LedDisplay::paint (juce::Graphics& g)
         return;
     }
 
-    // Big digits: the rig's preset number.
+    // Big digits: the rig's preset number, about half the glass high, as in the mockup.
     const auto digits = contents.number > 0 ? juce::String (contents.number).paddedLeft ('0', 3) : juce::String ("---");
-    auto digitsArea = content.removeFromLeft (content.getHeight() * 1.45f);
-    const auto digitWidth = digitsArea.getWidth() / 3.0f;
+    auto digitsArea = content.removeFromLeft (glass.getWidth() * 0.33f);
+    const auto digitHeight = glass.getHeight() * 0.48f;
+    const auto digitWidth = digitHeight * 0.8f;
+    auto digitRow = digitsArea.withSizeKeepingCentre (digitsArea.getWidth(), digitHeight);
     for (int i = 0; i < 3; ++i)
-        drawDigit (g, digits[i], digitsArea.removeFromLeft (digitWidth).reduced (digitWidth * 0.08f, 0.0f), colour);
+    {
+        drawDigit (g, digits[i], digitRow.removeFromLeft (digitWidth), colour);
+        digitRow.removeFromLeft (digitWidth * 0.12f);
+    }
 
-    content.removeFromLeft (content.getHeight() * 0.3f);
+    content.removeFromLeft (glass.getWidth() * 0.05f);
 
-    // Name, then the bank and preset line under a thin rule.
-    auto nameArea = content.removeFromTop (content.getHeight() * 0.55f);
+    // Name, a rule, then the bank and preset line with the unsaved-changes dot.
+    // Sized from the glass, as in the mockup: the name about a fifth of its
+    // height, the bank and preset line a little smaller.
+    auto nameArea = content.removeFromTop (content.getHeight() * 0.5f);
     g.setColour (colour);
-    g.setFont (juce::FontOptions (nameArea.getHeight() * 0.62f, juce::Font::bold));
+    g.setFont (juce::FontOptions (glass.getHeight() * 0.22f));
     g.drawFittedText (contents.bypassed ? juce::String ("BYPASSED") : contents.name.toUpperCase(),
                       nameArea.toNearestInt(), juce::Justification::bottomLeft, 1, 0.8f);
 
-    g.setColour (colour.withAlpha (0.35f));
-    g.drawHorizontalLine ((int) nameArea.getBottom() + 3, content.getX(), content.getRight());
+    g.setColour (colour.withAlpha (0.3f));
+    g.fillRect (content.getX(), nameArea.getBottom() + 4.0f, content.getWidth(), 1.0f);
 
+    auto infoArea = content.withTrimmedTop (9.0f);
     g.setColour (colour);
-    g.setFont (juce::FontOptions (content.getHeight() * 0.5f, juce::Font::bold));
-    auto infoArea = content.withTrimmedTop (6.0f);
-    const auto info = contents.bank.isEmpty() ? juce::String ("NOT SAVED")
-                                              : "BANK " + contents.bank + "     PRESET " + juce::String (contents.number);
-    g.drawText (info, infoArea, juce::Justification::topLeft, false);
+    g.setFont (juce::FontOptions (glass.getHeight() * 0.17f));
+    if (contents.bank.isEmpty())
+    {
+        g.drawText ("NOT SAVED", infoArea, juce::Justification::topLeft, false);
+    }
+    else
+    {
+        g.drawText ("BANK " + contents.bank, infoArea, juce::Justification::topLeft, false);
+        g.drawText ("PRESET " + juce::String (contents.number), infoArea.withTrimmedLeft (infoArea.getWidth() * 0.42f),
+                    juce::Justification::topLeft, false);
+    }
 
-    // Unsaved-changes dot.
-    const auto dot = juce::Rectangle<float> (7.0f, 7.0f).withCentre ({ infoArea.getRight() - 6.0f, infoArea.getY() + infoArea.getHeight() * 0.3f });
+    // Unsaved-changes dot: a red LED at the end of the line.
+    const auto dot = juce::Rectangle<float> (5.5f, 5.5f).withCentre ({ infoArea.getRight() - 10.0f, infoArea.getY() + glass.getHeight() * 0.085f });
     if (contents.modified)
     {
-        g.setColour (ParagonColours::glow.withAlpha (0.4f));
-        g.fillEllipse (dot.expanded (3.0f));
+        g.setColour (ParagonColours::glow.withAlpha (0.35f));
+        g.fillEllipse (dot.expanded (2.5f));
     }
-    g.setColour (contents.modified ? ParagonColours::glow : ParagonColours::glow.withAlpha (0.12f));
+    g.setColour (contents.modified ? juce::Colour (0xffff6a5a) : ParagonColours::glow.withAlpha (0.12f));
     g.fillEllipse (dot);
 }
 
