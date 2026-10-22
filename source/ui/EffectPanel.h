@@ -2,13 +2,16 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include "Icons.h"
+
 // The edit panel under the footswitches: the knobs, switches and menus for
 // one effect block. Built from a description, so each block's panel is just
 // a list of parameter IDs:
 //   float parameter  -> knob with its value underneath
 //   choice parameter -> drop-down menu
 //   on/off parameter -> LED switch
-// Controls are arranged in titled groups (the REVERB / DELAY panel has two).
+// Each control sits on its own dark card, like the RIG SUMMARY cards it
+// replaces; blocks with two parts (comp and gate) show each part's name.
 class EffectPanel final : public juce::Component,
                           private juce::Timer
 {
@@ -30,6 +33,9 @@ public:
     EffectPanel (juce::AudioProcessorValueTreeState& parameters, std::vector<Group> groups);
     ~EffectPanel() override;
 
+    // The block's name, icon and colour, shown at the top as in the signal chain.
+    void setHeader (Icons::Type icon, juce::Colour colour, const juce::String& title);
+
     void paint (juce::Graphics&) override;
     void resized() override;
 
@@ -46,4 +52,8 @@ private:
 
     std::vector<std::unique_ptr<Control>> controls;
     std::vector<GroupLayout> groups;
+    std::vector<juce::Rectangle<int>> tiles;
+    Icons::Type headerIcon = Icons::Type::comp;
+    juce::Colour headerColour;
+    juce::String headerTitle;
 };

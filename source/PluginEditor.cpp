@@ -4,7 +4,7 @@ ParagonX1AudioProcessorEditor::ParagonX1AudioProcessorEditor (ParagonX1AudioProc
     : AudioProcessorEditor (processorToEdit),
       view (processorToEdit)
 {
-    setLookAndFeel (&lookAndFeel);
+    setLookAndFeel (&look->lookAndFeel);
 
     view.setSize (MainView::width, MainView::height);
     addAndMakeVisible (view);

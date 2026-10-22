@@ -3,13 +3,13 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include "PluginProcessor.h"
-#include "ui/CurrentRigPanel.h"
-#include "ui/ParagonLookAndFeel.h"
+#include "ui/DockPanels.h"
 #include "ui/EffectPanel.h"
 #include "ui/Footswitch.h"
 #include "ui/LedDisplay.h"
 #include "ui/LevelMeter.h"
 #include "ui/ModelSlot.h"
+#include "ui/ParagonLookAndFeel.h"
 #include "ui/PedalBody.h"
 #include "ui/PerformanceControls.h"
 #include "ui/RigBrowser.h"
@@ -34,14 +34,15 @@ private:
     LevelMeter meter;
 };
 
-// Everything in the plugin window, laid out on a fixed 1600 x 900 canvas
-// with the mockup's proportions. The editor scales this whole view to the
-// window size, so the layout is the same at every size and stays sharp
-// (everything is drawn as vectors).
+// Everything in the plugin window, laid out on a fixed 1600 x 900 canvas.
+// That's the mockup image (1672 x 941) scaled by 0.957, so positions are
+// written in the mockup's own pixel coordinates and scaled: what you see in
+// the mockup at (x, y) is drawn at (x, y) * 0.957. The editor then scales
+// the whole view to the window size, staying sharp (everything is vectors).
 //
-//   header:  logo | PROCESSOR / PRESETS | < rig > | tempo  TAP | undo redo | SAVE
-//   middle:  INPUT strip | the pedal unit + expression pedal | OUTPUT strip
-//   dock:    the selected block's knobs | EXPRESSION ASSIGN | CURRENT RIG
+//   header:  logo | PROCESSOR PRESETS SETTINGS | < rig > | BPM TAP | undo redo save settings
+//   middle:  INPUT | the pedal unit with its expression pedal | OUTPUT
+//   dock:    RIG BROWSER | SELECTED RIG | TAGS + RIG SUMMARY (or a block's knobs) | EXPRESSION ASSIGN
 //   bottom:  SIGNAL CHAIN
 class MainView final : public juce::Component,
                        private juce::ChangeListener,
@@ -59,9 +60,12 @@ public:
     bool keyPressed (const juce::KeyPress&) override;
 
 private:
-    // The blocks in signal-chain order; footswitches and the chain strip
-    // select these to show their knobs.
+    // The blocks in signal-chain order; footswitches, the chain strip and
+    // the summary cards select these to show their knobs.
     enum Block { compBlock, driveBlock, ampBlock, cabBlock, modBlock, delayBlock, reverbBlock, numBlocks };
+    static constexpr int noBlock = -1;   // the dock shows the rig summary
+
+    enum class Page { processor, presets, settings };
 
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
     void timerCallback() override;
@@ -70,7 +74,7 @@ private:
     void refreshPerformance();
     void toggleTuner();
     void tap();
-    void showPage (bool presets);
+    void showPage (Page);
     void refreshRig();
     void saveRig();
     juce::String valueText (const char* parameterId) const;
@@ -78,14 +82,16 @@ private:
     ParagonX1AudioProcessor& audioProcessor;
 
     // Header
-    IconButton processorTab { "Pedalboard and effect settings", Icons::Type::processor, "PROCESSOR" },
-               presetsTab { "Browse, save and organise rigs", Icons::Type::presets, "PRESETS" };
-    juce::TextButton previousRig { "<" }, nextRig { ">" }, rigNameButton, saveButton { "SAVE" };
-    juce::TextButton tempoButton;
+    IconButton processorTab { "Pedalboard and effects", Icons::Type::processor, "PROCESSOR" },
+               presetsTab { "Browse, save and organise rigs", Icons::Type::presets, "PRESETS" },
+               settingsTab { "Tuner, MIDI and other settings", Icons::Type::settings, "SETTINGS" };
+    IconButton previousRig { "Previous rig", Icons::Type::chevronLeft }, nextRig { "Next rig", Icons::Type::chevronRight };
+    juce::TextButton rigNameButton, tempoButton;
     IconButton tapButton { "Tap the tempo for the delay. Hold to open the tuner.", Icons::Type::tap, "TAP" },
-               undoButton { "Undo (Ctrl+Z)", Icons::Type::undo }, redoButton { "Redo (Ctrl+Shift+Z)", Icons::Type::redo };
+               undoButton { "Undo (Ctrl+Z)", Icons::Type::undo }, redoButton { "Redo (Ctrl+Shift+Z)", Icons::Type::redo },
+               saveButton { "Save the rig (as a new rig if it's a factory rig or not saved yet)", Icons::Type::save },
+               settingsButton { "Settings", Icons::Type::settings };
     HoldDetector headerTapHold, pedalTapHold;
-    juce::Rectangle<int> headerArea, dockArea;
 
     GainColumn inputColumn, outputColumn;
 
@@ -99,37 +105,40 @@ private:
     // The 2 x 3 button cluster: UNDO REDO BYPASS / TUNER MUTE TAP
     juce::TextButton undoPedal, redoPedal, tunerPedal, mutePedal, tapPedal;
     juce::AudioProcessorValueTreeState::ButtonAttachment tunerAttachment, muteAttachment;
-    juce::Label undoLabel { {}, "UNDO" }, redoLabel { {}, "REDO" }, tunerLabel { {}, "TUNER" },
-                muteLabel { {}, "MUTE" }, tapLabel { {}, "TAP" }, holdLabel { {}, "HOLD TO TUNER" };
+    juce::Label undoLabel { {}, "UNDO" }, redoLabel { {}, "REDO" }, bypassLabel { {}, "BYPASS" },
+                tunerLabel { {}, "TUNER" }, muteLabel { {}, "MUTE" }, tapLabel { {}, "TAP" }, holdLabel { {}, "HOLD TO TUNER" };
 
     juce::Slider rigLevelKnob { juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::NoTextBox },
                  presenceKnob { juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::NoTextBox };
     juce::AudioProcessorValueTreeState::SliderAttachment rigLevelAttachment, presenceAttachment;
-    juce::Label bypassLabel { {}, "BYPASS" }, rigLevelLabel { {}, "OUTPUT LEVEL" }, presenceLabel { {}, "PRESENCE" };
+    juce::Label rigLevelLabel { {}, "OUTPUT LEVEL" }, presenceLabel { {}, "PRESENCE" };
     ModelSlot ampSlot, cabSlot;
     RigSlot rigSlot;
-    juce::ToggleButton normaliseButton { "NORMALISE" };
-    juce::AudioProcessorValueTreeState::ButtonAttachment normaliseAttachment;
     std::array<std::unique_ptr<Footswitch>, 4> footswitches;
 
     // Expression pedal and tuner
     ExpressionAssign pedalAssign;
     ExpressionPedal expressionPedal;
-    ExpressionPanel expressionPanel;
+    HeelIndicator heelIndicator;
     TunerReader tunerReader;
     LedDisplay::Contents::Tuner tunerState;
     int ticks = 0;
 
     // Dock and signal chain
+    RigNavigator rigNavigator;
+    SelectedRigPanel selectedRig;
+    RigSummary rigSummary;
+    ExpressionPanel expressionPanel;
     std::array<std::unique_ptr<EffectPanel>, numBlocks> panels;
-    CurrentRigPanel currentRigPanel;
+    juce::TextButton closePanel { "RIG SUMMARY" };
     SignalChain signalChain;
-    int selectedBlock = compBlock;
+    int selectedBlock = noBlock;
 
-    // PRESETS page
+    // Other pages
     RigBrowser rigBrowser;
+    SettingsPage settingsPage;
     std::vector<juce::Component*> processorPage;
-    bool showingPresets = false;
+    Page page = Page::processor;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainView)
 };

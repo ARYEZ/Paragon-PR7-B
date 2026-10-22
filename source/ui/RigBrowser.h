@@ -22,6 +22,10 @@ public:
     // Also used by the header's SAVE button for factory or unsaved rigs.
     void promptSaveAs();
 
+    // Shows only some rigs: `filter` 0 all, 1 favourites, 2 mine, 3 factory;
+    // `bank` -1 for every bank or 0-3 for A-D. (The dock's RIG BROWSER uses this.)
+    void showFilter (int filter, int bank);
+
     void paint (juce::Graphics&) override;
     void resized() override;
 

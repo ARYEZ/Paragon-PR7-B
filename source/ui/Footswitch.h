@@ -11,6 +11,7 @@
 // controls both delay and reverb). If any of them is on, the LED is lit and
 // pressing turns them all off; otherwise pressing turns them all on.
 class Footswitch final : public juce::Component,
+                         public juce::SettableTooltipClient,
                          private juce::Timer
 {
 public:

@@ -22,7 +22,7 @@ public:
     static constexpr int defaultHeight = 720;
 
 private:
-    ParagonLookAndFeel lookAndFeel;
+    juce::SharedResourcePointer<SharedParagonLookAndFeel> look;   // declared first: outlives the view
     MainView view;
     juce::TooltipWindow tooltips { this };
 

@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.24)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "macOS architectures")
 
-project(ParagonX1 VERSION 0.6.0 LANGUAGES C CXX)
+project(ParagonX1 VERSION 0.7.2 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -32,6 +32,16 @@ juce_add_plugin(ParagonX1
     IS_MIDI_EFFECT           FALSE
     VST3_CATEGORIES          Fx Distortion
     COPY_PLUGIN_AFTER_BUILD  FALSE)
+
+# Inter (SIL Open Font License, see resources/fonts/OFL-LICENSE.txt), built
+# into the plugin so it looks the same on every computer, as in the mockup.
+juce_add_binary_data(ParagonX1Fonts
+    HEADER_NAME ParagonFonts.h
+    NAMESPACE   ParagonFonts
+    SOURCES
+        resources/fonts/Inter-Regular.ttf
+        resources/fonts/Inter-SemiBold.ttf
+        resources/fonts/InterDisplay-BlackItalic.ttf)
 
 target_sources(ParagonX1
     PRIVATE
@@ -62,7 +72,7 @@ target_sources(ParagonX1
         source/ui/SlotWindow.cpp
         source/ui/RigSlot.cpp
         source/ui/SignalChain.cpp
-        source/ui/CurrentRigPanel.cpp
+        source/ui/DockPanels.cpp
         source/ui/PerformanceControls.cpp
         source/ui/MainView.cpp
         source/ui/ParagonLookAndFeel.cpp)
@@ -77,6 +87,7 @@ target_compile_definitions(ParagonX1
 
 target_link_libraries(ParagonX1
     PRIVATE
+        ParagonX1Fonts
         juce::juce_audio_utils
         juce::juce_dsp
         juce::juce_recommended_warning_flags   # strict warnings for our code only

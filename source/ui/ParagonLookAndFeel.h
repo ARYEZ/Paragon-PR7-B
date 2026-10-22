@@ -6,9 +6,9 @@
 // orange accent.
 namespace ParagonColours
 {
-    inline const juce::Colour background { 0xff0b0b0d };
-    inline const juce::Colour panel      { 0xff141417 };
-    inline const juce::Colour panelEdge  { 0xff2a2a30 };
+    inline const juce::Colour background { 0xff060407 };   // measured off the mockup: near black, faintly purple
+    inline const juce::Colour panel      { 0xff0c0a0d };
+    inline const juce::Colour panelEdge  { 0xff27222a };
     inline const juce::Colour accent     { 0xffff7a1a };
     inline const juce::Colour accentDim  { 0xff5a2a0a };
     inline const juce::Colour meterRed   { 0xffff3b2f };
@@ -48,6 +48,19 @@ public:
     // the button's toggle state is on.
     static constexpr const char* pedalButtonProperty = "pedalButton";
 
+    // Set this on a TextButton to draw it as the mockup's light outlined
+    // buttons printed on the metal (VOLUME, WAH / FILTER, MORPH / FX). Its
+    // outline and text turn red when its toggle state is on.
+    static constexpr const char* outlinedButtonProperty = "outlinedButton";
+
+    // Set this (to a font size) on a TextButton to draw just its text, no
+    // box: the header's rig name and tempo, which sit in framed groups.
+    static constexpr const char* plainTextProperty = "plainText";
+
+    // Every font in the plugin is Inter, built in: semibold for bold text,
+    // and the heavy display italic for bold italic (the PARAGON X1 badge).
+    juce::Typeface::Ptr getTypefaceForFont (const juce::Font&) override;
+
     void drawRotarySlider (juce::Graphics&, int x, int y, int width, int height,
                            float sliderPosProportional, float rotaryStartAngle,
                            float rotaryEndAngle, juce::Slider&) override;
@@ -66,5 +79,19 @@ public:
     void drawButtonText (juce::Graphics&, juce::TextButton&, bool highlighted, bool down) override;
 
 private:
+    juce::Typeface::Ptr regular, semiBold, blackItalic;
+
     static void drawPedalKnob (juce::Graphics&, juce::Rectangle<float> bounds, float angle);
+};
+
+// JUCE finds fonts through the *default* look-and-feel, so while any plugin
+// window is open ours is made the default. Shared by every open window, and
+// the default is restored when the last one closes. (The default is per
+// plugin binary, so other plugins in the DAW aren't affected.)
+struct SharedParagonLookAndFeel
+{
+    SharedParagonLookAndFeel();
+    ~SharedParagonLookAndFeel();
+
+    ParagonLookAndFeel lookAndFeel;
 };

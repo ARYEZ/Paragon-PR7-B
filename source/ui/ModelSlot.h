@@ -10,6 +10,7 @@
 // step through the other files in the same folder, and a clear button.
 // Files can also be dragged onto the window.
 class ModelSlot final : public juce::Component,
+                        public juce::SettableTooltipClient,
                         public juce::FileDragAndDropTarget
 {
 public:
@@ -27,6 +28,7 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
     void mouseUp (const juce::MouseEvent&) override;
+    void mouseEnter (const juce::MouseEvent&) override;
     void mouseMove (const juce::MouseEvent&) override;
     void mouseExit (const juce::MouseEvent&) override;
 
@@ -46,10 +48,12 @@ private:
     SlotStatus status;
     bool dragHover = false, buttonHover = false;
 
-    juce::ToggleButton power;
-    juce::AudioProcessorValueTreeState::ButtonAttachment powerAttachment;
+    // The power LED is painted; clicks on it toggle the parameter.
+    juce::ParameterAttachment powerAttachment;
+    bool powerOn = true;
     std::unique_ptr<juce::Button> previous, next;
     juce::TextButton clear { "x" };
     SlotWindow::Layout layout;
+    juce::Point<float> ledCentre;
     std::unique_ptr<juce::FileChooser> chooser;
 };

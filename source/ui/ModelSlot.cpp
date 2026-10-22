@@ -10,11 +10,10 @@ ModelSlot::ModelSlot (const juce::String& titleText, Icons::Type iconToShow, juc
       hint (hintText),
       icon (iconToShow),
       iconColour (iconColourToUse),
-      powerAttachment (parameters, powerParameterId, power),
+      powerAttachment (*parameters.getParameter (powerParameterId), [this] (float value) { powerOn = value > 0.5f; repaint(); }),
       previous (SlotWindow::makeArrow (true)),
       next (SlotWindow::makeArrow (false))
 {
-    power.setTooltip ("Turn the " + title.toLowerCase() + " on or off");
     previous->setTooltip ("Previous file in this folder");
     next->setTooltip ("Next file in this folder");
     clear.setTooltip ("Unload");
@@ -24,9 +23,10 @@ ModelSlot::ModelSlot (const juce::String& titleText, Icons::Type iconToShow, juc
     next->onClick = [this] { step (1); };
     clear.onClick = [this] { if (onClear) onClear(); };
 
-    for (auto* component : std::initializer_list<juce::Component*> { &power, previous.get(), next.get(), &clear })
+    for (auto* component : std::initializer_list<juce::Component*> { previous.get(), next.get(), &clear })
         addAndMakeVisible (component);
 
+    powerAttachment.sendInitialUpdate();
     setStatus ({});
 }
 
@@ -36,7 +36,15 @@ void ModelSlot::setStatus (const SlotStatus& newStatus)
     const auto hasFile = status.file != juce::File();
     previous->setEnabled (hasFile);
     next->setEnabled (hasFile);
-    clear.setVisible (hasFile);
+    clear.setVisible (hasFile && isMouseOver (true));
+
+    // The full details (sample rate, IR length, path) show on hover.
+    auto tip = (hasFile ? status.file.getFullPathName() : hint) + "\nClick the LED to switch the " + title.toLowerCase() + " on or off.";
+    if (status.detail.isNotEmpty())
+        tip << "\n" << status.detail;
+    if (status.error.isNotEmpty())
+        tip << "\n" << status.error;
+    setTooltip (tip);
     repaint();
 }
 
@@ -91,16 +99,16 @@ void ModelSlot::step (int direction)
 void ModelSlot::paint (juce::Graphics& g)
 {
     SlotWindow::drawTitle (g, layout, title);
+    SlotWindow::drawRingLed (g, ledCentre, powerOn);
 
     const auto hasFile = status.file != juce::File();
-    SlotWindow::drawButton (g, layout.button, icon, hasFile ? iconColour : iconColour.withAlpha (0.5f),
-                            hasFile ? status.file.getFileNameWithoutExtension() : juce::String(),
-                            buttonHover, dragHover);
+    SlotWindow::drawButton (g, layout.button, icon, hasFile ? iconColour : iconColour.withAlpha (0.45f), buttonHover, dragHover);
 
+    // Under the block: what's loaded, or what to do, or what went wrong.
     const auto isError = status.error.isNotEmpty() && ! status.loading;
     const auto caption = status.loading ? juce::String ("Loading...")
                        : isError         ? status.error
-                       : hasFile         ? status.detail
+                       : hasFile         ? status.file.getFileNameWithoutExtension()
                                          : hint;
     SlotWindow::drawCaption (g, layout.caption, caption, isError);
 }
@@ -111,10 +119,15 @@ void ModelSlot::resized()
 
     // Power LED just right of the title text, as in the mockup.
     const auto titleWidth = juce::GlyphArrangement::getStringWidthInt (juce::FontOptions (14.0f, juce::Font::bold), title);
-    power.setBounds (juce::Rectangle<int> (20, 20).withCentre ({ layout.title.getCentreX() + titleWidth / 2 + 14, layout.title.getCentreY() }));
+    ledCentre = { (float) layout.title.getCentreX() + (float) titleWidth / 2.0f + 13.0f, (float) layout.title.getCentreY() };
     clear.setBounds (layout.corner.withSizeKeepingCentre (20, 18));
     previous->setBounds (layout.previous);
     next->setBounds (layout.next);
+}
+
+void ModelSlot::mouseEnter (const juce::MouseEvent&)
+{
+    clear.setVisible (status.file != juce::File());
 }
 
 void ModelSlot::mouseMove (const juce::MouseEvent& event)
@@ -129,6 +142,9 @@ void ModelSlot::mouseMove (const juce::MouseEvent& event)
 
 void ModelSlot::mouseExit (const juce::MouseEvent&)
 {
+    // Child components (the arrows, the LED) also count as "exiting" us.
+    if (! isMouseOver (true))
+        clear.setVisible (false);
     buttonHover = false;
     repaint (layout.button.expanded (4));
 }
@@ -137,7 +153,9 @@ void ModelSlot::mouseUp (const juce::MouseEvent& event)
 {
     if (! event.mouseWasClicked())
         return;
-    if (layout.button.contains (event.getPosition()))
+    if (juce::Rectangle<float> (22.0f, 22.0f).withCentre (ledCentre).contains (event.position))
+        powerAttachment.setValueAsCompleteGesture (powerOn ? 0.0f : 1.0f);
+    else if (layout.button.contains (event.getPosition()))
         chooseFile();
     else if (layout.title.contains (event.getPosition()) && onTitleClicked)
         onTitleClicked();

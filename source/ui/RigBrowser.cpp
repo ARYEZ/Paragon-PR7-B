@@ -317,6 +317,17 @@ void RigBrowser::saveDetails()
     refreshList();
 }
 
+void RigBrowser::showFilter (int newFilter, int bank)
+{
+    const auto filterIndex = juce::jlimit (0, filterButtons.size() - 1, newFilter);
+    const auto bankIndex = juce::jlimit (0, bankButtons.size() - 1, bank + 1);
+    filterButtons[filterIndex]->setToggleState (true, juce::dontSendNotification);
+    bankButtons[bankIndex]->setToggleState (true, juce::dontSendNotification);
+    filter = (Filter) filterIndex;
+    bankFilter = bank;
+    refreshList();
+}
+
 void RigBrowser::promptSaveAs()
 {
     // The dialog lives inside the plugin window: separate desktop windows
