@@ -162,6 +162,12 @@ void GraphicEqPanel::paint (juce::Graphics& g)
     g.strokePath (curve, juce::PathStrokeType (5.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     g.setColour (colour);
     g.strokePath (curve, juce::PathStrokeType (1.8f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    if (on)
+    {
+        // A white-hot core, like the unit's neon LEDs.
+        g.setColour (juce::Colour (0xffffe4dc).withAlpha (0.85f));
+        g.strokePath (curve, juce::PathStrokeType (0.7f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    }
 
     // Labels: each band's setting above it and its frequency below.
     for (int band = 0; band < effects::GraphicEq::numBands; ++band)

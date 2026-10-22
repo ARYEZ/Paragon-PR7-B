@@ -31,7 +31,7 @@ namespace ParagonColours
     inline const juce::Colour modulation { 0xffb86dff };
     inline const juce::Colour delay      { 0xff45b4ff };
     inline const juce::Colour reverb     { 0xff4fe3dd };
-    inline const juce::Colour eq         { 0xffa6e35a };   // lime: stands apart from the drive's amber and the amp's red
+    inline const juce::Colour eq         { 0xffff5a2c };   // the plugin's neon orange-red
 }
 
 class ParagonLookAndFeel final : public juce::LookAndFeel_V4

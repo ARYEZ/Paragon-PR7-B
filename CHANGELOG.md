@@ -2,12 +2,16 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.8.1
+
+- The graphic EQ now glows in the plugin's neon orange-red (its curve, faders, icon and signal-chain block), with a white-hot core on the curve like the unit's neon LEDs.
+
 ## 0.8.0
 
 **9-band graphic EQ.**
 
 - A graphic EQ with one band per octave (63, 125, 250, 500 Hz, 1, 2, 4, 8 and 16 kHz), each cutting or boosting up to 12 dB, plus an output LEVEL. It sits after the cabinet and PRESENCE, before modulation, delay and reverb, where hardware modellers put theirs: it shapes the amp and cab's tone without colouring the echoes separately.
-- Click the new lime **EQ** block in the signal chain (or its card in RIG SUMMARY) to open it: nine faders standing at their frequencies over a live drawing of the EQ's response, which passes through the faders' caps as you move them. Double-click a fader for 0 dB; **FLAT** resets every band in one step (and one undo).
+- Click the new **EQ** block in the signal chain (or its card in RIG SUMMARY) to open it: nine faders standing at their frequencies over a live drawing of the EQ's response, which passes through the faders' caps as you move them. Double-click a fader for 0 dB; **FLAT** resets every band in one step (and one undo).
 - Saved with each rig. It's off by default, so existing rigs and projects sound exactly the same.
 
 ## 0.7.5
