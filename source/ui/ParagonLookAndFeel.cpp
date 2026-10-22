@@ -355,6 +355,32 @@ void ParagonLookAndFeel::drawLinearSlider (juce::Graphics& g, int x, int y, int 
                                           float sliderPos, float minSliderPos, float maxSliderPos,
                                           juce::Slider::SliderStyle style, juce::Slider& slider)
 {
+    if (style == juce::Slider::LinearVertical && slider.getProperties()[eqFaderProperty])
+    {
+        const auto centreX = (float) x + (float) width * 0.5f;
+        const auto top = (float) y, bottom = (float) (y + height);   // already inset by the thumb radius
+        const auto middle = (top + bottom) * 0.5f;
+        const auto colour = slider.findColour (juce::Slider::trackColourId);
+
+        // Groove, then the lit part from 0 dB to the cap.
+        g.setColour (juce::Colour (0xff050406));
+        g.fillRoundedRectangle (juce::Rectangle<float> (4.0f, bottom - top).withCentre ({ centreX, middle }), 2.0f);
+        g.setColour (ParagonColours::panelEdge.brighter (0.2f));
+        g.drawRoundedRectangle (juce::Rectangle<float> (4.0f, bottom - top).withCentre ({ centreX, middle }), 2.0f, 0.8f);
+        const auto lit = juce::Rectangle<float>::leftTopRightBottom (centreX - 1.5f, juce::jmin (sliderPos, middle), centreX + 1.5f, juce::jmax (sliderPos, middle));
+        g.setColour (colour.withAlpha (0.3f));
+        g.fillRoundedRectangle (lit.expanded (2.5f, 0.0f), 2.0f);
+        g.setColour (colour);
+        g.fillRoundedRectangle (lit, 1.5f);
+
+        // The cap: a small piano-black key with a lit line across it.
+        const auto cap = juce::Rectangle<float> (juce::jmin (26.0f, (float) width - 4.0f), 14.0f).withCentre ({ centreX, sliderPos });
+        drawPianoBlackKey (g, cap, 3.0f, 2.0f, slider.isMouseButtonDown(), slider.isMouseOver());
+        g.setColour (colour);
+        g.fillRect (cap.reduced (5.0f, 0.0f).withSizeKeepingCentre (cap.getWidth() - 10.0f, 1.6f).translated (0.0f, -0.5f));
+        return;
+    }
+
     if (style != juce::Slider::TwoValueHorizontal)
     {
         LookAndFeel_V4::drawLinearSlider (g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
@@ -479,4 +505,11 @@ void ParagonLookAndFeel::drawNeonBar (juce::Graphics& g, juce::Rectangle<float> 
     g.fillRoundedRectangle (bar.expanded (1.0f), radius + 1.0f);
     g.setColour (juce::Colour (0xfffff2ee));
     g.fillRoundedRectangle (bar.reduced (bar.getHeight() * 0.18f, bar.getHeight() * 0.22f), radius * 0.6f);
+}
+
+int ParagonLookAndFeel::getSliderThumbRadius (juce::Slider& slider)
+{
+    if (slider.getProperties()[eqFaderProperty])
+        return eqFaderThumbRadius;
+    return LookAndFeel_V4::getSliderThumbRadius (slider);
 }

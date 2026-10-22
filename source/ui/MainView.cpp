@@ -104,11 +104,13 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
       selectedRig (processorToShow),
       rigSummary (processorToShow),
       expressionPanel (processorToShow.getParameters()),
+      eqPanel (processorToShow.getParameters()),
       signalChain (processorToShow.getParameters(), {
           { "COMP / GATE", Icons::Type::comp, ParagonColours::comp, ParamIDs::compOn },
           { "OD / DIST", Icons::Type::drive, ParagonColours::drive, ParamIDs::driveOn },
           { "NAMP", Icons::Type::amp, ParagonColours::amp, ParamIDs::ampOn },
           { "CABINET IR", Icons::Type::cabinet, ParagonColours::cab, ParamIDs::cabOn },
+          { "EQ", Icons::Type::eq, ParagonColours::eq, ParamIDs::eqOn },
           { "MODULATION", Icons::Type::modulation, ParagonColours::modulation, ParamIDs::modOn },
           { "DELAY", Icons::Type::delay, ParagonColours::delay, ParamIDs::delayOn },
           { "REVERB", Icons::Type::reverb, ParagonColours::reverb, ParamIDs::reverbOn } }),
@@ -292,14 +294,18 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     const std::pair<Icons::Type, juce::Colour> headers[] = {
         { Icons::Type::comp, ParagonColours::comp }, { Icons::Type::drive, ParagonColours::drive },
         { Icons::Type::amp, ParagonColours::amp }, { Icons::Type::cabinet, ParagonColours::cab },
+        { Icons::Type::eq, ParagonColours::eq },
         { Icons::Type::modulation, ParagonColours::modulation }, { Icons::Type::delay, ParagonColours::delay },
         { Icons::Type::reverb, ParagonColours::reverb } };
-    const char* titles[] = { "COMP / GATE", "OD / DISTORTION", "AMP (NAM)", "CABINET (IR)", "MODULATION", "DELAY", "REVERB" };
+    const char* titles[] = { "COMP / GATE", "OD / DISTORTION", "AMP (NAM)", "CABINET (IR)", "GRAPHIC EQ", "MODULATION", "DELAY", "REVERB" };
     for (size_t i = 0; i < panels.size(); ++i)
     {
+        if (panels[i] == nullptr)
+            continue;
         panels[i]->setHeader (headers[i].first, headers[i].second, titles[i]);
         addChildComponent (*panels[i]);
     }
+    addChildComponent (eqPanel);
 
     closePanel.setTooltip ("Back to the rig summary");
     closePanel.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff151217));
@@ -351,7 +357,9 @@ void MainView::selectBlock (int block)
     selectedBlock = block;
     const auto onProcessorPage = page == Page::processor;
     for (size_t i = 0; i < panels.size(); ++i)
-        panels[i]->setVisible ((int) i == block && onProcessorPage);
+        if (panels[i] != nullptr)
+            panels[i]->setVisible ((int) i == block && onProcessorPage);
+    eqPanel.setVisible (block == eqBlock && onProcessorPage);
     closePanel.setVisible (block != noBlock && onProcessorPage);
     rigSummary.setVisible (block == noBlock && onProcessorPage);
     if (block != noBlock)
@@ -633,7 +641,9 @@ void MainView::resized()
     const auto summaryArea = mock (662, 568, 1334, 822);
     rigSummary.setBounds (summaryArea);
     for (auto& panel : panels)
-        panel->setBounds (summaryArea);
+        if (panel != nullptr)
+            panel->setBounds (summaryArea);
+    eqPanel.setBounds (summaryArea);
     closePanel.setBounds (summaryArea.withSizeKeepingCentre (0, 0).withX (summaryArea.getRight() - 130).withY (summaryArea.getY() + 10)
                               .withSize (118, 24));
     expressionPanel.setBounds (mock (1344, 568, 1662, 822));

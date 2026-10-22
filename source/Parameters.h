@@ -59,6 +59,12 @@ namespace ParamIDs
     inline constexpr auto expressionMin    = "expressionMin";     // the target's setting at the heel...
     inline constexpr auto expressionMax    = "expressionMax";     // ...and at the toe
 
+    // Phase 8: the 9-band graphic EQ, one band per octave.
+    inline constexpr auto eqOn    = "eqOn";
+    inline constexpr auto eqLevel = "eqLevel";
+    inline const juce::StringArray eqBands { "eq63", "eq125", "eq250", "eq500", "eq1k", "eq2k", "eq4k", "eq8k", "eq16k" };
+    inline const juce::StringArray eqBandNames { "63", "125", "250", "500", "1K", "2K", "4K", "8K", "16K" };
+
     // Global settings: kept when switching rigs. Everything else is part of a rig.
     // The expression pedal's position is global for the same reason a real
     // pedal's is: it's where your foot is, not part of the sound. What the

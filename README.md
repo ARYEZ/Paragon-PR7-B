@@ -36,13 +36,15 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
   latency to your DAW.
 - **PRESENCE** (under the cabinet) cuts or boosts the top end after the cab, like an amp's presence knob.
 - **Footswitches 1-4** turn the effect blocks on and off. Click a footswitch's name to show its knobs
-  below. Signal chain: comp/gate → overdrive → amp → cabinet → presence → modulation → delay → reverb.
+  below. Signal chain: comp/gate → overdrive → amp → cabinet → presence → graphic EQ → modulation → delay → reverb.
   - **1 Comp / Gate:** compressor (threshold, ratio, level) and noise gate (threshold; all the way down is off).
   - **2 OD / Distortion:** overdrive (drive, tone, level), 8x oversampled to avoid harsh aliasing.
   - **3 Modulation:** chorus, flanger, phaser or tremolo. Chorus and flanger are stereo.
   - **4 Reverb / Delay:** switches both; each also has its own ON switch. The delay syncs to your
     DAW's tempo (or set SYNC to Off for milliseconds), has a tone control for darker repeats, and
     optional ping-pong. Both let their tails ring out when switched off.
+- **Graphic EQ:** 9 bands (63 Hz to 16 kHz, ±12 dB) and a level, after the cabinet. Open it from the
+  **EQ** block in the signal chain; the curve shows the EQ's actual response. FLAT resets it.
 - All effects start switched off, so projects made with earlier versions sound the same.
 - **Rigs:** SAVE in the header saves the current sound as a rig; **<** and **>** step through rigs; a
   `*` after the name means it's changed since loading. The **PRESETS** tab browses, searches, files

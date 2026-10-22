@@ -300,6 +300,25 @@ float RigSummary::value (const char* parameterId) const
     return processor.getParameters().getRawParameterValue (parameterId)->load();
 }
 
+juce::String RigSummary::eqSummary() const
+{
+    // The biggest change, e.g. "+4.0 dB @ 1K", or "Flat".
+    int biggest = -1;
+    float biggestDb = 0.0f;
+    for (int band = 0; band < ParamIDs::eqBands.size(); ++band)
+    {
+        const auto db = processor.getParameters().getRawParameterValue (ParamIDs::eqBands[band])->load();
+        if (std::abs (db) > std::abs (biggestDb) + 0.05f)
+        {
+            biggest = band;
+            biggestDb = db;
+        }
+    }
+    if (biggest < 0)
+        return "Flat";
+    return (biggestDb > 0.0f ? "+" : "") + juce::String (biggestDb, 1) + " dB @ " + ParamIDs::eqBandNames[biggest];
+}
+
 void RigSummary::refresh()
 {
     const auto on = [this] (const char* id) { return value (id) > 0.5f; };
@@ -320,6 +339,7 @@ void RigSummary::refresh()
           Icons::Type::amp, ParagonColours::amp, on (ParamIDs::ampOn) && amp.file != juce::File(), {} },
         { "CABINET (IR)", fileName (cab, "No IR"), amp.file != juce::File() || cab.file != juce::File() ? cab.detail : juce::String(),
           Icons::Type::cabinet, ParagonColours::cab, on (ParamIDs::cabOn) && cab.file != juce::File(), {} },
+        { "GRAPHIC EQ", "9-Band EQ", eqSummary(), Icons::Type::eq, ParagonColours::eq, on (ParamIDs::eqOn), {} },
         { "MODULATION", text (ParamIDs::modType), "Depth " + text (ParamIDs::modDepth), Icons::Type::modulation, ParagonColours::modulation,
           on (ParamIDs::modOn), {} },
         { "DELAY", synced ? "Synced Delay" : "Digital Delay",

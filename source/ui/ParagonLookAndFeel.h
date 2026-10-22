@@ -31,6 +31,7 @@ namespace ParagonColours
     inline const juce::Colour modulation { 0xffb86dff };
     inline const juce::Colour delay      { 0xff45b4ff };
     inline const juce::Colour reverb     { 0xff4fe3dd };
+    inline const juce::Colour eq         { 0xffa6e35a };   // lime: stands apart from the drive's amber and the amp's red
 }
 
 class ParagonLookAndFeel final : public juce::LookAndFeel_V4
@@ -57,6 +58,11 @@ public:
     // box: the header's rig name and tempo, which sit in framed groups.
     static constexpr const char* plainTextProperty = "plainText";
 
+    // Set this on a vertical slider to draw it as a graphic-EQ fader: a thin
+    // groove lit from its centre (0 dB) to the cap, and a small black cap.
+    static constexpr const char* eqFaderProperty = "eqFader";
+    static constexpr int eqFaderThumbRadius = 7;
+
     // Every font in the plugin is Inter, built in: semibold for bold text,
     // and the heavy display italic for bold italic (the PARAGON X1 badge).
     juce::Typeface::Ptr getTypefaceForFont (const juce::Font&) override;
@@ -66,6 +72,10 @@ public:
                            float rotaryEndAngle, juce::Slider&) override;
 
     // Toggle buttons are drawn as the mockup's red/orange status LEDs.
+    // EQ faders: travel inset by half the cap's height, so the cap's centre
+    // reaches exactly the top and bottom of the scale.
+    int getSliderThumbRadius (juce::Slider&) override;
+
     // The two-thumb MIN / MAX slider: a thin track with round glowing thumbs.
     void drawLinearSlider (juce::Graphics&, int x, int y, int width, int height,
                            float sliderPos, float minSliderPos, float maxSliderPos,

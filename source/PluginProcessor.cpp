@@ -43,6 +43,8 @@ ParagonX1AudioProcessor::ParagonX1AudioProcessor()
     ampOn = parameters.getRawParameterValue (ParamIDs::ampOn);
     ampNormalise = parameters.getRawParameterValue (ParamIDs::ampNormalise);
     cabOn = parameters.getRawParameterValue (ParamIDs::cabOn);
+    for (int band = 0; band < effects::GraphicEq::numBands; ++band)
+        eqGainDb[(size_t) band] = parameters.getRawParameterValue (ParamIDs::eqBands[band]);
 
     rigLibrary = std::make_unique<RigLibrary>();
 
@@ -96,6 +98,7 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     compGate.prepare (sampleRate, preparedBlockSize);
     drive.prepare (sampleRate, preparedBlockSize);
     presence.prepare (sampleRate, preparedBlockSize);
+    graphicEq.prepare (sampleRate, preparedBlockSize);
     modulation.prepare (sampleRate, preparedBlockSize);
     delay.prepare (sampleRate, preparedBlockSize);
     reverb.prepare (sampleRate, preparedBlockSize);
@@ -248,6 +251,13 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     amp.process (mono, numSamples, ampOn->load() > 0.5f, ampNormalise->load() > 0.5f);
     cab.process (mono, numSamples, cabOn->load() > 0.5f);
     presence.process (monoBlock, param (ParamIDs::presence));
+
+    effects::GraphicEq::Settings eq;
+    eq.on = isOn (ParamIDs::eqOn);
+    for (size_t band = 0; band < eq.gainsDb.size(); ++band)
+        eq.gainsDb[band] = eqGainDb[band]->load();
+    eq.levelDb = param (ParamIDs::eqLevel);
+    graphicEq.process (monoBlock, eq);
 
     // From here on, stereo: modulation, delay and reverb spread the sound
     // across both speakers.

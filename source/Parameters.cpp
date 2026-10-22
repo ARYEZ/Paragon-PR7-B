@@ -2,6 +2,7 @@
 
 #include "dsp/effects/CompGate.h"
 #include "dsp/effects/Delay.h"
+#include "dsp/effects/GraphicEq.h"
 
 namespace
 {
@@ -120,5 +121,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeChoice (ParamIDs::expressionTarget, "Expression Target", v6, ExpressionTargets::names, ExpressionTargets::off));
     layout.add (makeFloat (ParamIDs::expressionMin, "Expression Min", { 0.0f, 1.0f, 0.01f }, 0.0f, v6, asPercent));
     layout.add (makeFloat (ParamIDs::expressionMax, "Expression Max", { 0.0f, 1.0f, 0.01f }, 1.0f, v6, asPercent));
+
+    // Added in plugin version 8: the graphic EQ. Off by default, so existing
+    // projects and rigs sound the same.
+    constexpr int v8 = 8;
+    layout.add (makeSwitch (ParamIDs::eqOn, "EQ On", v8, false));
+    for (int band = 0; band < ParamIDs::eqBands.size(); ++band)
+        layout.add (makeFloat (ParamIDs::eqBands[band].toRawUTF8(), "EQ " + ParamIDs::eqBandNames[band] + " Hz",
+                               { -effects::GraphicEq::maxGainDb, effects::GraphicEq::maxGainDb, 0.1f }, 0.0f, v8, asDb));
+    layout.add (makeFloat (ParamIDs::eqLevel, "EQ Level", { -12.0f, 12.0f, 0.1f }, 0.0f, v8, asDb));
     return layout;
 }

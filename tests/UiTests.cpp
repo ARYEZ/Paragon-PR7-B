@@ -81,9 +81,16 @@ TEST_CASE ("The chain, footswitches and summary cards pick which block's knobs s
     ParagonX1AudioProcessor processor;
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
 
-    std::vector<EffectPanel*> panels;
-    findAll (*editor, panels);
-    REQUIRE (panels.size() == 7);
+    // The knob panels in signal-chain order: seven EffectPanels, with the
+    // graphic EQ's own panel as block 4 (after the cabinet).
+    std::vector<EffectPanel*> effectPanels;
+    findAll (*editor, effectPanels);
+    REQUIRE (effectPanels.size() == 7);
+    std::vector<GraphicEqPanel*> eqPanels;
+    findAll (*editor, eqPanels);
+    REQUIRE (eqPanels.size() == 1);
+    std::vector<juce::Component*> panels (effectPanels.begin(), effectPanels.end());
+    panels.insert (panels.begin() + 4, eqPanels[0]);
 
     const auto visiblePanel = [&]
     {
@@ -105,27 +112,29 @@ TEST_CASE ("The chain, footswitches and summary cards pick which block's knobs s
     std::vector<SignalChain*> chains;
     findAll (*editor, chains);
     REQUIRE (chains.size() == 1);
-    for (int block = 0; block < 7; ++block)
+    for (int block = 0; block < 8; ++block)
     {
         chains[0]->onSelect (block);
         CHECK (visiblePanel() == block);
     }
 
-    // Footswitch 3's name shows modulation (block 4); footswitch 4's shows delay (block 5).
+    // Footswitch 3's name shows modulation (block 5); footswitch 4's shows delay (block 6).
     std::vector<Footswitch*> footswitches;
     findAll (*editor, footswitches);
     REQUIRE (footswitches.size() == 4);
     footswitches[2]->onSelect();
-    CHECK (visiblePanel() == 4);
-    footswitches[3]->onSelect();
     CHECK (visiblePanel() == 5);
+    footswitches[3]->onSelect();
+    CHECK (visiblePanel() == 6);
 
-    // Each summary card opens its block too.
+    // Each summary card opens its block too, the EQ's included.
     std::vector<RigSummary*> summaries;
     findAll (*editor, summaries);
     REQUIRE (summaries.size() == 1);
     summaries[0]->onSelectBlock (2);
     CHECK (visiblePanel() == 2);
+    summaries[0]->onSelectBlock (4);
+    CHECK (visiblePanel() == 4);
 }
 
 TEST_CASE ("BYPASS passes the clean guitar, on both channels", "[ui][bypass]")

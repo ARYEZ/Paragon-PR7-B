@@ -262,6 +262,19 @@ namespace Icons
                     p.applyTransform (juce::AffineTransform::scale (-1.0f, 1.0f, 0.5f, 0.5f));
                 break;
 
+            case Type::eq:
+            {
+                // Three faders at different heights: a graphic EQ.
+                const float xs[] = { 0.2f, 0.5f, 0.8f }, knobs[] = { 0.62f, 0.3f, 0.5f };
+                for (int i = 0; i < 3; ++i)
+                {
+                    p.startNewSubPath (xs[i], 0.08f);
+                    p.lineTo (xs[i], 0.92f);
+                    p.addRoundedRectangle (xs[i] - 0.1f, knobs[i] - 0.06f, 0.2f, 0.12f, 0.03f);
+                }
+                break;
+            }
+
             case Type::flame:
                 // The mockup's "All Rigs" icon.
                 p.startNewSubPath (0.5f, 0.05f);

@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include "Parameters.h"
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
 
@@ -90,6 +91,18 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
             for (int i = 0; i < 256; ++i, ++n)
                 buffer.setSample (0, i, 0.3f * (float) std::sin (juce::MathConstants<double>::twoPi * frequency * n / 48000.0));
             processor.processBlock (buffer, midi);
+        }
+    }
+
+    // PARAGON_SNAPSHOT_EQ=g1,g2,...,g9 switches the graphic EQ on with these band gains (dB).
+    if (const auto eq = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_EQ", {}); eq.isNotEmpty())
+    {
+        const auto gains = juce::StringArray::fromTokens (eq, ",", {});
+        processor.getParameters().getParameter ("eqOn")->setValueNotifyingHost (1.0f);
+        for (int band = 0; band < juce::jmin (gains.size(), ParamIDs::eqBands.size()); ++band)
+        {
+            auto* p = processor.getParameters().getParameter (ParamIDs::eqBands[band]);
+            p->setValueNotifyingHost (p->convertTo0to1 (gains[band].getFloatValue()));
         }
     }
 

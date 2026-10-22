@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.24)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "macOS architectures")
 
-project(ParagonX1 VERSION 0.7.5 LANGUAGES C CXX)
+project(ParagonX1 VERSION 0.8.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -64,6 +64,7 @@ target_sources(ParagonX1
         source/dsp/effects/CompGate.cpp
         source/dsp/effects/Delay.cpp
         source/dsp/effects/Drive.cpp
+        source/dsp/effects/GraphicEq.cpp
         source/dsp/effects/Modulation.cpp
         source/dsp/effects/Reverb.cpp
         source/dsp/effects/Wah.cpp
@@ -82,6 +83,7 @@ target_sources(ParagonX1
         source/ui/RigSlot.cpp
         source/ui/SignalChain.cpp
         source/ui/DockPanels.cpp
+        source/ui/GraphicEqPanel.cpp
         source/ui/PerformanceControls.cpp
         source/ui/MainView.cpp
         source/ui/ParagonLookAndFeel.cpp)
