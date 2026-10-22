@@ -188,7 +188,7 @@ void ExpressionPedal::timerCallback()
 juce::Rectangle<float> ExpressionPedal::trackArea() const
 {
     // The black well the pads sit in; the label is printed below it.
-    return getLocalBounds().toFloat().reduced (14.0f, 10.0f).withTrimmedBottom (52.0f);
+    return getLocalBounds().toFloat().reduced (10.0f, 8.0f).withTrimmedBottom (50.0f);
 }
 
 void ExpressionPedal::paint (juce::Graphics& g)
@@ -196,74 +196,169 @@ void ExpressionPedal::paint (juce::Graphics& g)
     const auto well = trackArea();
     const auto active = target != ExpressionTargets::off;
 
-    // The recess: darker chrome, shaded at the top where the housing's lip
-    // overhangs it, with a light catch along its bottom edge.
+    // The base the treadle rocks on: a dark recess in the chrome bay.
     juce::Path wellPath;
     wellPath.addRoundedRectangle (well, 14.0f);
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff7a5664), 0.0f, well.getY(),
-                                             juce::Colour (0xffd0aebd), 0.0f, well.getBottom(), false));
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1a1417), 0.0f, well.getY(),
+                                             juce::Colour (0xff3a2c33), 0.0f, well.getBottom(), false));
     g.fillPath (wellPath);
-    g.setColour (juce::Colours::black.withAlpha (0.45f));
+    g.setColour (juce::Colours::black.withAlpha (0.6f));
     g.drawRoundedRectangle (well, 14.0f, 1.5f);
     g.setColour (juce::Colours::white.withAlpha (0.7f));
     g.drawRoundedRectangle (well.expanded (1.5f).translated (0.0f, 1.0f), 15.0f, 1.0f);
 
-    // Two rubber pads split by a diagonal chrome strip, as in the mockup: a
-    // short toe pad on top and a long heel pad below. As the pedal rocks
-    // towards the toe the toe pad catches more light, towards the heel the
-    // heel pad does.
-    // The treadle rocks: towards the heel its toe end lifts towards you, so
-    // seen from above it looks shorter (foreshortened) and the dark well
-    // shows beyond its tip, in its shadow.
-    const auto lift = 1.0f - shownPosition;
-    const auto pads = well.reduced (9.0f).withTrimmedTop (well.getHeight() * 0.18f * lift);
-    if (lift > 0.0f)
+    //==========================================================================
+    // The treadle, in 3D, the way Neural DSP and IK Multimedia show theirs:
+    // a slab pivoting on an axle across its middle, seen from above through
+    // a perspective camera. As it rocks, the end that lifts comes towards
+    // you (larger, and moving outwards), the end that drops goes away
+    // (smaller), its side walls show, and its shadow shifts on the base.
+    //
+    // World units are pixels. X runs across the pedal, Y along it (toe at
+    // -Y, heel at +Y), Z up towards the camera.
+    constexpr float maxTilt = 0.22f;                                   // about 13 degrees each way
+    const auto tilt = (shownPosition * 2.0f - 1.0f) * maxTilt;         // + = toe down
+    const auto length = well.getHeight() * 0.82f, width = well.getWidth() * 0.86f;
+    const auto thickness = width * 0.2f;
+    const auto pivotZ = thickness * 1.6f;                              // axle height above the base
+    const auto cameraZ = length * 1.9f;                                // camera height: sets how strong the perspective is
+    const auto centre = well.getCentre().translated (0.0f, well.getHeight() * 0.035f);   // down a little: the lifted toe rises towards the top
+    const auto flatScale = (cameraZ - (pivotZ + thickness * 0.5f)) / cameraZ;   // a flat treadle's top fills its space
+
+    struct Point3 { float x, y, z; };
+    const auto rotate = [&] (Point3 p)
     {
+        // Rock about the axle (the X axis at height pivotZ): toe down = toe's Z falls.
+        const auto c = std::cos (tilt), s = std::sin (tilt);
+        const auto dz = p.z - pivotZ;
+        return Point3 { p.x, p.y * c - dz * s, pivotZ + p.y * s + dz * c };
+    };
+    // The camera sits above and a little in front of the pedal (towards
+    // the player), as the mockup is drawn, so the treadle's front wall and
+    // thickness show. Scaled so a flat treadle's top fills its space.
+    const auto cameraY = length * 0.85f;
+    const auto project = [&] (Point3 p)
+    {
+        const auto k = cameraZ / (cameraZ - p.z) * flatScale;
+        return juce::Point<float> (centre.x + p.x * k, centre.y + (p.y - cameraY) * k + cameraY * flatScale);
+    };
+    // A point on the treadle's top (u across 0..1, v along 0..1 from toe to heel).
+    const auto topPoint = [&] (float u, float v, float zOffset = 0.0f)
+    {
+        return project (rotate ({ (u - 0.5f) * width, (v - 0.5f) * length, pivotZ + thickness * 0.5f + zOffset }));
+    };
+    // A straight-edged shape in (u, v), sampled along its edges so perspective bends it correctly.
+    const auto mapPolygon = [&] (std::initializer_list<juce::Point<float>> corners, float zOffset = 0.0f)
+    {
+        std::vector<juce::Point<float>> uv (corners);
+        juce::Path path;
+        for (size_t i = 0; i < uv.size(); ++i)
+        {
+            const auto a = uv[i], b = uv[(i + 1) % uv.size()];
+            for (int step = 0; step < 8; ++step)
+            {
+                const auto t = (float) step / 8.0f;
+                const auto p = topPoint (a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, zOffset);
+                if (i == 0 && step == 0)
+                    path.startNewSubPath (p);
+                else
+                    path.lineTo (p);
+            }
+        }
+        path.closeSubPath();
+        return path;
+    };
+
+    // Shadow on the base, cast by light from above and slightly in front:
+    // it spreads further under whichever end is lifted.
+    {
+        juce::Path shadow;
+        const auto onBase = [&] (float u, float v)
+        {
+            const auto p = rotate ({ (u - 0.5f) * width, (v - 0.5f) * length, pivotZ - thickness * 0.5f });
+            return project ({ p.x + p.z * 0.15f, p.y + p.z * 0.35f, 0.0f });
+        };
+        shadow.startNewSubPath (onBase (0, 0));
+        shadow.lineTo (onBase (1, 0));
+        shadow.lineTo (onBase (1, 1));
+        shadow.lineTo (onBase (0, 1));
+        shadow.closeSubPath();
         juce::Graphics::ScopedSaveState state (g);
         g.reduceClipRegion (wellPath);
-        g.setGradientFill (juce::ColourGradient (juce::Colours::black.withAlpha (0.0f), 0.0f, well.getY(),
-                                                 juce::Colours::black.withAlpha (0.75f * lift), 0.0f, pads.getY(), false));
-        g.fillRect (well.withBottom (pads.getY() + 4.0f));
+        juce::DropShadow (juce::Colours::black.withAlpha (0.85f), 14, {}).drawForPath (g, shadow);
     }
-    const auto gap = 26.0f;
-    const auto splitLeft = pads.getY() + pads.getHeight() * 0.40f;    // the strip climbs to the right
-    const auto splitRight = pads.getY() + pads.getHeight() * 0.22f;
 
-    juce::Path toe, heel;
-    toe.startNewSubPath (pads.getX(), pads.getY());
-    toe.lineTo (pads.getRight(), pads.getY());
-    toe.lineTo (pads.getRight(), splitRight - gap * 0.5f);
-    toe.lineTo (pads.getX(), splitLeft - gap * 0.5f);
-    toe.closeSubPath();
-    heel.startNewSubPath (pads.getX(), splitLeft + gap * 0.5f);
-    heel.lineTo (pads.getRight(), splitRight + gap * 0.5f);
-    heel.lineTo (pads.getRight(), pads.getBottom());
-    heel.lineTo (pads.getX(), pads.getBottom());
-    heel.closeSubPath();
-    toe = toe.createPathWithRoundedCorners (9.0f);
-    heel = heel.createPathWithRoundedCorners (9.0f);
-
-    const auto drawPad = [&g] (const juce::Path& pad, float light)
+    // Side walls: each a quad between the top's edge and the bottom's edge.
+    // Drawn before the top, which covers whatever faces away from the camera.
+    const auto corner = [&] (float u, float v, bool topFace)
     {
-        // Each pad sits in its own shadow, with a lit bevel round the top.
-        juce::DropShadow (juce::Colours::black.withAlpha (0.6f), 8, { 0, 4 }).drawForPath (g, pad);
-        const auto box = pad.getBounds();
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff121115).brighter (0.1f * light), box.getX(), box.getY(),
-                                                 juce::Colour (0xff020203), box.getX(), box.getBottom(), false));
-        g.fillPath (pad);
-        g.setColour (juce::Colours::white.withAlpha (0.12f + 0.15f * light));
-        g.strokePath (pad, juce::PathStrokeType (1.4f));
-        juce::Graphics::ScopedSaveState state (g);
-        g.reduceClipRegion (pad);
-        g.setColour (juce::Colours::white.withAlpha (0.03f));
-        g.fillRect (box.withHeight (box.getHeight() * 0.25f));   // faint sheen on the upper part
+        return project (rotate ({ (u - 0.5f) * width, (v - 0.5f) * length, pivotZ + (topFace ? 0.5f : -0.5f) * thickness }));
     };
-    drawPad (toe, shownPosition);
-    drawPad (heel, 1.0f - shownPosition);
+    const std::array<std::pair<juce::Point<float>, juce::Point<float>>, 4> edges {
+        std::pair<juce::Point<float>, juce::Point<float>> { { 0, 0 }, { 1, 0 } },   // toe end
+        { { 1, 0 }, { 1, 1 } },                                                     // right side
+        { { 1, 1 }, { 0, 1 } },                                                     // heel end
+        { { 0, 1 }, { 0, 0 } },                                                     // left side
+    };
+    for (size_t i = 0; i < edges.size(); ++i)
+    {
+        const auto [a, b] = edges[i];
+        juce::Path wall;
+        wall.startNewSubPath (corner (a.x, a.y, true));
+        wall.lineTo (corner (b.x, b.y, true));
+        wall.lineTo (corner (b.x, b.y, false));
+        wall.lineTo (corner (a.x, a.y, false));
+        wall.closeSubPath();
+        // Chrome walls: the ends catch a little more light than the sides.
+        const auto shade = i % 2 == 0 ? juce::Colour (0xff6e5f67) : juce::Colour (0xff4a3e45);
+        g.setGradientFill (juce::ColourGradient (shade.brighter (0.3f), corner (a.x, a.y, true), shade.darker (0.6f), corner (a.x, a.y, false), false));
+        g.fillPath (wall);
+        g.setColour (juce::Colours::black.withAlpha (0.5f));
+        g.strokePath (wall, juce::PathStrokeType (0.8f));
+    }
 
-    // A soft red reflection from the unit's glow along the bottom of the heel pad.
-    g.setColour (ParagonColours::glow.withAlpha (0.25f));
-    g.drawHorizontalLine ((int) pads.getBottom() - 1, pads.getX() + 10.0f, pads.getRight() - 10.0f);
+    // The top: a chrome plate. It brightens as it tips its face towards the
+    // light (toe down) and darkens tipped away.
+    const auto plate = mapPolygon ({ { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } }).createPathWithRoundedCorners (10.0f);
+    const auto light = 0.5f + tilt / maxTilt * 0.5f;
+    {
+        const auto plateBounds = plate.getBounds();
+        juce::ColourGradient chrome (juce::Colour (0xffe8d6de).darker (0.35f - 0.25f * light), plateBounds.getX(), 0.0f,
+                                     juce::Colour (0xff8d7380).darker (0.25f - 0.2f * light), plateBounds.getRight(), 0.0f, false);
+        chrome.addColour (0.12, juce::Colours::white.withAlpha (1.0f).darker (0.15f - 0.1f * light));
+        chrome.addColour (0.45, juce::Colour (0xffc9b2bd).darker (0.3f - 0.2f * light));
+        g.setGradientFill (chrome);
+        g.fillPath (plate);
+        g.setColour (juce::Colours::white.withAlpha (0.55f));
+        g.strokePath (plate, juce::PathStrokeType (1.0f));
+    }
+
+    // Two piano-black rubber pads on the plate, split by a diagonal strip of
+    // chrome (as in the mockup), mapped through the same perspective.
+    const auto toe = mapPolygon ({ { 0.07f, 0.04f }, { 0.93f, 0.04f }, { 0.93f, 0.2f }, { 0.07f, 0.37f } }, 1.0f).createPathWithRoundedCorners (8.0f);
+    const auto heel = mapPolygon ({ { 0.07f, 0.45f }, { 0.93f, 0.28f }, { 0.93f, 0.96f }, { 0.07f, 0.96f } }, 1.0f).createPathWithRoundedCorners (8.0f);
+    for (const auto* pad : { &toe, &heel })
+    {
+        const auto box = pad->getBounds();
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1d1c21), 0.0f, box.getY(), juce::Colour (0xff040405), 0.0f, box.getBottom(), false));
+        g.fillPath (*pad);
+
+        // Gloss: a soft reflection that slides along the pad as it tilts,
+        // which sells the movement as much as the shape does.
+        juce::Graphics::ScopedSaveState state (g);
+        g.reduceClipRegion (*pad);
+        const auto glossY = box.getY() + box.getHeight() * (0.15f + 0.35f * (1.0f - light));
+        juce::ColourGradient band (juce::Colours::white.withAlpha (0.0f), 0.0f, glossY - box.getHeight() * 0.22f,
+                                   juce::Colours::white.withAlpha (0.0f), 0.0f, glossY + box.getHeight() * 0.22f, false);
+        band.addColour (0.5, juce::Colours::white.withAlpha (0.1f));
+        g.setGradientFill (band);
+        g.fillRect (box);
+    }
+    for (const auto* pad : { &toe, &heel })
+    {
+        g.setColour (juce::Colours::white.withAlpha (0.25f));
+        g.strokePath (*pad, juce::PathStrokeType (1.0f));
+    }
 
     // Below the well: what it controls, and the X1 badge embossed in the
     // chrome (as "RPX" in the mockup).

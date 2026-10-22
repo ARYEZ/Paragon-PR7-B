@@ -93,6 +93,10 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
         }
     }
 
+    // PARAGON_SNAPSHOT_EXPRESSION=0..1 sets the expression pedal's position.
+    if (const auto pedal = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_EXPRESSION", {}); pedal.isNotEmpty())
+        processor.getParameters().getParameter ("expression")->setValueNotifyingHost (pedal.getFloatValue());
+
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
     if (showTuner)
         for (int i = 0; i < 12; ++i)   // let the editor's timers run: the tuner reads a few times

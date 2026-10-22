@@ -82,6 +82,18 @@ private:
     juce::Typeface::Ptr regular, semiBold, blackItalic;
 
     static void drawPedalKnob (juce::Graphics&, juce::Rectangle<float> bounds, float angle);
+
+public:
+    // The mockup's piano-black keys (footswitches, slot blocks, small
+    // buttons): a glossy black top set in chamfered edges, the top bevel
+    // catching the light, the side bevels reflecting the red glow, and a
+    // soft shadow on the metal. `bevel` is the chamfer's width.
+    static void drawPianoBlackKey (juce::Graphics&, juce::Rectangle<float> area, float radius, float bevel,
+                                   bool pressed, bool highlighted);
+
+    // The mockup's LED bars: when lit, a neon tube (white-hot core inside a
+    // red-orange outline, with a soft glow); when off, a dimmer solid red.
+    static void drawNeonBar (juce::Graphics&, juce::Rectangle<float> bar, bool lit);
 };
 
 // JUCE finds fonts through the *default* look-and-feel, so while any plugin

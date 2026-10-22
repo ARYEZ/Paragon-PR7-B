@@ -81,15 +81,8 @@ void ParagonLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& 
 
     if (button.getProperties()[pedalButtonProperty])
     {
-        // Small black cap with a bevel, sitting on the metal.
-        auto cap = button.getLocalBounds().toFloat().reduced (1.0f);
-        g.setColour (juce::Colours::black.withAlpha (0.35f));
-        g.fillRoundedRectangle (cap.translated (0.0f, 1.5f), 3.0f);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (down ? 0xff151517 : 0xff2c2b30), cap.getTopLeft(),
-                                                 juce::Colour (0xff0b0b0c), cap.getBottomLeft(), false));
-        g.fillRoundedRectangle (cap, 3.0f);
-        g.setColour (highlighted ? ParagonColours::inkDim : juce::Colours::black);
-        g.drawRoundedRectangle (cap, 3.0f, 1.0f);
+        // A small piano-black key sitting on the metal.
+        drawPianoBlackKey (g, button.getLocalBounds().toFloat().reduced (1.0f, 1.0f).withTrimmedBottom (1.0f), 3.5f, 2.5f, down, highlighted);
         return;
     }
 
@@ -136,15 +129,7 @@ void ParagonLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& bu
     if (button.getButtonText().isEmpty())
     {
         // Just the LED stripe, like the mockup's EXIT / MODE / BYPASS caps.
-        const auto stripe = area.withSizeKeepingCentre (area.getWidth() * 0.6f, 3.0f);
-        if (on)
-        {
-            g.setColour (ParagonColours::glow.withAlpha (0.45f));
-            g.fillRoundedRectangle (stripe.expanded (3.0f, 3.0f), 3.0f);
-        }
-        // Even when off the stripe glows dimly red, as in the mockup.
-        g.setColour (on ? juce::Colour (0xffff8a7a) : juce::Colour (0xffd8352c).withAlpha (0.75f));
-        g.fillRoundedRectangle (stripe, 1.5f);
+        drawNeonBar (g, area.withSizeKeepingCentre (area.getWidth() * 0.6f, 4.0f).translated (0.0f, down ? 0.5f : -0.5f), on);
         return;
     }
 
@@ -417,4 +402,81 @@ SharedParagonLookAndFeel::~SharedParagonLookAndFeel()
     if (&juce::LookAndFeel::getDefaultLookAndFeel() == &lookAndFeel)
         juce::LookAndFeel::setDefaultLookAndFeel (nullptr);
     juce::Typeface::clearTypefaceCache();
+}
+
+void ParagonLookAndFeel::drawPianoBlackKey (juce::Graphics& g, juce::Rectangle<float> area, float radius, float bevel,
+                                            bool pressed, bool highlighted)
+{
+    if (pressed)
+        area = area.translated (0.0f, 1.0f);
+
+    juce::Path outline;
+    outline.addRoundedRectangle (area, radius);
+    juce::DropShadow (juce::Colours::black.withAlpha (pressed ? 0.45f : 0.6f), juce::roundToInt (bevel * 3.0f),
+                      { 0, juce::roundToInt (bevel * (pressed ? 0.6f : 1.4f)) }).drawForPath (g, outline);
+
+    // The chamfer: lit along the top, mid grey down the sides, near black
+    // along the front (the edge facing you).
+    juce::ColourGradient chamfer (juce::Colour (0xff57565c), 0.0f, area.getY(), juce::Colour (0xff020203), 0.0f, area.getBottom(), false);
+    chamfer.addColour (0.18, juce::Colour (0xff2a292e));
+    chamfer.addColour (0.7, juce::Colour (0xff111113));
+    g.setGradientFill (chamfer);
+    g.fillPath (outline);
+
+    // Red glow reflected in the side chamfers near the bottom, as in the mockup.
+    {
+        juce::Graphics::ScopedSaveState state (g);
+        g.reduceClipRegion (outline);
+        for (auto x : { area.getX(), area.getRight() - bevel })
+        {
+            g.setGradientFill (juce::ColourGradient (ParagonColours::glow.withAlpha (0.0f), 0.0f, area.getCentreY(),
+                                                     ParagonColours::glow.withAlpha (0.75f), 0.0f, area.getBottom(), false));
+            g.fillRect (juce::Rectangle<float> (x, area.getY(), bevel, area.getHeight()));
+        }
+    }
+
+    // The top: deep glossy black, with a soft reflection of the room across
+    // its upper half and a crisp highlight where it meets the top chamfer.
+    const auto top = area.withTrimmedLeft (bevel).withTrimmedRight (bevel)
+                         .withTrimmedTop (bevel * 0.7f).withTrimmedBottom (bevel * (pressed ? 1.1f : 1.6f));
+    const auto topRadius = juce::jmax (1.0f, radius - bevel * 0.5f);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1c1b20), 0.0f, top.getY(), juce::Colour (0xff060607), 0.0f, top.getBottom(), false));
+    g.fillRoundedRectangle (top, topRadius);
+    {
+        juce::ColourGradient gloss (juce::Colours::white.withAlpha (0.13f), 0.0f, top.getY(),
+                                    juce::Colours::white.withAlpha (0.0f), 0.0f, top.getY() + top.getHeight() * 0.55f, false);
+        g.setGradientFill (gloss);
+        g.fillRoundedRectangle (top.reduced (top.getWidth() * 0.03f, 1.0f).withHeight (top.getHeight() * 0.55f), topRadius);
+    }
+    g.setColour (juce::Colours::white.withAlpha (0.32f));
+    g.drawHorizontalLine (juce::roundToInt (top.getY()), top.getX() + topRadius, top.getRight() - topRadius);
+    g.setColour (juce::Colours::black.withAlpha (0.6f));
+    g.drawRoundedRectangle (top, topRadius, 0.8f);
+
+    g.setColour (highlighted ? ParagonColours::glow.withAlpha (0.8f) : juce::Colours::black);
+    g.drawRoundedRectangle (area, radius, 1.0f);
+}
+
+void ParagonLookAndFeel::drawNeonBar (juce::Graphics& g, juce::Rectangle<float> bar, bool lit)
+{
+    const auto radius = bar.getHeight() * 0.5f;
+    const juce::Colour neon { 0xffff3a2a };
+    if (! lit)
+    {
+        g.setColour (neon.withAlpha (0.2f));
+        g.fillRoundedRectangle (bar.expanded (1.5f), radius + 1.5f);
+        g.setColour (juce::Colour (0xffcf3324));
+        g.fillRoundedRectangle (bar, radius);
+        return;
+    }
+
+    // Glow round the tube, the red-orange outline, then the white-hot core.
+    g.setColour (neon.withAlpha (0.18f));
+    g.fillRoundedRectangle (bar.expanded (bar.getHeight() * 1.6f, bar.getHeight() * 1.3f), radius * 3.0f);
+    g.setColour (neon.withAlpha (0.4f));
+    g.fillRoundedRectangle (bar.expanded (bar.getHeight() * 0.6f), radius * 1.6f);
+    g.setColour (neon);
+    g.fillRoundedRectangle (bar.expanded (1.0f), radius + 1.0f);
+    g.setColour (juce::Colour (0xfffff2ee));
+    g.fillRoundedRectangle (bar.reduced (bar.getHeight() * 0.18f, bar.getHeight() * 0.22f), radius * 0.6f);
 }

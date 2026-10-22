@@ -63,8 +63,8 @@ namespace SlotWindow
         {
             g.setColour (ParagonColours::glow.withAlpha (0.3f));
             g.fillEllipse (ring.expanded (4.0f));
-            g.setColour (juce::Colour (0xffff7a6a));
-            g.fillEllipse (ring.reduced (2.0f));
+            g.setColour (juce::Colour (0xfffff0ec));   // white-hot core, as the mockup's lit LEDs
+            g.fillEllipse (ring.reduced (2.2f));
         }
         g.setColour (lit ? ParagonColours::glow : ParagonColours::glow.withAlpha (0.45f));
         g.drawEllipse (ring, 1.6f);
@@ -73,26 +73,10 @@ namespace SlotWindow
     void drawButton (juce::Graphics& g, juce::Rectangle<int> areaInt, Icons::Type icon, juce::Colour iconColour,
                      bool hover, bool highlight)
     {
+        // A piano-black key like the footswitches, its icon glowing on top.
         const auto area = areaInt.toFloat();
-        juce::Path body;
-        body.addRoundedRectangle (area, 8.0f);
-
-        // A black block like the footswitches: shadow, darker front edge,
-        // a sheen on top, and the icon glowing in the middle.
-        juce::DropShadow (juce::Colours::black.withAlpha (0.5f), 9, { 0, 5 }).drawForPath (g, body);
-        g.setColour (juce::Colour (0xff050506));
-        g.fillPath (body);
-        const auto top = area.withTrimmedBottom (area.getHeight() * 0.14f);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2a292e), 0.0f, top.getY(),
-                                                 juce::Colour (0xff111113), 0.0f, top.getBottom(), false));
-        g.fillRoundedRectangle (top, 7.0f);
-        g.setColour (juce::Colours::white.withAlpha (0.14f));
-        g.drawRoundedRectangle (top.reduced (1.0f), 6.0f, 1.0f);
-        g.setColour (ParagonColours::glow.withAlpha (0.3f));
-        g.drawHorizontalLine ((int) area.getBottom() - 1, area.getX() + 8.0f, area.getRight() - 8.0f);
-        g.setColour (highlight ? ParagonColours::glow : hover ? ParagonColours::glow.withAlpha (0.6f) : juce::Colours::black);
-        g.drawRoundedRectangle (area.reduced (0.5f), 8.0f, highlight ? 2.0f : 1.0f);
-
+        ParagonLookAndFeel::drawPianoBlackKey (g, area, 8.0f, 6.0f, false, hover || highlight);
+        const auto top = area.reduced (6.0f, 0.0f).withTrimmedTop (4.0f).withTrimmedBottom (9.6f);
         const auto iconSize = top.getHeight() * 0.62f;
         Icons::draw (g, icon, top.withSizeKeepingCentre (iconSize * 1.3f, iconSize), iconColour, 1.8f, true);
     }

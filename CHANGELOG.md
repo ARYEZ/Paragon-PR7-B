@@ -2,6 +2,14 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.7.4
+
+**A real rocking pedal, piano-black keys and neon LEDs.**
+
+- **Expression pedal in 3D:** the treadle is now modelled as a solid slab rocking on an axle, seen through a perspective camera, the way Neural DSP and IK Multimedia show theirs. As it rocks, the lifted end comes towards you, the lowered end drops away, its thick edge and its shadow on the base show, and the gloss on its pads slides with the tilt. It still glides smoothly between positions.
+- **Piano-black keys:** footswitches, the AMP / CABINET / RIG blocks and the small buttons are now glossy black keys with chamfered edges: a light catch along the top bevel and the red glow reflected in the side bevels, as in the mockup.
+- **Neon LEDs:** lit LEDs (footswitch bars, button stripes, ring lights) have a white-hot core inside a red-orange outline, like the mockup's; unlit ones are a dimmer solid red.
+
 ## 0.7.3
 
 **The mockup's knobs, and a moving expression pedal.**
