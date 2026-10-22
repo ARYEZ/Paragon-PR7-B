@@ -24,6 +24,17 @@ namespace
 // switch on the drive, delay and reverb. PARAGON_SNAPSHOT_PAGE=presets shows
 // the rig browser, with a couple of example user rigs, and =settings the SETTINGS page. PARAGON_SNAPSHOT_WIDTH
 // sets the window width (default 1280).
+template <typename Type>
+Type* findType (juce::Component& parent)
+{
+    if (auto* match = dynamic_cast<Type*> (&parent))
+        return match;
+    for (auto* child : parent.getChildren())
+        if (auto* found = findType<Type> (*child))
+            return found;
+    return nullptr;
+}
+
 TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
 {
     const auto path = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT", "editor.png");
@@ -94,6 +105,10 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
     if (juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_PAGE", {}) == "settings")
         if (auto* tab = dynamic_cast<juce::Button*> (findById (*editor, "settingsTab")))
             tab->onClick();
+    // PARAGON_SNAPSHOT_BLOCK=n opens block n's knobs (0 = comp ... 6 = reverb) in place of the summary.
+    if (const auto block = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_BLOCK", {}); block.isNotEmpty())
+        if (auto* chain = findType<SignalChain> (*editor))
+            chain->onSelect (block.getIntValue());
     if (const auto width = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_WIDTH", {}).getIntValue(); width > 0)
         editor->setSize (width, width * 9 / 16);
     editor->resized();

@@ -289,8 +289,17 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     panels[reverbBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "REVERB", { { ParamIDs::reverbOn, "ON" }, { ParamIDs::reverbSize, "SIZE" }, { ParamIDs::reverbTone, "TONE" },
                       { ParamIDs::reverbMix, "MIX" } } } });
-    for (auto& panel : panels)
-        addChildComponent (*panel);
+    const std::pair<Icons::Type, juce::Colour> headers[] = {
+        { Icons::Type::comp, ParagonColours::comp }, { Icons::Type::drive, ParagonColours::drive },
+        { Icons::Type::amp, ParagonColours::amp }, { Icons::Type::cabinet, ParagonColours::cab },
+        { Icons::Type::modulation, ParagonColours::modulation }, { Icons::Type::delay, ParagonColours::delay },
+        { Icons::Type::reverb, ParagonColours::reverb } };
+    const char* titles[] = { "COMP / GATE", "OD / DISTORTION", "AMP (NAM)", "CABINET (IR)", "MODULATION", "DELAY", "REVERB" };
+    for (size_t i = 0; i < panels.size(); ++i)
+    {
+        panels[i]->setHeader (headers[i].first, headers[i].second, titles[i]);
+        addChildComponent (*panels[i]);
+    }
 
     closePanel.setTooltip ("Back to the rig summary");
     closePanel.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff1c1c20));

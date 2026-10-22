@@ -95,19 +95,20 @@ void Footswitch::paint (juce::Graphics& g)
     if (pressed)
         pad = pad.translated (0.0f, 2.0f);
 
-    const auto frontHeight = pad.getHeight() * (pressed ? 0.1f : 0.17f);
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff111113), 0.0f, pad.getBottom() - frontHeight,
-                                             juce::Colour (0xff030304), 0.0f, pad.getBottom(), false));
-    g.fillRoundedRectangle (pad, 7.0f);
+    // One block of black rubber: the top face fades from a soft grey sheen
+    // at the back edge to near black at the front, then a narrow, darker
+    // front lip shows its thickness.
+    const auto frontHeight = pad.getHeight() * (pressed ? 0.06f : 0.11f);
+    g.setColour (juce::Colour (0xff020203));
+    g.fillRoundedRectangle (pad, 8.0f);
 
     const auto top = pad.withTrimmedBottom (frontHeight);
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2c2b30), 0.0f, top.getY(),
-                                             juce::Colour (0xff141416), 0.0f, top.getBottom(), false));
-    g.fillRoundedRectangle (top, 6.0f);
-    g.setColour (juce::Colours::white.withAlpha (0.16f));
-    g.drawRoundedRectangle (top.reduced (1.0f), 5.0f, 1.0f);
-    g.setColour (juce::Colours::white.withAlpha (0.1f));
-    g.fillRoundedRectangle (top.reduced (4.0f).withHeight (top.getHeight() * 0.35f), 4.0f);   // soft sheen
+    juce::ColourGradient rubber (juce::Colour (0xff3a393e), 0.0f, top.getY(), juce::Colour (0xff0b0b0d), 0.0f, top.getBottom(), false);
+    rubber.addColour (0.25, juce::Colour (0xff222125));
+    g.setGradientFill (rubber);
+    g.fillRoundedRectangle (top, 8.0f);
+    g.setColour (juce::Colours::white.withAlpha (0.2f));
+    g.drawHorizontalLine ((int) top.getY() + 1, top.getX() + 8.0f, top.getRight() - 8.0f);   // back edge catching the light
 
     // Pink reflection along the bottom edge, and a red outline on hover.
     g.setColour (ParagonColours::glow.withAlpha (0.35f));

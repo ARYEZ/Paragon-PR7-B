@@ -4,8 +4,9 @@
 
 namespace
 {
-    constexpr int controlWidth = 84;
-    constexpr int groupGap = 24;
+    constexpr int maxTileWidth = 104;
+    constexpr int tileGap = 8;
+    constexpr int groupGap = 22;
 }
 
 // One control: a label plus whichever widget suits the parameter's type.
@@ -17,7 +18,7 @@ struct EffectPanel::Control
         jassert (parameter != nullptr);   // a typo in a panel's parameter list
         label.setText (labelText, juce::dontSendNotification);
         label.setJustificationType (juce::Justification::centred);
-        label.setFont (juce::FontOptions (11.0f, juce::Font::bold));
+        label.setFont (juce::FontOptions (10.5f, juce::Font::bold));
         label.setColour (juce::Label::textColourId, ParagonColours::textDim);
 
         if (auto* choice = dynamic_cast<juce::AudioParameterChoice*> (parameter))
@@ -42,7 +43,7 @@ struct EffectPanel::Control
             auto slider = std::make_unique<juce::Slider> (juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::TextBoxBelow);
             slider->setColour (juce::Slider::textBoxTextColourId, ParagonColours::accent);
             slider->setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-            slider->setTextBoxStyle (juce::Slider::TextBoxBelow, false, controlWidth, 18);
+            slider->setTextBoxStyle (juce::Slider::TextBoxBelow, false, maxTileWidth, 22);
             sliderAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, id, *slider);
             // Double-click a knob to reset it.
             slider->setDoubleClickReturnValue (true, parameter->convertFrom0to1 (parameter->getDefaultValue()));
@@ -53,14 +54,15 @@ struct EffectPanel::Control
 
     void setBounds (juce::Rectangle<int> area)
     {
-        label.setBounds (area.removeFromTop (16));
-        area.removeFromTop (8);
+        // Label at the top of the card, the control filling the rest.
+        label.setBounds (area.removeFromTop (22));
+        area.removeFromTop (4);
         if (isKnob)
-            widget->setBounds (area.withTrimmedTop (-8));
+            widget->setBounds (area.reduced (2, 0));
         else if (buttonAttachment != nullptr)
-            widget->setBounds (area.removeFromTop (26).withSizeKeepingCentre (26, 26));   // LED, centred under its label
+            widget->setBounds (area.withSizeKeepingCentre (26, 26));   // LED in the middle of its card
         else
-            widget->setBounds (area.removeFromTop (26).reduced (4, 0));
+            widget->setBounds (area.withSizeKeepingCentre (area.getWidth() - 10, 28));
     }
 
     void updateActive()
@@ -111,44 +113,90 @@ void EffectPanel::timerCallback()
             control->updateActive();
 }
 
+void EffectPanel::setHeader (Icons::Type icon, juce::Colour colour, const juce::String& title)
+{
+    headerIcon = icon;
+    headerColour = colour;
+    headerTitle = title;
+    repaint();
+}
+
 void EffectPanel::paint (juce::Graphics& g)
 {
+    // Same dark panel as the rest of the dock.
     const auto bounds = getLocalBounds().toFloat();
-    g.setColour (ParagonColours::panel);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff17171a), 0.0f, bounds.getY(),
+                                             juce::Colour (0xff111113), 0.0f, bounds.getBottom(), false));
     g.fillRoundedRectangle (bounds, 8.0f);
     g.setColour (ParagonColours::panelEdge);
     g.drawRoundedRectangle (bounds.reduced (0.5f), 8.0f, 1.0f);
 
-    g.setFont (juce::FontOptions (13.0f, juce::Font::bold));
-    for (const auto& group : groups)
+    // Header: the block's icon in its colour, and its name.
+    auto header = getLocalBounds().reduced (16, 10).removeFromTop (24).toFloat();
+    if (headerTitle.isNotEmpty())
     {
+        Icons::draw (g, headerIcon, header.removeFromLeft (26.0f).withSizeKeepingCentre (22.0f, 20.0f), headerColour, 1.6f, true);
+        header.removeFromLeft (8.0f);
         g.setColour (ParagonColours::text);
-        g.drawText (group.title, group.area.withHeight (18), juce::Justification::centredLeft, false);
+        g.setFont (juce::FontOptions (14.0f, juce::Font::bold));
+        g.drawText (headerTitle, header, juce::Justification::centredLeft, false);
+    }
+
+    // Group names, when a block has more than one part.
+    if (groups.size() > 1)
+    {
+        g.setFont (juce::FontOptions (10.5f, juce::Font::bold));
+        for (const auto& group : groups)
+        {
+            g.setColour (ParagonColours::textDim);
+            g.drawText (group.title, group.area.withHeight (16), juce::Justification::centredLeft, false);
+        }
+    }
+
+    // A card behind each control, with a thin line of the block's colour along its top.
+    for (const auto& tile : tiles)
+    {
+        const auto card = tile.toFloat();
+        g.setColour (juce::Colour (0xff141417));
+        g.fillRoundedRectangle (card, 6.0f);
         g.setColour (ParagonColours::panelEdge);
-        g.drawHorizontalLine (group.area.getY() + 20, (float) group.area.getX(), (float) group.area.getRight());
+        g.drawRoundedRectangle (card.reduced (0.5f), 6.0f, 1.0f);
+        g.setColour (headerColour.withAlpha (0.5f));
+        g.fillRoundedRectangle (card.reduced (12.0f, 0.0f).withHeight (2.0f), 1.0f);
     }
 }
 
 void EffectPanel::resized()
 {
-    auto area = getLocalBounds().reduced (14, 10);
+    auto area = getLocalBounds().reduced (16, 10);
+    area.removeFromTop (34);   // header
+    if (groups.size() > 1)
+        area.removeFromTop (20);   // group names
+    area.removeFromBottom (4);
 
-    // Centre the groups as a whole across the panel.
-    int totalWidth = 0;
+    // Cards as wide as fit (up to a limit), centred as a row.
+    int numControls = 0;
     for (const auto& group : groups)
-        totalWidth += (int) group.controls.size() * controlWidth;
-    totalWidth += groupGap * ((int) groups.size() - 1);
-    const auto scale = juce::jmin (1.0f, (float) area.getWidth() / (float) juce::jmax (1, totalWidth));
-    const auto width = (int) ((float) controlWidth * scale);
-    area = area.withSizeKeepingCentre (juce::jmin (area.getWidth(), totalWidth), area.getHeight());
+        numControls += (int) group.controls.size();
+    const auto gaps = tileGap * (numControls - (int) groups.size()) + groupGap * ((int) groups.size() - 1);
+    const auto tileWidth = juce::jmin (maxTileWidth, (area.getWidth() - gaps) / juce::jmax (1, numControls));
+    const auto totalWidth = tileWidth * numControls + gaps;
+    area = area.withSizeKeepingCentre (totalWidth, area.getHeight());
 
+    tiles.clear();
     for (auto& group : groups)
     {
-        group.area = area.removeFromLeft (width * (int) group.controls.size());
+        const auto groupWidth = tileWidth * (int) group.controls.size() + tileGap * ((int) group.controls.size() - 1);
+        group.area = area.removeFromLeft (groupWidth).withTrimmedTop (-20);
         area.removeFromLeft (groupGap);
 
-        auto controlsArea = group.area.withTrimmedTop (26);
+        auto row = group.area.withTrimmedTop (20);
         for (auto* control : group.controls)
-            control->setBounds (controlsArea.removeFromLeft (width).reduced (2, 0));
+        {
+            const auto tile = row.removeFromLeft (tileWidth);
+            row.removeFromLeft (tileGap);
+            tiles.push_back (tile);
+            control->setBounds (tile.reduced (4, 8));
+        }
     }
 }

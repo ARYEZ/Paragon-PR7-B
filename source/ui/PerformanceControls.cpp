@@ -242,23 +242,6 @@ void ExpressionPedal::paint (juce::Graphics& g)
     g.setColour (ParagonColours::glow.withAlpha (0.25f));
     g.drawHorizontalLine ((int) pads.getBottom() - 1, pads.getX() + 10.0f, pads.getRight() - 10.0f);
 
-    // Position: a slim row of red dots up the left lip, lit from the heel up.
-    const int numDots = 16;
-    for (int i = 0; i < numDots; ++i)
-    {
-        const auto fraction = ((float) i + 0.5f) / (float) numDots;
-        const auto y = well.getBottom() - 10.0f - (well.getHeight() - 20.0f) * fraction;
-        const auto lit = position >= fraction - 0.5f / (float) numDots;
-        const auto dot = juce::Rectangle<float> (3.0f, 3.0f).withCentre ({ well.getX() - 7.0f, y });
-        if (lit && active)
-        {
-            g.setColour (ParagonColours::glow.withAlpha (0.35f));
-            g.fillEllipse (dot.expanded (2.0f));
-        }
-        g.setColour (lit ? (active ? juce::Colour (0xffff6a6a) : ParagonColours::inkDim) : ParagonColours::ink.withAlpha (0.15f));
-        g.fillEllipse (dot);
-    }
-
     // Below the well: what it controls, and the X1 badge embossed in the
     // chrome (as "RPX" in the mockup).
     auto label = getLocalBounds().toFloat().withTop (well.getBottom() + 4.0f);
@@ -268,12 +251,17 @@ void ExpressionPedal::paint (juce::Graphics& g)
     g.drawText (targetName + "  " + juce::String (juce::roundToInt (position * 100.0f)) + "%",
                 label.removeFromTop (16.0f), juce::Justification::centred, false);
 
-    g.setFont (juce::FontOptions (26.0f, juce::Font::bold | juce::Font::italic));
-    const auto badge = label.removeFromTop (30.0f);
-    g.setColour (juce::Colours::white.withAlpha (0.9f));
-    g.drawText ("X1", badge.translated (0.0f, 1.2f), juce::Justification::centred, false);
-    g.setColour (juce::Colour (0xff9a8d94));
-    g.drawText ("X1", badge, juce::Justification::centred, false);
+    // X1 stamped into the chrome as outlined letters, like the mockup's RPX.
+    const auto badge = label.removeFromTop (34.0f);
+    juce::GlyphArrangement glyphs;
+    glyphs.addFittedText (juce::Font (juce::FontOptions (32.0f, juce::Font::bold | juce::Font::italic)), "X1",
+                          badge.getX(), badge.getY(), badge.getWidth(), badge.getHeight(), juce::Justification::centred, 1);
+    juce::Path letters;
+    glyphs.createPath (letters);
+    g.setColour (juce::Colours::white.withAlpha (0.85f));
+    g.strokePath (letters, juce::PathStrokeType (1.6f), juce::AffineTransform::translation (0.0f, 1.2f));
+    g.setColour (juce::Colour (0xff8c7f87));
+    g.strokePath (letters, juce::PathStrokeType (1.6f));
 }
 
 void ExpressionPedal::mouseDown (const juce::MouseEvent&)

@@ -2,6 +2,15 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.7.1
+
+**Closer still to the mockup.**
+
+- **Deeper chrome:** higher-contrast metal, a thicker rim with the unit's darker front edge showing along the bottom, and a soft red glow round it instead of a hard neon outline. The face plate is neutral brushed silver, with the red light reflected only near its lower edge.
+- **Footswitches** are single glossy rubber blocks, as in the mockup.
+- **Expression pedal:** darker bay, no dot strip, and X1 stamped in outlined letters like the mockup's RPX.
+- **Block knobs** (when you open a block from the summary, a footswitch name or the signal chain) now have the block's icon and name at the top and each control on its own card, matching the rest of the bottom panels.
+
 ## 0.7.0
 
 **The mockup's look, in detail.**
