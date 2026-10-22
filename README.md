@@ -5,8 +5,8 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 
 ![Paragon X1 mockup](Paragon%20x1.png)
 
-*The design mockup. Version 0.5 builds this pedalboard; the expression pedal, tap tempo, tuner and
-undo arrive in the next phase (see the roadmap).*
+*The design mockup. Version 0.6 has every feature shown in it; the next phase is visual polish
+(see the roadmap).*
 
 ## Roadmap
 
@@ -17,7 +17,8 @@ undo arrive in the next phase (see the roadmap).*
 | 3 | Effect blocks: comp/gate, overdrive, modulation, delay, reverb, with footswitches | ✅ Done |
 | 4 | Rigs, presets, banks, tags | ✅ Done |
 | 5 | Full pedalboard UI from the mockup | ✅ Done |
-| 6 | Expression pedal/morph, tap tempo, undo/redo, tuner | Planned |
+| 6 | Expression pedal/morph, tap tempo, undo/redo, tuner | ✅ Done |
+| 7 | Detail and polish pass against the mockup | Next |
 
 ## Using it
 
@@ -45,6 +46,18 @@ undo arrive in the next phase (see the roadmap).*
   `*` after the name means it's changed since loading. The **PRESETS** tab browses, searches, files
   (banks A-D), tags and favourites rigs. Factory rigs set the effects and keep your amp and cab.
   INPUT and OUTPUT stay put when you switch rigs; each rig has its own **OUTPUT LEVEL**.
+- **TAP** (header or pedal) sets the delay's tempo from your taps; the BPM turns orange. Click the
+  BPM to follow your DAW's tempo again. The TAP light flashes in time.
+- **Tuner:** hold TAP, or press TUNER on the pedal. The screen shows the note, how many cents off it
+  is (the centre bar turns green when in tune) and the frequency. MUTE silences the output while tuning.
+- **Undo / redo:** the arrows in the header, UNDO / REDO on the pedal, or Ctrl+Z / Ctrl+Shift+Z
+  (Cmd on a Mac). Each knob move, switch, file or rig load is one step. INPUT, OUTPUT and the
+  pedal's position aren't undone.
+- **Expression pedal** (right of the unit): drag it, use the mouse wheel, or send MIDI CC 11 from a
+  real expression pedal (route your MIDI track to the plugin). Assign it with EXPRESSION ASSIGN to
+  **VOLUME**, **WAH / FILTER** (a wah before the drive) or **MORPH / FX** (fades modulation, delay and
+  reverb in from the heel). MIN and MAX set where the heel and toe land. The assignment and range
+  are saved with each rig.
 - The paths of the loaded files are saved in your DAW project. If a file is missing when the project
   opens, the slot says so and keeps the path, so moving the file back fixes it.
 

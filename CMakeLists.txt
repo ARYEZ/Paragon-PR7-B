@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.24)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "macOS architectures")
 
-project(ParagonX1 VERSION 0.5.0 LANGUAGES C CXX)
+project(ParagonX1 VERSION 0.6.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -27,7 +27,7 @@ juce_add_plugin(ParagonX1
     PLUGIN_CODE              Px1a     # four characters, exactly one upper case
     FORMATS                  VST3
     IS_SYNTH                 FALSE
-    NEEDS_MIDI_INPUT         FALSE
+    NEEDS_MIDI_INPUT         TRUE    # MIDI CC 11 for the expression pedal
     NEEDS_MIDI_OUTPUT        FALSE
     IS_MIDI_EFFECT           FALSE
     VST3_CATEGORIES          Fx Distortion
@@ -41,11 +41,13 @@ target_sources(ParagonX1
         source/dsp/AmpModel.cpp
         source/dsp/AmpStage.cpp
         source/dsp/CabStage.cpp
+        source/dsp/PitchDetector.cpp
         source/dsp/effects/CompGate.cpp
         source/dsp/effects/Delay.cpp
         source/dsp/effects/Drive.cpp
         source/dsp/effects/Modulation.cpp
         source/dsp/effects/Reverb.cpp
+        source/dsp/effects/Wah.cpp
         source/rigs/Rig.cpp
         source/rigs/FactoryRigs.cpp
         source/rigs/RigLibrary.cpp
@@ -61,6 +63,7 @@ target_sources(ParagonX1
         source/ui/RigSlot.cpp
         source/ui/SignalChain.cpp
         source/ui/CurrentRigPanel.cpp
+        source/ui/PerformanceControls.cpp
         source/ui/MainView.cpp
         source/ui/ParagonLookAndFeel.cpp)
 

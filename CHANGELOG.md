@@ -2,6 +2,20 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.6.0
+
+**Performance features: tuner, tap tempo, undo and the expression pedal.**
+
+- **Tuner:** hold **TAP** or press **TUNER** on the pedal. The LED screen shows the note, a cents meter (green when in tune) and the frequency, accurate to under a cent from a 7-string's low B upwards. **MUTE** silences the output while you tune (on by default).
+- **Tap tempo:** **TAP** in the header or on the pedal. The tapped tempo (in orange) drives the synced delay instead of your DAW's; click the BPM to go back to the DAW's tempo. The TAP light flashes on the beat, and the tapped tempo is saved with your project.
+- **Undo / redo:** header arrows, **UNDO / REDO** on the pedal, or Ctrl+Z and Ctrl+Shift+Z. A whole knob turn, click, file load or rig change is one step, and undoing a rig change brings back the previous rig's name too.
+- **Expression pedal** beside the unit, as in the mockup. Drag it, scroll it, or move it from a real pedal on **MIDI CC 11**. Assign it to:
+  - **Volume** (with a volume pedal's feel: half way is about -12 dB)
+  - **Wah / Filter** (a 350 Hz-2.2 kHz wah before the drive)
+  - **Morph / FX** (fades modulation, delay and reverb in from dry at the heel).
+  **MIN / MAX** in the new EXPRESSION ASSIGN panel set the heel and toe settings. The assignment and range are saved with each rig.
+- Icons on the PROCESSOR and PRESETS tabs.
+
 ## 0.5.0
 
 **The pedalboard look from the mockup.**

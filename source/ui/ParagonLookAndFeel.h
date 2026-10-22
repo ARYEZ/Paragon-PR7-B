@@ -53,6 +53,11 @@ public:
                            float rotaryEndAngle, juce::Slider&) override;
 
     // Toggle buttons are drawn as the mockup's red/orange status LEDs.
+    // The two-thumb MIN / MAX slider: a thin track with round glowing thumbs.
+    void drawLinearSlider (juce::Graphics&, int x, int y, int width, int height,
+                           float sliderPos, float minSliderPos, float maxSliderPos,
+                           juce::Slider::SliderStyle, juce::Slider&) override;
+
     void drawToggleButton (juce::Graphics&, juce::ToggleButton&, bool highlighted, bool down) override;
 
     void drawButtonBackground (juce::Graphics&, juce::Button&, const juce::Colour& background,

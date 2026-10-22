@@ -7,19 +7,25 @@ namespace
     // Layout on the 1600 x 900 canvas, following the mockup's proportions.
     constexpr int headerHeight = 60;
     constexpr int margin = 12;
-    const juce::Rectangle<int> pedalArea { 134, 66, 1332, 480 };
+    const juce::Rectangle<int> pedalArea { 134, 66, 1332, 480 };   // the unit and its expression pedal
+    constexpr int unitWidth = 1162;                                  // the silver unit; the pedal fills the rest
     const juce::Rectangle<int> dockBounds { 12, 556, 1576, 250 };
     const juce::Rectangle<int> chainBounds { 12, 816, 1576, 74 };
-    constexpr int currentRigWidth = 400;
+    constexpr int currentRigWidth = 400, expressionPanelWidth = 300;
 
-    // Positions on the pedal, relative to its top-left corner.
-    const juce::Rectangle<int> badgeArea { 50, 40, 280, 110 };
-    const juce::Rectangle<int> displayArea { 340, 36, 450, 104 };
-    const juce::Rectangle<int> ampWindow { 40, 182, 410, 130 };
-    const juce::Rectangle<int> cabWindow { 462, 182, 410, 130 };
-    const juce::Rectangle<int> rigWindow { 884, 182, 408, 130 };
+    // Positions on the unit, relative to its top-left corner.
+    const juce::Rectangle<int> badgeArea { 40, 40, 236, 100 };
+    const juce::Rectangle<int> displayArea { 282, 36, 404, 104 };
+    const juce::Rectangle<int> ampWindow { 36, 182, 292, 130 };
+    const juce::Rectangle<int> cabWindow { 338, 182, 292, 130 };
+    const juce::Rectangle<int> rigWindow { 640, 182, 292, 130 };
+    const juce::Rectangle<int> assignArea { 944, 178, 190, 140 };
     constexpr int topDividerY = 170, bottomDividerY = 324;
-    const juce::Rectangle<int> footswitchRow { 40, 330, 1252, 136 };
+    const juce::Rectangle<int> footswitchRow { 36, 330, 1090, 136 };
+
+    // The button cluster: three columns, two rows, as in the mockup.
+    constexpr int clusterX = 742, clusterColumn = 62, clusterButtonWidth = 48;
+    constexpr int clusterTopY = 44, clusterRowGap = 50;
 
     void drawDarkPanel (juce::Graphics& g, juce::Rectangle<float> area)
     {
@@ -80,6 +86,8 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
       inputColumn ("INPUT", processorToShow.getParameters(), ParamIDs::inputGain, processorToShow.getInputMeter()),
       outputColumn ("OUTPUT", processorToShow.getParameters(), ParamIDs::outputGain, processorToShow.getOutputMeter()),
       bypassAttachment (processorToShow.getParameters(), ParamIDs::bypass, bypassButton),
+      tunerAttachment (processorToShow.getParameters(), ParamIDs::tunerOn, tunerPedal),
+      muteAttachment (processorToShow.getParameters(), ParamIDs::tunerMute, mutePedal),
       rigLevelAttachment (processorToShow.getParameters(), ParamIDs::rigLevel, rigLevelKnob),
       presenceAttachment (processorToShow.getParameters(), ParamIDs::presence, presenceKnob),
       ampSlot ("AMP", Icons::Type::amp, ParagonColours::amp, "*.nam", "Load / Edit NAM Model",
@@ -87,6 +95,10 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
       cabSlot ("CABINET", Icons::Type::cabinet, ParagonColours::text, "*.wav;*.aif;*.aiff;*.flac", "Load / Edit IR",
                processorToShow.getParameters(), ParamIDs::cabOn),
       normaliseAttachment (processorToShow.getParameters(), ParamIDs::ampNormalise, normaliseButton),
+      pedalAssign (processorToShow.getParameters(), ExpressionAssign::Style::pedal),
+      expressionPedal (processorToShow),
+      expressionPanel (processorToShow.getParameters()),
+      tunerReader (processorToShow),
       currentRigPanel (processorToShow),
       signalChain (processorToShow.getParameters(), {
           { "COMP / GATE", Icons::Type::comp, ParagonColours::comp, ParamIDs::compOn },
@@ -126,14 +138,18 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     rigNameButton.setColour (juce::TextButton::textColourOffId, ParagonColours::accent);
     saveButton.onClick = [this] { saveRig(); };
 
-    tempoLabel.setFont (juce::FontOptions (14.0f));
-    tempoLabel.setColour (juce::Label::textColourId, ParagonColours::text);
-    tempoLabel.setColour (juce::Label::outlineColourId, ParagonColours::panelEdge);
-    tempoLabel.setJustificationType (juce::Justification::centred);
-    tempoLabel.setTooltip ("Your DAW's tempo, used by the delay when it's synced");
+    // Tempo: shows the DAW's tempo, or the tapped one (in orange) once TAP
+    // has been used. Clicking a tapped tempo goes back to following the DAW.
+    tempoButton.onClick = [this] { audioProcessor.clearTappedTempo(); refreshPerformance(); };
+    tapButton.setOutlined (true);
+    tapButton.onClick = [this] { if (! headerTapHold.consumeHold()) tap(); };
+    tapButton.addMouseListener (&headerTapHold, false);
+    headerTapHold.onHold = [this] { toggleTuner(); };
+    undoButton.onClick = [this] { audioProcessor.undo(); };
+    redoButton.onClick = [this] { audioProcessor.redo(); };
 
-    for (auto* component : std::initializer_list<juce::Component*> { &previousRig, &nextRig, &rigNameButton, &saveButton, &tempoLabel,
-                                                                      &inputColumn, &outputColumn })
+    for (auto* component : std::initializer_list<juce::Component*> { &previousRig, &nextRig, &rigNameButton, &saveButton, &tempoButton,
+                                                                      &tapButton, &undoButton, &redoButton, &inputColumn, &outputColumn })
         addAndMakeVisible (component);
 
     //==========================================================================
@@ -144,12 +160,40 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     rigUp.onClick = [this] { audioProcessor.stepRig (-1); };
     rigDown.onClick = [this] { audioProcessor.stepRig (1); };
 
-    for (auto* button : { &pedalSave, &pedalSaveAs, &bypassButton })
+    for (auto* button : { &pedalSave, &pedalSaveAs, &bypassButton, &undoPedal, &redoPedal, &tunerPedal, &mutePedal, &tapPedal })
         button->getProperties().set (ParagonLookAndFeel::pedalButtonProperty, true);
     pedalSave.onClick = [this] { saveRig(); };
     pedalSaveAs.onClick = [this] { rigBrowser.promptSaveAs(); };
     bypassButton.setClickingTogglesState (true);
     bypassButton.setTooltip ("Bypass the whole plugin (the same as your DAW's bypass button)");
+
+    undoPedal.setTooltip ("Undo the last change (Ctrl+Z)");
+    redoPedal.setTooltip ("Redo (Ctrl+Shift+Z)");
+    undoPedal.onClick = [this] { audioProcessor.undo(); };
+    redoPedal.onClick = [this] { audioProcessor.redo(); };
+    tunerPedal.setClickingTogglesState (true);
+    tunerPedal.setTooltip ("Tuner: shows the note you're playing on the screen");
+    mutePedal.setClickingTogglesState (true);
+    mutePedal.setTooltip ("Mute the output while the tuner is on, so you can tune silently");
+    tapPedal.setTooltip ("Tap the tempo for the delay (its light flashes in time). Hold to open the tuner.");
+    tapPedal.onClick = [this] { if (! pedalTapHold.consumeHold()) tap(); };
+    tapPedal.addMouseListener (&pedalTapHold, false);
+    pedalTapHold.onHold = [this] { toggleTuner(); };
+
+    for (auto* label : { &undoLabel, &redoLabel, &tunerLabel, &muteLabel, &tapLabel })
+        styleInkLabel (*label, 11.0f);
+    styleInkLabel (holdLabel, 9.0f);
+    holdLabel.setColour (juce::Label::textColourId, ParagonColours::glow.darker (0.2f));
+
+    tunerReader.onReading = [this] (const TunerReader::Reading& reading)
+    {
+        tunerState.hasNote = reading.hasNote;
+        tunerState.note = reading.note.name;
+        tunerState.octave = reading.note.octave;
+        tunerState.cents = reading.note.cents;
+        tunerState.frequency = reading.frequency;
+        refreshRig();
+    };
 
     for (auto* knob : { &rigLevelKnob, &presenceKnob })
     {
@@ -206,8 +250,11 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     }
 
     processorPage = { &pedal, &display, &rigUp, &rigDown, &pedalSave, &pedalSaveAs, &bypassButton, &bypassLabel,
+                      &undoPedal, &redoPedal, &tunerPedal, &mutePedal, &tapPedal,
+                      &undoLabel, &redoLabel, &tunerLabel, &muteLabel, &tapLabel, &holdLabel,
                       &rigLevelKnob, &presenceKnob, &rigLevelLabel, &presenceLabel,
-                      &ampSlot, &cabSlot, &rigSlot, &normaliseButton, &currentRigPanel };
+                      &ampSlot, &cabSlot, &rigSlot, &normaliseButton, &pedalAssign, &expressionPedal,
+                      &currentRigPanel, &expressionPanel };
     for (auto& footswitch : footswitches)
         processorPage.push_back (footswitch.get());
     for (auto* component : processorPage)
@@ -255,8 +302,13 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     audioProcessor.rigBroadcaster.addChangeListener (this);
     audioProcessor.statusBroadcaster.addChangeListener (this);
     changeListenerCallback (nullptr);
-    startTimerHz (5);   // the modified marker and tempo can change from the audio thread, so poll them
+
+    // The modified marker, tempo and undo state can change from the audio
+    // thread or the host, so poll them. 30 Hz for the TAP light's flash.
+    startTimerHz (30);
     timerCallback();
+
+    setWantsKeyboardFocus (true);
 }
 
 MainView::~MainView()
@@ -308,18 +360,97 @@ void MainView::refreshRig()
         rigNameButton.setButtonText (headerText);
 
     display.setContents ({ entry != nullptr ? entry->rig.number : 0, rig.name,
-                           entry != nullptr ? Rig::bankName (entry->rig.bank) : juce::String(), modified, bypassed });
+                           entry != nullptr ? Rig::bankName (entry->rig.bank) : juce::String(), modified, bypassed, tunerState });
     rigSlot.setRig (entry != nullptr ? entry->rig.getSlotName() : juce::String(), rig.name, modified);
     currentRigPanel.refresh();
 }
 
 void MainView::timerCallback()
 {
-    refreshRig();
+    // The rig details change rarely: 5 times a second is plenty for them.
+    if (ticks++ % 6 == 0)
+        refreshRig();
 
-    const auto tempo = juce::String (audioProcessor.getHostBpm(), 1) + " BPM";
-    if (tempoLabel.getText() != tempo)
-        tempoLabel.setText (tempo, juce::dontSendNotification);
+    refreshPerformance();
+}
+
+void MainView::refreshPerformance()
+{
+    // Tempo: the tapped tempo in orange, or the DAW's.
+    const auto tapped = audioProcessor.getTappedBpm() > 0.0;
+    const auto tempo = juce::String (audioProcessor.getTempoBpm(), 1) + " BPM";
+    if (tempoButton.getButtonText() != tempo)
+        tempoButton.setButtonText (tempo);
+    tempoButton.setColour (juce::TextButton::textColourOffId, tapped ? ParagonColours::accent : ParagonColours::text);
+    tempoButton.setTooltip (tapped ? "Tapped tempo, used by the delay when it's synced. Click to follow your DAW's tempo again."
+                                   : "Your DAW's tempo, used by the delay when it's synced. Use TAP to set your own.");
+
+    // TAP's light flashes on each beat, like a hardware unit's.
+    const auto beatMs = 60000.0 / audioProcessor.getTempoBpm();
+    tapPedal.setToggleState (std::fmod (juce::Time::getMillisecondCounterHiRes(), beatMs) < beatMs * 0.25,
+                             juce::dontSendNotification);
+
+    const auto canUndo = audioProcessor.canUndo(), canRedo = audioProcessor.canRedo();
+    undoButton.setEnabled (canUndo);
+    redoButton.setEnabled (canRedo);
+    undoPedal.setToggleState (canUndo, juce::dontSendNotification);   // lit while there's something to undo
+    redoPedal.setToggleState (canRedo, juce::dontSendNotification);
+
+    // The tuner runs only while it's switched on.
+    auto& parameters = audioProcessor.getParameters();
+    const auto tunerOn = parameters.getRawParameterValue (ParamIDs::tunerOn)->load() > 0.5f;
+    const auto muted = parameters.getRawParameterValue (ParamIDs::tunerMute)->load() > 0.5f;
+    tunerReader.setActive (tunerOn);
+    if (tunerState.active != tunerOn || tunerState.muted != muted)
+    {
+        tunerState.active = tunerOn;
+        tunerState.muted = muted;
+        if (! tunerOn)
+            tunerState.hasNote = false;
+        refreshRig();
+    }
+}
+
+void MainView::tap()
+{
+    audioProcessor.tapTempo();
+    refreshPerformance();
+}
+
+void MainView::toggleTuner()
+{
+    if (auto* tuner = audioProcessor.getParameters().getParameter (ParamIDs::tunerOn))
+    {
+        tuner->beginChangeGesture();
+        tuner->setValueNotifyingHost (tuner->getValue() > 0.5f ? 0.0f : 1.0f);
+        tuner->endChangeGesture();
+    }
+    refreshPerformance();
+}
+
+bool MainView::keyPressed (const juce::KeyPress& key)
+{
+    // Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y (Cmd on a Mac). DAWs often keep the
+    // keyboard for themselves, so these work when the plugin window has focus.
+    const auto modifiers = key.getModifiers();
+    if (! modifiers.isCommandDown())
+        return false;
+
+    const auto keyCode = juce::CharacterFunctions::toUpperCase ((juce::juce_wchar) key.getKeyCode());
+    if (keyCode == 'Z')
+    {
+        if (modifiers.isShiftDown())
+            audioProcessor.redo();
+        else
+            audioProcessor.undo();
+        return true;
+    }
+    if (keyCode == 'Y')
+    {
+        audioProcessor.redo();
+        return true;
+    }
+    return false;
 }
 
 void MainView::saveRig()
@@ -375,19 +506,24 @@ void MainView::resized()
     headerArea = getLocalBounds().removeFromTop (headerHeight);
 
     // Header row
-    auto header = headerArea.reduced (margin, 12);
-    header.removeFromLeft (200);
-    processorTab.setBounds (header.removeFromLeft (130));
+    auto header = headerArea.reduced (margin, 10);
+    header.removeFromLeft (190);
+    processorTab.setBounds (header.removeFromLeft (156));
     header.removeFromLeft (4);
-    presetsTab.setBounds (header.removeFromLeft (130));
+    presetsTab.setBounds (header.removeFromLeft (140));
 
     auto right = headerArea.reduced (margin, 12);
     right.removeFromRight (50);   // version text
-    saveButton.setBounds (right.removeFromRight (80));
-    right.removeFromRight (10);
-    tempoLabel.setBounds (right.removeFromRight (110));
+    saveButton.setBounds (right.removeFromRight (74));
+    right.removeFromRight (14);
+    redoButton.setBounds (right.removeFromRight (40));
+    undoButton.setBounds (right.removeFromRight (40));
+    right.removeFromRight (14);
+    tapButton.setBounds (right.removeFromRight (78));
+    right.removeFromRight (6);
+    tempoButton.setBounds (right.removeFromRight (104));
 
-    auto rigNav = headerArea.withSizeKeepingCentre (440, headerHeight - 24).translated (60, 0);
+    auto rigNav = headerArea.withSizeKeepingCentre (400, headerHeight - 24).translated (20, 0);
     previousRig.setBounds (rigNav.removeFromLeft (34));
     nextRig.setBounds (rigNav.removeFromRight (34));
     rigNameButton.setBounds (rigNav.reduced (6, 0));
@@ -395,23 +531,37 @@ void MainView::resized()
     // Side strips and the pedal
     inputColumn.setBounds ({ margin, pedalArea.getY(), pedalArea.getX() - margin * 2, pedalArea.getHeight() });
     outputColumn.setBounds ({ pedalArea.getRight() + margin, pedalArea.getY(), width - pedalArea.getRight() - margin * 2, pedalArea.getHeight() });
-    pedal.setBounds (pedalArea);
+    pedal.setBounds (pedalArea.withWidth (unitWidth));
+    expressionPedal.setBounds (pedalArea.withTrimmedLeft (unitWidth - 4));
 
     const auto onPedal = [] (juce::Rectangle<int> r) { return r.translated (pedalArea.getX(), pedalArea.getY()); };
 
     display.setBounds (onPedal (displayArea));
-    rigUp.setBounds (onPedal ({ displayArea.getRight() + 18, displayArea.getY() + 14, 26, 26 }));
-    rigDown.setBounds (onPedal ({ displayArea.getRight() + 18, displayArea.getBottom() - 40, 26, 26 }));
-    pedalSave.setBounds (onPedal ({ displayArea.getX() + 70, displayArea.getBottom() + 8, 90, 24 }));
-    pedalSaveAs.setBounds (onPedal ({ displayArea.getRight() - 160, displayArea.getBottom() + 8, 110, 24 }));
+    rigUp.setBounds (onPedal ({ displayArea.getRight() + 14, displayArea.getY() + 14, 26, 26 }));
+    rigDown.setBounds (onPedal ({ displayArea.getRight() + 14, displayArea.getBottom() - 40, 26, 26 }));
+    pedalSave.setBounds (onPedal ({ displayArea.getX() + 60, displayArea.getBottom() + 8, 90, 24 }));
+    pedalSaveAs.setBounds (onPedal ({ displayArea.getRight() - 150, displayArea.getBottom() + 8, 110, 24 }));
 
-    bypassLabel.setBounds (onPedal ({ 860, 56, 80, 16 }));
-    bypassButton.setBounds (onPedal ({ 870, 76, 60, 26 }));
+    // The cluster: a label printed above each small button.
+    const auto placeInCluster = [&] (juce::Label& label, juce::Button& button, int column, int row)
+    {
+        const auto x = clusterX + column * clusterColumn, y = clusterTopY + row * clusterRowGap;
+        label.setBounds (onPedal ({ x - 8, y, clusterButtonWidth + 16, 14 }));
+        button.setBounds (onPedal ({ x, y + 16, clusterButtonWidth, 20 }));
+    };
+    placeInCluster (undoLabel, undoPedal, 0, 0);
+    placeInCluster (redoLabel, redoPedal, 1, 0);
+    placeInCluster (bypassLabel, bypassButton, 2, 0);
+    placeInCluster (tunerLabel, tunerPedal, 0, 1);
+    placeInCluster (muteLabel, mutePedal, 1, 1);
+    placeInCluster (tapLabel, tapPedal, 2, 1);
+    holdLabel.setBounds (onPedal ({ clusterX + 2 * clusterColumn - 24, clusterTopY + clusterRowGap + 38, clusterButtonWidth + 48, 12 }));
 
-    rigLevelKnob.setBounds (onPedal ({ 990, 30, 104, 104 }));
-    rigLevelLabel.setBounds (onPedal ({ 962, 136, 160, 18 }));
-    presenceKnob.setBounds (onPedal ({ 1158, 30, 104, 104 }));
-    presenceLabel.setBounds (onPedal ({ 1130, 136, 160, 18 }));
+    rigLevelKnob.setBounds (onPedal ({ 940, 30, 96, 96 }));
+    rigLevelLabel.setBounds (onPedal ({ 928, 128, 120, 18 }));
+    presenceKnob.setBounds (onPedal ({ 1046, 30, 96, 96 }));
+    presenceLabel.setBounds (onPedal ({ 1034, 128, 120, 18 }));
+    pedalAssign.setBounds (onPedal (assignArea));
 
     ampSlot.setBounds (onPedal (ampWindow));
     cabSlot.setBounds (onPedal (cabWindow));
@@ -423,12 +573,14 @@ void MainView::resized()
     for (auto& footswitch : footswitches)
         footswitch->setBounds (switches.removeFromLeft (switchWidth));
 
-    pedal.setInsets ({ ampWindow, cabWindow, rigWindow }, { topDividerY, bottomDividerY }, badgeArea);
+    pedal.setInsets ({ ampWindow, cabWindow, rigWindow, assignArea }, { topDividerY, bottomDividerY }, badgeArea);
 
-    // Dock: the selected block's knobs, and the current rig
+    // Dock: the selected block's knobs, the expression pedal's settings, and the current rig
     dockArea = dockBounds;
     auto dock = dockArea;
     currentRigPanel.setBounds (dock.removeFromRight (currentRigWidth));
+    dock.removeFromRight (margin);
+    expressionPanel.setBounds (dock.removeFromRight (expressionPanelWidth));
     dock.removeFromRight (margin);
     for (auto& panel : panels)
         panel->setBounds (dock);

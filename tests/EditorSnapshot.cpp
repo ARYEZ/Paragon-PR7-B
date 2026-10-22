@@ -54,7 +54,40 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
         processor.getParameters().getParameter ("driveGain")->setValueNotifyingHost (0.8f);   // shows the * marker
     }
 
+    // PARAGON_SNAPSHOT_TUNER=1: the tuner on, hearing an A string 4 cents
+    // sharp, and the expression pedal assigned to the wah.
+    const auto showTuner = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_TUNER", {}) == "1";
+    if (showTuner)
+    {
+        auto set = [&] (const char* id, float value)
+        {
+            auto* p = processor.getParameters().getParameter (id);
+            p->setValueNotifyingHost (p->convertTo0to1 (value));
+        };
+        set ("tunerOn", 1.0f);
+        set ("expressionTarget", 2.0f);
+        set ("expression", 0.6f);
+        set ("expressionMin", 0.2f);
+
+        juce::AudioBuffer<float> buffer (2, 256);
+        juce::MidiBuffer midi;
+        const auto frequency = 110.0 * std::pow (2.0, 4.0 / 1200.0);
+        for (int b = 0, n = 0; b < 100; ++b)
+        {
+            buffer.clear();
+            for (int i = 0; i < 256; ++i, ++n)
+                buffer.setSample (0, i, 0.3f * (float) std::sin (juce::MathConstants<double>::twoPi * frequency * n / 48000.0));
+            processor.processBlock (buffer, midi);
+        }
+    }
+
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
+    if (showTuner)
+        for (int i = 0; i < 12; ++i)   // let the editor's timers run: the tuner reads a few times
+        {
+            juce::Timer::callPendingTimersSynchronously();
+            juce::Thread::sleep (40);
+        }
     if (showPresets)
         if (auto* tab = dynamic_cast<juce::Button*> (findById (*editor, "presetsTab")))
             tab->onClick();

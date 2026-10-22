@@ -13,6 +13,8 @@ add_executable(ParagonX1Tests
     EffectTests.cpp
     RigTests.cpp
     UiTests.cpp
+    TunerTests.cpp
+    PerformanceTests.cpp
     EditorSnapshot.cpp)
 
 # Link the plugin's shared code (processor, editor, JUCE modules, NAM) so the

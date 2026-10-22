@@ -6,7 +6,9 @@
 // window size. Each is designed in a 0-1 square and stroked by drawIcon().
 namespace Icons
 {
-    enum class Type { amp, cabinet, rig, comp, drive, modulation, delay, reverb, guitar, speaker };
+    enum class Type { amp, cabinet, rig, comp, drive, modulation, delay, reverb, guitar, speaker,
+                      // Phase 6: header and expression pedal
+                      processor, presets, undo, redo, tap, tuner, volume, wah };
 
     juce::Path get (Type type);
 
