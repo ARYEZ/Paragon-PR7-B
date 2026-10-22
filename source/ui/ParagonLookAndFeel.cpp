@@ -1,6 +1,12 @@
 #include "ParagonLookAndFeel.h"
 
+#include <ParagonFonts.h>
+
 ParagonLookAndFeel::ParagonLookAndFeel()
+    : regular (juce::Typeface::createSystemTypefaceFor (ParagonFonts::InterRegular_ttf, ParagonFonts::InterRegular_ttfSize)),
+      semiBold (juce::Typeface::createSystemTypefaceFor (ParagonFonts::InterSemiBold_ttf, ParagonFonts::InterSemiBold_ttfSize)),
+      blackItalic (juce::Typeface::createSystemTypefaceFor (ParagonFonts::InterDisplayBlackItalic_ttf,
+                                                           ParagonFonts::InterDisplayBlackItalic_ttfSize))
 {
     setColour (juce::ResizableWindow::backgroundColourId, ParagonColours::background);
     setColour (juce::Label::textColourId, ParagonColours::text);
@@ -50,6 +56,29 @@ void ParagonLookAndFeel::drawToggleButton (juce::Graphics& g, juce::ToggleButton
 void ParagonLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& button, const juce::Colour&,
                                                bool highlighted, bool down)
 {
+    if (button.getProperties().contains (plainTextProperty))
+    {
+        if (highlighted || down)
+        {
+            g.setColour (juce::Colours::white.withAlpha (down ? 0.08f : 0.04f));
+            g.fillRoundedRectangle (button.getLocalBounds().toFloat(), 4.0f);
+        }
+        return;
+    }
+
+    if (button.getProperties()[outlinedButtonProperty])
+    {
+        auto box = button.getLocalBounds().toFloat().reduced (0.5f);
+        const auto on = button.getToggleState();
+        g.setColour (juce::Colours::white.withAlpha (down ? 0.35f : highlighted ? 0.75f : 0.55f));
+        g.fillRoundedRectangle (box, 3.0f);
+        g.setColour (juce::Colours::white.withAlpha (0.9f));
+        g.drawRoundedRectangle (box.translated (0.0f, 1.0f), 3.0f, 1.0f);
+        g.setColour (on ? ParagonColours::glow : ParagonColours::ink.withAlpha (0.35f));
+        g.drawRoundedRectangle (box, 3.0f, on ? 1.5f : 1.0f);
+        return;
+    }
+
     if (button.getProperties()[pedalButtonProperty])
     {
         // Small black cap with a bevel, sitting on the metal.
@@ -79,6 +108,22 @@ void ParagonLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& 
 
 void ParagonLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& button, bool highlighted, bool down)
 {
+    if (const auto* size = button.getProperties().getVarPointer (plainTextProperty))
+    {
+        g.setFont (juce::FontOptions ((float) *size));
+        g.setColour (button.findColour (juce::TextButton::textColourOffId));
+        g.drawFittedText (button.getButtonText(), button.getLocalBounds().reduced (4, 0), juce::Justification::centred, 1, 0.8f);
+        return;
+    }
+
+    if (button.getProperties()[outlinedButtonProperty])
+    {
+        g.setFont (juce::FontOptions (10.5f, juce::Font::bold));
+        g.setColour (button.getToggleState() ? ParagonColours::glow.darker (0.1f) : ParagonColours::ink);
+        g.drawFittedText (button.getButtonText(), button.getLocalBounds().reduced (3, 1), juce::Justification::centred, 1);
+        return;
+    }
+
     if (! button.getProperties()[pedalButtonProperty])
     {
         LookAndFeel_V4::drawButtonText (g, button, highlighted, down);
@@ -218,4 +263,27 @@ void ParagonLookAndFeel::drawLinearSlider (juce::Graphics& g, int x, int y, int 
         g.setColour (ParagonColours::background);
         g.fillEllipse (thumb.reduced (4.5f));
     }
+}
+
+juce::Typeface::Ptr ParagonLookAndFeel::getTypefaceForFont (const juce::Font& font)
+{
+    if (font.getTypefaceName() != juce::Font::getDefaultSansSerifFontName())
+        return LookAndFeel_V4::getTypefaceForFont (font);
+
+    if (font.isBold() && font.isItalic())
+        return blackItalic;
+    return font.isBold() ? semiBold : regular;
+}
+
+SharedParagonLookAndFeel::SharedParagonLookAndFeel()
+{
+    juce::LookAndFeel::setDefaultLookAndFeel (&lookAndFeel);
+    juce::Typeface::clearTypefaceCache();   // fonts looked up before now used the system font
+}
+
+SharedParagonLookAndFeel::~SharedParagonLookAndFeel()
+{
+    if (&juce::LookAndFeel::getDefaultLookAndFeel() == &lookAndFeel)
+        juce::LookAndFeel::setDefaultLookAndFeel (nullptr);
+    juce::Typeface::clearTypefaceCache();
 }

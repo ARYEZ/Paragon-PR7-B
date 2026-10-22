@@ -8,7 +8,9 @@ namespace Icons
 {
     enum class Type { amp, cabinet, rig, comp, drive, modulation, delay, reverb, guitar, speaker,
                       // Phase 6: header and expression pedal
-                      processor, presets, undo, redo, tap, tuner, volume, wah };
+                      processor, presets, undo, redo, tap, tuner, volume, wah,
+                      // Phase 7: header and dock
+                      save, settings, star, user, factory, plus, chevronLeft, chevronRight, flame };
 
     juce::Path get (Type type);
 

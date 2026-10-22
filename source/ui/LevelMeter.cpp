@@ -8,7 +8,6 @@ namespace
 {
     constexpr int refreshHz = 30;
     constexpr float fallDbPerSecond = 24.0f;   // how fast the meter drops after a peak
-    constexpr int numSegments = 36;
     constexpr float scaleMarksDb[] = { 12.0f, 6.0f, 0.0f, -6.0f, -12.0f, -18.0f, -24.0f, -36.0f, -48.0f, -60.0f };
 }
 
@@ -37,34 +36,41 @@ void LevelMeter::timerCallback()
 
 void LevelMeter::paint (juce::Graphics& g)
 {
-    auto bounds = getLocalBounds().toFloat();
-    auto scaleArea = bounds.removeFromLeft (bounds.getWidth() * 0.6f);
-    auto barArea = bounds.reduced (2.0f, 0.0f).withTrimmedTop (6.0f).withTrimmedBottom (6.0f);
-    scaleArea = scaleArea.withTop (barArea.getY()).withBottom (barArea.getBottom());
+    // As in the mockup: the dB scale on the left and a slim column of small
+    // red LED dots beside it, unlit dots just visible.
+    auto bounds = getLocalBounds().toFloat().reduced (0.0f, 6.0f);
+    const auto column = bounds.removeFromRight (6.0f);
+    bounds.removeFromRight (8.0f);
+    const auto scaleArea = bounds;
 
-    g.setFont (juce::FontOptions (10.0f));
+    g.setFont (juce::FontOptions (10.5f));
     for (auto markDb : scaleMarksDb)
     {
-        const auto y = scaleArea.getBottom() - dbToProportion (markDb) * scaleArea.getHeight();
+        const auto y = column.getBottom() - dbToProportion (markDb) * column.getHeight();
         g.setColour (ParagonColours::textDim);
         g.drawText (juce::String ((int) markDb), scaleArea.withHeight (12.0f).withCentre ({ scaleArea.getCentreX(), y }),
                     juce::Justification::centredRight, false);
     }
 
-    const auto segmentHeight = barArea.getHeight() / (float) numSegments;
+    const auto pitch = 6.0f;   // one dot every 6 px
+    const auto numDots = (int) (column.getHeight() / pitch);
     const auto litProportion = dbToProportion (displayedDb);
+    const auto zeroProportion = dbToProportion (0.0f);
 
-    for (int i = 0; i < numSegments; ++i)
+    for (int i = 0; i < numDots; ++i)
     {
-        const auto segmentTop = barArea.getBottom() - (float) (i + 1) * segmentHeight;
-        const auto segment = juce::Rectangle<float> (barArea.getX(), segmentTop, barArea.getWidth(), segmentHeight)
-                                 .reduced (0.0f, segmentHeight * 0.2f);
-        const auto proportion = (float) (i + 1) / (float) numSegments;
-        const auto isOverZero = proportion > dbToProportion (0.0f);
-        const auto colour = isOverZero ? ParagonColours::meterRed : ParagonColours::accent;
+        const auto proportion = (float) (i + 1) / (float) numDots;
+        const auto y = column.getBottom() - (float) (i + 1) * pitch;
+        const auto dot = juce::Rectangle<float> (column.getX(), y + 1.5f, column.getWidth(), pitch - 2.5f);
+        const auto colour = proportion > zeroProportion ? juce::Colour (0xffffd04a) : ParagonColours::meterRed;   // over 0 dB: amber warning
         const auto lit = proportion <= litProportion + 1.0e-4f;
 
-        g.setColour (lit ? colour : colour.withAlpha (0.12f));
-        g.fillRect (segment);
+        if (lit)
+        {
+            g.setColour (colour.withAlpha (0.3f));
+            g.fillRoundedRectangle (dot.expanded (2.0f, 1.0f), 2.0f);
+        }
+        g.setColour (lit ? colour : colour.withAlpha (0.2f));
+        g.fillRoundedRectangle (dot, 1.0f);
     }
 }

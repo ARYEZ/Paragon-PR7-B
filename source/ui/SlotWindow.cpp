@@ -37,16 +37,15 @@ namespace SlotWindow
     Layout layout (juce::Rectangle<int> bounds)
     {
         Layout l;
-        auto area = bounds.reduced (12, 8);
-        l.title = area.removeFromTop (20);
+        auto area = bounds.reduced (10, 6);
+        l.title = area.removeFromTop (22);
         l.corner = l.title.withLeft (l.title.getRight() - 22);
-        l.caption = area.removeFromBottom (20);
+        l.caption = area.removeFromBottom (22);
         area.removeFromBottom (4);
 
-        const auto buttonWidth = juce::jmin (area.getWidth() - 80, 260);
-        l.button = area.withSizeKeepingCentre (buttonWidth, juce::jmin (area.getHeight(), 70));
-        l.previous = l.button.withX (l.button.getX() - 34).withWidth (26);
-        l.next = l.button.withX (l.button.getRight() + 8).withWidth (26);
+        l.button = area.withSizeKeepingCentre (juce::jmin (area.getWidth() - 64, 158), juce::jmin (area.getHeight(), 70));
+        l.previous = l.button.withX (l.button.getX() - 28).withWidth (20);
+        l.next = l.button.withX (l.button.getRight() + 8).withWidth (20);
         return l;
     }
 
@@ -57,38 +56,51 @@ namespace SlotWindow
         g.drawText (title, l.title, juce::Justification::centred, false);
     }
 
+    void drawRingLed (juce::Graphics& g, juce::Point<float> centre, bool lit)
+    {
+        const auto ring = juce::Rectangle<float> (9.0f, 9.0f).withCentre (centre);
+        if (lit)
+        {
+            g.setColour (ParagonColours::glow.withAlpha (0.3f));
+            g.fillEllipse (ring.expanded (4.0f));
+            g.setColour (juce::Colour (0xffff7a6a));
+            g.fillEllipse (ring.reduced (2.0f));
+        }
+        g.setColour (lit ? ParagonColours::glow : ParagonColours::glow.withAlpha (0.45f));
+        g.drawEllipse (ring, 1.6f);
+    }
+
     void drawButton (juce::Graphics& g, juce::Rectangle<int> areaInt, Icons::Type icon, juce::Colour iconColour,
-                     const juce::String& name, bool hover, bool highlight)
+                     bool hover, bool highlight)
     {
         const auto area = areaInt.toFloat();
+        juce::Path body;
+        body.addRoundedRectangle (area, 8.0f);
 
-        // Shadow under the button, then the black body with a soft top highlight.
-        g.setColour (juce::Colours::black.withAlpha (0.3f));
-        g.fillRoundedRectangle (area.translated (0.0f, 3.0f), 8.0f);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2b2a2f), area.getTopLeft(),
-                                                 juce::Colour (0xff050506), area.getBottomLeft(), false));
-        g.fillRoundedRectangle (area, 8.0f);
-        g.setColour (highlight ? ParagonColours::glow : hover ? ParagonColours::inkDim : juce::Colours::black);
+        // A black block like the footswitches: shadow, darker front edge,
+        // a sheen on top, and the icon glowing in the middle.
+        juce::DropShadow (juce::Colours::black.withAlpha (0.5f), 9, { 0, 5 }).drawForPath (g, body);
+        g.setColour (juce::Colour (0xff050506));
+        g.fillPath (body);
+        const auto top = area.withTrimmedBottom (area.getHeight() * 0.14f);
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2a292e), 0.0f, top.getY(),
+                                                 juce::Colour (0xff111113), 0.0f, top.getBottom(), false));
+        g.fillRoundedRectangle (top, 7.0f);
+        g.setColour (juce::Colours::white.withAlpha (0.14f));
+        g.drawRoundedRectangle (top.reduced (1.0f), 6.0f, 1.0f);
+        g.setColour (ParagonColours::glow.withAlpha (0.3f));
+        g.drawHorizontalLine ((int) area.getBottom() - 1, area.getX() + 8.0f, area.getRight() - 8.0f);
+        g.setColour (highlight ? ParagonColours::glow : hover ? ParagonColours::glow.withAlpha (0.6f) : juce::Colours::black);
         g.drawRoundedRectangle (area.reduced (0.5f), 8.0f, highlight ? 2.0f : 1.0f);
 
-        auto content = area.reduced (12.0f, 8.0f);
-        if (name.isEmpty())
-        {
-            Icons::draw (g, icon, content.withSizeKeepingCentre (content.getHeight() * 1.3f, content.getHeight()), iconColour, 1.8f, true);
-            return;
-        }
-
-        Icons::draw (g, icon, content.removeFromLeft (content.getHeight() * 1.1f), iconColour, 1.8f, true);
-        content.removeFromLeft (10.0f);
-        g.setColour (ParagonColours::accent);
-        g.setFont (juce::FontOptions (14.0f, juce::Font::bold));
-        g.drawFittedText (name, content.toNearestInt(), juce::Justification::centredLeft, 2, 0.75f);
+        const auto iconSize = top.getHeight() * 0.62f;
+        Icons::draw (g, icon, top.withSizeKeepingCentre (iconSize * 1.3f, iconSize), iconColour, 1.8f, true);
     }
 
     void drawCaption (juce::Graphics& g, juce::Rectangle<int> area, const juce::String& text, bool isError)
     {
         g.setColour (isError ? juce::Colour (0xffc8231a) : ParagonColours::ink);
-        g.setFont (juce::FontOptions (12.0f, isError ? juce::Font::bold : juce::Font::plain));
+        g.setFont (juce::FontOptions (12.5f, isError ? juce::Font::bold : juce::Font::plain));
         g.drawFittedText (text, area, juce::Justification::centred, 1, 0.7f);
     }
 

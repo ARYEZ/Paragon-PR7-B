@@ -2,6 +2,7 @@
 
 #include "Parameters.h"
 #include "ui/ParagonLookAndFeel.h"
+#include "ui/SlotWindow.h"
 
 namespace
 {
@@ -40,8 +41,8 @@ void IconButton::paintButton (juce::Graphics& g, bool highlighted, bool down)
     if (! isEnabled())
         colour = ParagonColours::textDim.withAlpha (0.45f);
 
-    auto content = bounds.reduced (10.0f, 0.0f);
-    const auto iconSize = juce::jmin (20.0f, bounds.getHeight() * 0.55f);
+    auto content = bounds.reduced (text.isEmpty() ? 4.0f : 8.0f, 0.0f);
+    const auto iconSize = juce::jmin (18.0f, bounds.getHeight() * 0.5f);
 
     if (text.isEmpty())
     {
@@ -51,7 +52,7 @@ void IconButton::paintButton (juce::Graphics& g, bool highlighted, bool down)
 
     const auto font = juce::FontOptions (juce::jmin (15.0f, bounds.getHeight() * 0.42f), on ? juce::Font::bold : juce::Font::plain);
     const auto textWidth = (float) juce::GlyphArrangement::getStringWidthInt (font, text);
-    const auto gap = iconSize * 0.6f;
+    const auto gap = iconSize * 0.45f;
 
     // Centred: icon and text together in the middle. Otherwise from the left.
     auto row = justification == juce::Justification::centred
@@ -91,7 +92,7 @@ ExpressionAssign::ExpressionAssign (juce::AudioProcessorValueTreeState& state, S
         else
         {
             auto textButton = std::make_unique<juce::TextButton> (pedalNames[index]);
-            textButton->getProperties().set (ParagonLookAndFeel::pedalButtonProperty, true);
+            textButton->getProperties().set (ParagonLookAndFeel::outlinedButtonProperty, true);
             button = std::move (textButton);
         }
 
@@ -116,28 +117,19 @@ void ExpressionAssign::paint (juce::Graphics& g)
     if (style != Style::pedal)
         return;
 
-    // "EXPRESSION / ASSIGN" printed on the metal, with an LED that lights
-    // while the pedal is assigned to something.
-    auto title = getLocalBounds().removeFromTop (34).toFloat();
+    // "EXPRESSION / ASSIGN" printed on the metal, with a ring LED that
+    // lights while the pedal is assigned to something.
+    auto title = getLocalBounds().removeFromTop (30).toFloat();
     g.setColour (ParagonColours::ink);
-    g.setFont (juce::FontOptions (12.0f, juce::Font::bold));
-    g.drawText ("EXPRESSION", title.removeFromTop (17.0f), juce::Justification::centred, false);
-    g.setColour (ParagonColours::ink.withAlpha (0.25f));
-    g.drawHorizontalLine ((int) title.getY(), title.getX() + 30.0f, title.getRight() - 30.0f);
+    g.setFont (juce::FontOptions (11.5f, juce::Font::bold));
+    g.drawText ("EXPRESSION", title.removeFromTop (15.0f), juce::Justification::centred, false);
+    g.setColour (ParagonColours::ink.withAlpha (0.3f));
+    g.drawHorizontalLine ((int) title.getY(), title.getX() + 8.0f, title.getRight() - 8.0f);
 
     g.setColour (ParagonColours::inkDim);
-    g.setFont (juce::FontOptions (10.0f, juce::Font::bold));
+    g.setFont (juce::FontOptions (9.5f, juce::Font::bold));
     g.drawText ("ASSIGN", title, juce::Justification::centred, false);
-
-    const auto on = currentTarget != ExpressionTargets::off;
-    const auto led = juce::Rectangle<float> (7.0f, 7.0f).withCentre ({ title.getCentreX() + 32.0f, title.getCentreY() });
-    if (on)
-    {
-        g.setColour (ParagonColours::glow.withAlpha (0.35f));
-        g.fillEllipse (led.expanded (3.0f));
-    }
-    g.setColour (on ? ParagonColours::glow : ParagonColours::glow.withAlpha (0.2f));
-    g.fillEllipse (led);
+    SlotWindow::drawRingLed (g, { title.getCentreX() + 30.0f, title.getCentreY() }, currentTarget != ExpressionTargets::off);
 }
 
 void ExpressionAssign::resized()
@@ -145,10 +137,10 @@ void ExpressionAssign::resized()
     auto area = getLocalBounds();
     if (style == Style::pedal)
     {
-        area.removeFromTop (40);
+        area.removeFromTop (36);
         const auto rowHeight = area.getHeight() / (int) buttons.size();
         for (auto& button : buttons)
-            button->setBounds (area.removeFromTop (rowHeight).withSizeKeepingCentre (juce::jmin (124, area.getWidth()), 24));
+            button->setBounds (area.removeFromTop (rowHeight).withSizeKeepingCentre (juce::jmin (82, area.getWidth()), 20));
     }
     else
     {
@@ -164,7 +156,7 @@ ExpressionPedal::ExpressionPedal (ParagonX1AudioProcessor& processorToUse)
       attachment (parameter (processorToUse.getParameters(), ParamIDs::expression), [this] (float) { timerCallback(); })
 {
     setTooltip ("Expression pedal. Drag up and down (or use the mouse wheel) to rock it from heel to toe; "
-                "a MIDI expression pedal on CC 11 moves it too. Assign it with the EXPRESSION buttons.");
+                "a MIDI expression pedal moves it too (CC 11, or the one chosen in SETTINGS). Assign it with the EXPRESSION buttons.");
     setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
     startTimerHz (30);   // follows a MIDI pedal smoothly
     timerCallback();
@@ -184,96 +176,104 @@ void ExpressionPedal::timerCallback()
 
 juce::Rectangle<float> ExpressionPedal::trackArea() const
 {
-    return getLocalBounds().toFloat().reduced (24.0f, 30.0f).withTrimmedBottom (34.0f);
+    // The black well the pads sit in; the label is printed below it.
+    return getLocalBounds().toFloat().reduced (14.0f, 10.0f).withTrimmedBottom (52.0f);
 }
 
 void ExpressionPedal::paint (juce::Graphics& g)
 {
-    const auto bounds = getLocalBounds().toFloat().reduced (6.0f);
+    const auto well = trackArea();
+    const auto active = target != ExpressionTargets::off;
 
-    // Housing: the same silver metal and red-orange rim light as the unit.
-    for (int i = 4; i >= 1; --i)
+    // The recess: darker chrome, shaded at the top where the housing's lip
+    // overhangs it, with a light catch along its bottom edge.
+    juce::Path wellPath;
+    wellPath.addRoundedRectangle (well, 14.0f);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff6f6369), 0.0f, well.getY(),
+                                             juce::Colour (0xffb9adb3), 0.0f, well.getBottom(), false));
+    g.fillPath (wellPath);
+    g.setColour (juce::Colours::black.withAlpha (0.45f));
+    g.drawRoundedRectangle (well, 14.0f, 1.5f);
+    g.setColour (juce::Colours::white.withAlpha (0.7f));
+    g.drawRoundedRectangle (well.expanded (1.5f).translated (0.0f, 1.0f), 15.0f, 1.0f);
+
+    // Two rubber pads split by a diagonal chrome strip, as in the mockup: a
+    // short toe pad on top and a long heel pad below. As the pedal rocks
+    // towards the toe the toe pad catches more light, towards the heel the
+    // heel pad does.
+    const auto pads = well.reduced (9.0f);
+    const auto gap = 26.0f;
+    const auto splitLeft = pads.getY() + pads.getHeight() * 0.40f;    // the strip climbs to the right
+    const auto splitRight = pads.getY() + pads.getHeight() * 0.22f;
+
+    juce::Path toe, heel;
+    toe.startNewSubPath (pads.getX(), pads.getY());
+    toe.lineTo (pads.getRight(), pads.getY());
+    toe.lineTo (pads.getRight(), splitRight - gap * 0.5f);
+    toe.lineTo (pads.getX(), splitLeft - gap * 0.5f);
+    toe.closeSubPath();
+    heel.startNewSubPath (pads.getX(), splitLeft + gap * 0.5f);
+    heel.lineTo (pads.getRight(), splitRight + gap * 0.5f);
+    heel.lineTo (pads.getRight(), pads.getBottom());
+    heel.lineTo (pads.getX(), pads.getBottom());
+    heel.closeSubPath();
+    toe = toe.createPathWithRoundedCorners (9.0f);
+    heel = heel.createPathWithRoundedCorners (9.0f);
+
+    const auto drawPad = [&g] (const juce::Path& pad, float light)
     {
-        g.setColour (ParagonColours::glow.withAlpha (0.05f * (float) (5 - i)));
-        g.drawRoundedRectangle (bounds.expanded ((float) i * 1.5f), 22.0f + (float) i, 3.0f);
-    }
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xffe9e4e6), bounds.getTopLeft(),
-                                             juce::Colour (0xff8c8589), bounds.getBottomLeft(), false));
-    g.fillRoundedRectangle (bounds, 22.0f);
-    const auto face = bounds.reduced (10.0f);
-    g.setGradientFill (juce::ColourGradient (ParagonColours::metalLight, face.getTopLeft(),
-                                             ParagonColours::metalDark, face.getBottomRight(), false));
-    g.fillRoundedRectangle (face, 16.0f);
-    g.setColour (ParagonColours::glow.withAlpha (0.55f));
-    g.drawRoundedRectangle (bounds.reduced (1.0f), 22.0f, 1.5f);
-
-    // The well the treadle rocks in.
-    auto track = trackArea();
-    g.setColour (juce::Colour (0xff0d0d0f));
-    g.fillRoundedRectangle (track.expanded (6.0f), 12.0f);
-    g.setColour (juce::Colours::white.withAlpha (0.5f));
-    g.drawRoundedRectangle (track.expanded (6.0f).translated (0.0f, 1.0f), 12.0f, 1.0f);
-
-    // The treadle. Seen from above, a toe-down pedal shows its whole length
-    // and a heel-down one is tilted towards you, so it looks shorter, its
-    // far end lit by the light on the front of the unit.
-    const auto tilt = 1.0f - position;   // 0 = toe down
-    auto treadle = track.withTrimmedTop (track.getHeight() * 0.28f * tilt);
-    juce::Path pad;
-    const auto inset = treadle.getWidth() * 0.08f * tilt;   // perspective: the far end narrows
-    pad.startNewSubPath (treadle.getX() + inset, treadle.getY());
-    pad.lineTo (treadle.getRight() - inset, treadle.getY());
-    pad.lineTo (treadle.getRight(), treadle.getBottom());
-    pad.lineTo (treadle.getX(), treadle.getBottom());
-    pad.closeSubPath();
-    pad = pad.createPathWithRoundedCorners (10.0f);
-
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2e2d32).brighter (0.25f * tilt), treadle.getTopLeft(),
-                                             juce::Colour (0xff101012), treadle.getBottomLeft(), false));
-    g.fillPath (pad);
-
-    // Rubber grip: angled ridges like the mockup's two-part pad.
-    {
+        // Each pad sits in its own shadow, with a lit bevel round the top.
+        juce::DropShadow (juce::Colours::black.withAlpha (0.6f), 8, { 0, 4 }).drawForPath (g, pad);
+        const auto box = pad.getBounds();
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2c2b30).brighter (0.3f * light), box.getX(), box.getY(),
+                                                 juce::Colour (0xff070708), box.getRight(), box.getBottom(), false));
+        g.fillPath (pad);
+        g.setColour (juce::Colours::white.withAlpha (0.12f + 0.15f * light));
+        g.strokePath (pad, juce::PathStrokeType (1.4f));
         juce::Graphics::ScopedSaveState state (g);
         g.reduceClipRegion (pad);
-        g.setColour (juce::Colours::black.withAlpha (0.55f));
-        for (float y = treadle.getY() + 14.0f; y < treadle.getBottom(); y += 12.0f)
-            g.drawLine (treadle.getX(), y + 10.0f, treadle.getRight(), y - 10.0f, 2.0f);
         g.setColour (juce::Colours::white.withAlpha (0.05f));
-        for (float y = treadle.getY() + 16.0f; y < treadle.getBottom(); y += 12.0f)
-            g.drawLine (treadle.getX(), y + 10.0f, treadle.getRight(), y - 10.0f, 1.0f);
-    }
-    g.setColour (juce::Colours::white.withAlpha (0.12f));
-    g.strokePath (pad, juce::PathStrokeType (1.0f));
+        g.fillRect (box.withHeight (box.getHeight() * 0.3f));   // soft sheen on the upper part
+    };
+    drawPad (toe, position);
+    drawPad (heel, 1.0f - position);
 
-    // Position LEDs in a dark slot down the left of the well, lit from the heel up.
-    const auto active = target != ExpressionTargets::off;
-    const int numLeds = 12;
-    g.setColour (juce::Colour (0xff0d0d0f));
-    g.fillRoundedRectangle (juce::Rectangle<float> (9.0f, track.getHeight() + 8.0f).withCentre ({ track.getX() - 12.0f, track.getCentreY() }), 4.0f);
-    for (int i = 0; i < numLeds; ++i)
+    // A soft red reflection from the unit's glow along the bottom of the heel pad.
+    g.setColour (ParagonColours::glow.withAlpha (0.25f));
+    g.drawHorizontalLine ((int) pads.getBottom() - 1, pads.getX() + 10.0f, pads.getRight() - 10.0f);
+
+    // Position: a slim row of red dots up the left lip, lit from the heel up.
+    const int numDots = 16;
+    for (int i = 0; i < numDots; ++i)
     {
-        const auto fraction = (float) (i + 1) / (float) numLeds;
-        const auto y = track.getBottom() - track.getHeight() * ((float) i + 0.5f) / (float) numLeds;
-        const auto led = juce::Rectangle<float> (3.0f, track.getHeight() / (float) numLeds - 4.0f)
-                             .withCentre ({ track.getX() - 12.0f, y });
-        const auto lit = position >= fraction - 0.5f / (float) numLeds;
-        g.setColour (lit ? (active ? ParagonColours::accent : ParagonColours::textDim) : ParagonColours::accent.withAlpha (0.1f));
-        g.fillRoundedRectangle (led, 1.5f);
+        const auto fraction = ((float) i + 0.5f) / (float) numDots;
+        const auto y = well.getBottom() - 10.0f - (well.getHeight() - 20.0f) * fraction;
+        const auto lit = position >= fraction - 0.5f / (float) numDots;
+        const auto dot = juce::Rectangle<float> (3.0f, 3.0f).withCentre ({ well.getX() - 7.0f, y });
+        if (lit && active)
+        {
+            g.setColour (ParagonColours::glow.withAlpha (0.35f));
+            g.fillEllipse (dot.expanded (2.0f));
+        }
+        g.setColour (lit ? (active ? juce::Colour (0xffff6a6a) : ParagonColours::inkDim) : ParagonColours::ink.withAlpha (0.15f));
+        g.fillEllipse (dot);
     }
 
-    // Embossed name at the foot, as "RPX" in the mockup, and what it controls.
-    auto label = getLocalBounds().toFloat().reduced (16.0f).removeFromBottom (36.0f);
-    g.setFont (juce::FontOptions (11.0f, juce::Font::bold));
-    g.setColour (active ? ParagonColours::glow.darker (0.2f) : ParagonColours::inkDim);
+    // Below the well: what it controls, and the X1 badge embossed in the
+    // chrome (as "RPX" in the mockup).
+    auto label = getLocalBounds().toFloat().withTop (well.getBottom() + 4.0f);
+    g.setFont (juce::FontOptions (10.5f, juce::Font::bold));
+    g.setColour (active ? ParagonColours::glow.darker (0.1f) : ParagonColours::inkDim);
     const auto targetName = active ? juce::String (pedalNames[juce::jlimit (0, 2, target - 1)]) : juce::String ("NOT ASSIGNED");
     g.drawText (targetName + "  " + juce::String (juce::roundToInt (position * 100.0f)) + "%",
                 label.removeFromTop (16.0f), juce::Justification::centred, false);
-    g.setFont (juce::FontOptions (18.0f, juce::Font::bold | juce::Font::italic));
-    g.setColour (juce::Colours::white.withAlpha (0.7f));
-    g.drawText ("X1", label.translated (0.0f, 1.0f), juce::Justification::centred, false);
-    g.setColour (ParagonColours::ink.withAlpha (0.45f));
-    g.drawText ("X1", label, juce::Justification::centred, false);
+
+    g.setFont (juce::FontOptions (26.0f, juce::Font::bold | juce::Font::italic));
+    const auto badge = label.removeFromTop (30.0f);
+    g.setColour (juce::Colours::white.withAlpha (0.9f));
+    g.drawText ("X1", badge.translated (0.0f, 1.2f), juce::Justification::centred, false);
+    g.setColour (juce::Colour (0xff9a8d94));
+    g.drawText ("X1", badge, juce::Justification::centred, false);
 }
 
 void ExpressionPedal::mouseDown (const juce::MouseEvent&)
@@ -433,9 +433,35 @@ void TunerReader::timerCallback()
     {
         reading.hasNote = true;
         reading.frequency = 440.0 * std::pow (2.0, (smoothedNote - 69.0) / 12.0);
-        reading.note = PitchDetector::toNote (reading.frequency);
+        reading.note = PitchDetector::toNote (reading.frequency, processor.getTunerReferenceHz());
     }
 
     if (onReading)
         onReading (reading);
+}
+
+//==============================================================================
+HeelIndicator::HeelIndicator (ParagonX1AudioProcessor& processorToUse) : processor (processorToUse)
+{
+    setInterceptsMouseClicks (false, false);
+    startTimerHz (15);
+}
+
+void HeelIndicator::timerCallback()
+{
+    const auto atHeel = processor.getExpressionPosition() < 0.005f;
+    if (atHeel != lit)
+    {
+        lit = atHeel;
+        repaint();
+    }
+}
+
+void HeelIndicator::paint (juce::Graphics& g)
+{
+    const auto area = getLocalBounds().toFloat();
+    g.setColour (ParagonColours::inkDim);
+    g.setFont (juce::FontOptions (9.5f, juce::Font::bold));
+    g.drawText ("MIN", area.withTrimmedRight (14.0f), juce::Justification::centredRight, false);
+    SlotWindow::drawRingLed (g, { area.getRight() - 6.0f, area.getCentreY() }, lit);
 }

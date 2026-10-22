@@ -2,27 +2,36 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
-// The silver floor unit from the mockup: brushed metal with bevelled edges,
-// a red-orange glow round the rim, the PARAGON X1 badge, divider lines and
-// the recessed panels the slot windows sit in. Purely visual: the controls
-// on it are separate components laid on top.
+// The floor unit from the mockup, drawn as one piece of rose-tinted chrome:
+// a thick bevelled rim with the red-orange light spilling round it, the
+// brushed face plate, raised section panels (the slot row and the
+// footswitch row), the recessed panels behind the slot windows, the
+// PARAGON X1 badge, and the bay on the right that the expression pedal sits
+// in. Purely visual: the controls on it are separate components on top.
 class PedalBody final : public juce::Component
 {
 public:
     PedalBody();
 
-    // Where to draw recessed panels and divider lines, in this component's
-    // coordinates. Set by the layout code after positioning the controls.
-    void setInsets (std::vector<juce::Rectangle<int>> panels, std::vector<int> dividerYs, juce::Rectangle<int> badgeArea);
+    // Positions in this component's coordinates, set by the layout code.
+    struct Geometry
+    {
+        juce::Rectangle<float> face;                       // the main face plate
+        juce::Rectangle<float> pedalBay;                   // the expression pedal's housing
+        std::vector<juce::Rectangle<float>> sections;      // raised panels (slot row, footswitch row)
+        std::vector<juce::Rectangle<float>> insets;        // recessed panels (behind each slot window)
+        juce::Rectangle<float> badge;                      // PARAGON X1
+        juce::Path printedRed, printedInk;                 // lines printed on the face (the tuner bracket, SAVE—SAVE AS)
+    };
+    void setGeometry (Geometry);
 
     void paint (juce::Graphics&) override;
     void resized() override;
 
 private:
     void makeBrushedTexture();
+    void paintBadge (juce::Graphics&) const;
 
     juce::Image brushed;
-    std::vector<juce::Rectangle<int>> panels;
-    std::vector<int> dividers;
-    juce::Rectangle<int> badge;
+    Geometry geometry;
 };

@@ -15,6 +15,8 @@ namespace
     const juce::Identifier rigFactoryKey { "rigFactory" };
     const juce::Identifier rigModifiedKey { "rigModified" };
     const juce::Identifier tappedBpmKey { "tappedBpm" };
+    const juce::Identifier expressionCcKey { "expressionCc" };
+    const juce::Identifier tunerReferenceKey { "tunerReferenceHz" };
 
     juce::String describeModel (const AmpStage::ModelInfo& info)
     {
@@ -147,11 +149,11 @@ double ParagonX1AudioProcessor::getTempoBpm() const noexcept
 void ParagonX1AudioProcessor::readMidiExpression (const juce::MidiBuffer& midi) noexcept
 {
     // CC 11 is "expression" in the MIDI spec, and what most MIDI expression
-    // pedals send. Only the latest value in the block matters.
+    // pedals send; SETTINGS can pick another. Only the latest value in the block matters.
     for (const auto metadata : midi)
     {
         const auto message = metadata.getMessage();
-        if (message.isControllerOfType (11))
+        if (message.isControllerOfType (expressionCc.load()))
             pendingMidiExpression = (float) message.getControllerValue() / 127.0f;
     }
 }
@@ -749,6 +751,8 @@ void ParagonX1AudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.setProperty (rigFactoryKey, currentRig.factoryName, nullptr);
     state.setProperty (rigModifiedKey, rigModified.load(), nullptr);
     state.setProperty (tappedBpmKey, tappedBpm.load(), nullptr);
+    state.setProperty (expressionCcKey, expressionCc.load(), nullptr);
+    state.setProperty (tunerReferenceKey, tunerReferenceHz.load(), nullptr);
 
     if (auto xml = state.createXml())
         copyXmlToBinary (*xml, destData);
@@ -782,6 +786,8 @@ void ParagonX1AudioProcessor::setStateInformation (const void* data, int sizeInB
                    state[rigFactoryKey].toString() };
     rigModified = (bool) state.getProperty (rigModifiedKey, false);
     tappedBpm = (double) state.getProperty (tappedBpmKey, 0.0);
+    setExpressionCc ((int) state.getProperty (expressionCcKey, 11));
+    setTunerReferenceHz ((double) state.getProperty (tunerReferenceKey, 440.0));
 
     // A different project or preset: start the undo history afresh from it.
     history.clear();

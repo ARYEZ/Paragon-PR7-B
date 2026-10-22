@@ -22,7 +22,7 @@ namespace
 // Optionally set PARAGON_SNAPSHOT_MODEL and PARAGON_SNAPSHOT_IR to file paths
 // to show the amp and cabinet slots loaded, and PARAGON_SNAPSHOT_EFFECTS=1 to
 // switch on the drive, delay and reverb. PARAGON_SNAPSHOT_PAGE=presets shows
-// the rig browser, with a couple of example user rigs. PARAGON_SNAPSHOT_WIDTH
+// the rig browser, with a couple of example user rigs, and =settings the SETTINGS page. PARAGON_SNAPSHOT_WIDTH
 // sets the window width (default 1280).
 TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
 {
@@ -90,6 +90,9 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
         }
     if (showPresets)
         if (auto* tab = dynamic_cast<juce::Button*> (findById (*editor, "presetsTab")))
+            tab->onClick();
+    if (juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_PAGE", {}) == "settings")
+        if (auto* tab = dynamic_cast<juce::Button*> (findById (*editor, "settingsTab")))
             tab->onClick();
     if (const auto width = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_WIDTH", {}).getIntValue(); width > 0)
         editor->setSize (width, width * 9 / 16);

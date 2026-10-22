@@ -156,6 +156,17 @@ public:
     // The expression pedal's position after MIDI (0 heel to 1 toe), for the UI.
     float getExpressionPosition() const noexcept;
 
+    //==========================================================================
+    // SETTINGS page. Saved with the project.
+
+    // Which MIDI controller moves the expression pedal (11 = "expression").
+    int getExpressionCc() const noexcept { return expressionCc.load(); }
+    void setExpressionCc (int cc) noexcept { expressionCc = juce::jlimit (1, 127, cc); }
+
+    // The tuner's reference pitch for A4 (440 Hz unless the band tunes otherwise).
+    double getTunerReferenceHz() const noexcept { return tunerReferenceHz.load(); }
+    void setTunerReferenceHz (double hz) noexcept { tunerReferenceHz = juce::jlimit (420.0, 460.0, hz); }
+
     juce::AudioProcessorValueTreeState& getParameters() noexcept { return parameters; }
     LevelMeterSource& getInputMeter() noexcept { return inputMeter; }
     LevelMeterSource& getOutputMeter() noexcept { return outputMeter; }
@@ -237,8 +248,10 @@ private:
     // The expression pedal's VOLUME, and the tuner's mute.
     juce::SmoothedValue<float> expressionVolume, tunerOpen;
 
-    // The last MIDI CC 11 value not yet copied into the expression parameter (-1 = none).
+    // The last MIDI expression value not yet copied into the expression parameter (-1 = none).
     std::atomic<float> pendingMidiExpression { -1.0f };
+    std::atomic<int> expressionCc { 11 };
+    std::atomic<double> tunerReferenceHz { 440.0 };
 
     InputTap inputTap { 32768 };   // enough for the tuner's window at 192 kHz
 

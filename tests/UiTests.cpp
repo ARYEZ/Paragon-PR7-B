@@ -76,7 +76,7 @@ TEST_CASE ("The window lays out cleanly at every size", "[ui]")
     }
 }
 
-TEST_CASE ("Exactly one block's knobs show, and the chain and footswitches pick which", "[ui]")
+TEST_CASE ("The chain, footswitches and summary cards pick which block's knobs show", "[ui]")
 {
     ParagonX1AudioProcessor processor;
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
@@ -98,7 +98,9 @@ TEST_CASE ("Exactly one block's knobs show, and the chain and footswitches pick 
         return index;
     };
 
-    CHECK (visiblePanel() == 0);   // comp / gate to start with
+    // To start with the dock shows the rig summary, as in the mockup: no knobs.
+    const auto numVisible = [&] { return std::count_if (panels.begin(), panels.end(), [] (auto* p) { return p->isVisible(); }); };
+    CHECK (numVisible() == 0);
 
     std::vector<SignalChain*> chains;
     findAll (*editor, chains);
@@ -117,6 +119,13 @@ TEST_CASE ("Exactly one block's knobs show, and the chain and footswitches pick 
     CHECK (visiblePanel() == 4);
     footswitches[3]->onSelect();
     CHECK (visiblePanel() == 5);
+
+    // Each summary card opens its block too.
+    std::vector<RigSummary*> summaries;
+    findAll (*editor, summaries);
+    REQUIRE (summaries.size() == 1);
+    summaries[0]->onSelectBlock (2);
+    CHECK (visiblePanel() == 2);
 }
 
 TEST_CASE ("BYPASS passes the clean guitar, on both channels", "[ui][bypass]")

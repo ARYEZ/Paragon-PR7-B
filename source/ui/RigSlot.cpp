@@ -19,6 +19,8 @@ void RigSlot::setRig (const juce::String& newSlot, const juce::String& newName, 
     slot = newSlot;
     name = newName;
     modified = isModified;
+    setTooltip ((slot.isNotEmpty() ? slot + "  " : juce::String()) + name + (modified ? "  (unsaved changes)" : juce::String())
+                + "\nClick to browse and save rigs; the arrows step through them.");
     repaint();
 }
 
@@ -26,16 +28,13 @@ void RigSlot::paint (juce::Graphics& g)
 {
     SlotWindow::drawTitle (g, layout, "RIG");
 
-    // Status LED: lit while the rig matches what's saved, dim once it's changed.
+    // Status LED: lit while the sound has unsaved changes.
     const auto titleWidth = juce::GlyphArrangement::getStringWidthInt (juce::FontOptions (14.0f, juce::Font::bold), "RIG");
-    const auto led = juce::Rectangle<float> (8.0f, 8.0f).withCentre ({ (float) layout.title.getCentreX() + (float) titleWidth / 2.0f + 14.0f,
-                                                                        (float) layout.title.getCentreY() });
-    g.setColour (ParagonColours::glow.withAlpha (modified ? 0.25f : 1.0f));
-    g.fillEllipse (led);
+    SlotWindow::drawRingLed (g, { (float) layout.title.getCentreX() + (float) titleWidth / 2.0f + 13.0f, (float) layout.title.getCentreY() },
+                             modified);
 
-    SlotWindow::drawButton (g, layout.button, Icons::Type::rig, ParagonColours::text,
-                            slot.isEmpty() ? name : slot + "  " + name, buttonHover, false);
-    SlotWindow::drawCaption (g, layout.caption, modified ? "Changed since saved: Load / Save Full Rig" : "Load / Save Full Rig", false);
+    SlotWindow::drawButton (g, layout.button, Icons::Type::rig, ParagonColours::text, buttonHover, false);
+    SlotWindow::drawCaption (g, layout.caption, "Load / Save Full Rig", false);
 }
 
 void RigSlot::resized()

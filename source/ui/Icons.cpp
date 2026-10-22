@@ -185,6 +185,92 @@ namespace Icons
                 p.lineTo (0.74f, 0.94f);
                 p.lineTo (0.62f, 1.0f);
                 break;
+
+            case Type::save:
+                // A floppy disk: body with a clipped corner, label and shutter.
+                p.startNewSubPath (0.12f, 0.12f);
+                p.lineTo (0.72f, 0.12f);
+                p.lineTo (0.88f, 0.28f);
+                p.lineTo (0.88f, 0.88f);
+                p.lineTo (0.12f, 0.88f);
+                p.closeSubPath();
+                p.addRectangle (0.28f, 0.12f, 0.38f, 0.22f);
+                p.addRoundedRectangle (0.26f, 0.54f, 0.48f, 0.34f, 0.04f);
+                break;
+
+            case Type::settings:
+            {
+                // A cog: eight teeth round a ring, with a hole in the middle.
+                constexpr int teeth = 8;
+                for (int i = 0; i < teeth * 2; ++i)
+                {
+                    const auto angle = (float) i / (float) (teeth * 2) * juce::MathConstants<float>::twoPi;
+                    const auto radius = (i % 2 == 0) ? 0.46f : 0.34f;
+                    const auto next = (float) (i + 1) / (float) (teeth * 2) * juce::MathConstants<float>::twoPi;
+                    const auto a = juce::Point<float> (0.5f + radius * std::sin (angle), 0.5f - radius * std::cos (angle));
+                    const auto b = juce::Point<float> (0.5f + radius * std::sin (next), 0.5f - radius * std::cos (next));
+                    if (i == 0)
+                        p.startNewSubPath (a);
+                    else
+                        p.lineTo (a);
+                    p.lineTo (b);
+                }
+                p.closeSubPath();
+                p.addEllipse (0.36f, 0.36f, 0.28f, 0.28f);
+                break;
+            }
+
+            case Type::star:
+                p.addStar ({ 0.5f, 0.54f }, 5, 0.2f, 0.46f);
+                break;
+
+            case Type::user:
+                p.addEllipse (0.34f, 0.1f, 0.32f, 0.32f);
+                p.startNewSubPath (0.14f, 0.9f);
+                p.cubicTo (0.14f, 0.5f, 0.86f, 0.5f, 0.86f, 0.9f);
+                p.closeSubPath();
+                break;
+
+            case Type::factory:
+                // A building with a saw-tooth roof.
+                p.startNewSubPath (0.1f, 0.9f);
+                p.lineTo (0.1f, 0.4f);
+                p.lineTo (0.36f, 0.56f);
+                p.lineTo (0.36f, 0.4f);
+                p.lineTo (0.62f, 0.56f);
+                p.lineTo (0.62f, 0.12f);
+                p.lineTo (0.88f, 0.12f);
+                p.lineTo (0.88f, 0.9f);
+                p.closeSubPath();
+                p.addRectangle (0.24f, 0.7f, 0.12f, 0.1f);
+                p.addRectangle (0.5f, 0.7f, 0.12f, 0.1f);
+                break;
+
+            case Type::plus:
+                p.startNewSubPath (0.5f, 0.15f);
+                p.lineTo (0.5f, 0.85f);
+                p.startNewSubPath (0.15f, 0.5f);
+                p.lineTo (0.85f, 0.5f);
+                break;
+
+            case Type::chevronLeft:
+            case Type::chevronRight:
+                p.startNewSubPath (0.65f, 0.15f);
+                p.lineTo (0.32f, 0.5f);
+                p.lineTo (0.65f, 0.85f);
+                if (type == Type::chevronRight)
+                    p.applyTransform (juce::AffineTransform::scale (-1.0f, 1.0f, 0.5f, 0.5f));
+                break;
+
+            case Type::flame:
+                // The mockup's "All Rigs" icon.
+                p.startNewSubPath (0.5f, 0.05f);
+                p.cubicTo (0.95f, 0.4f, 0.85f, 0.95f, 0.5f, 0.95f);
+                p.cubicTo (0.15f, 0.95f, 0.05f, 0.55f, 0.35f, 0.3f);
+                p.cubicTo (0.35f, 0.5f, 0.45f, 0.55f, 0.5f, 0.55f);
+                p.cubicTo (0.55f, 0.4f, 0.5f, 0.2f, 0.5f, 0.05f);
+                p.closeSubPath();
+                break;
         }
 
         return p;

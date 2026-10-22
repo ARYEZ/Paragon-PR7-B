@@ -2,6 +2,19 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.7.0
+
+**The mockup's look, in detail.**
+
+- **Inter typeface** built in, so text looks crisp and modern on every computer, with a heavy italic **PARAGON X1** badge as in the mockup.
+- **The floor unit:** rose-tinted chrome with a bevelled rim and red light spilling round it. The slot row and the footswitch row sit on raised panels, and the **expression pedal is built into the unit** with two rubber pads and an embossed X1.
+- **3D footswitches**, black slot blocks with glowing icons, the mockup's red ring LEDs, red labels on the button cluster with the HOLD TO TUNER bracket, light outlined VOLUME / WAH / MORPH buttons, and a **MIN** light that shows when the pedal is fully back.
+- **Header:** grouped tabs (now with **SETTINGS**), the rig name between orange arrows, BPM + TAP together, and undo, redo, save and settings icons.
+- **Bottom of the window, as in the mockup:** **RIG BROWSER** shortcuts, **SELECTED RIG** (name, favourite star, bank and number, save), **TAGS** (+ to add, click to remove) and **RIG SUMMARY** cards for every block, plus **EXPRESSION ASSIGN**. Click a card, a footswitch name or a signal-chain block to edit that block's knobs; RIG SUMMARY goes back.
+- **SETTINGS page:** the tuner's reference pitch (A4 = 430-450 Hz), mute while tuning, which **MIDI CC** moves the expression pedal, the rigs folder, and credits.
+- Slim dotted **level meters**, and a bigger **signal chain**.
+- The AMP and CABINET windows show the loaded file's name underneath; hover for the full path and details. The unload (x) button appears on hover.
+
 ## 0.6.0
 
 **Performance features: tuner, tap tempo, undo and the expression pedal.**

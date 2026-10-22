@@ -5,8 +5,7 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 
 ![Paragon X1 mockup](Paragon%20x1.png)
 
-*The design mockup. Version 0.6 has every feature shown in it; the next phase is visual polish
-(see the roadmap).*
+*The design mockup. Version 0.7 matches it closely, feature for feature.*
 
 ## Roadmap
 
@@ -18,7 +17,7 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 | 4 | Rigs, presets, banks, tags | ✅ Done |
 | 5 | Full pedalboard UI from the mockup | ✅ Done |
 | 6 | Expression pedal/morph, tap tempo, undo/redo, tuner | ✅ Done |
-| 7 | Detail and polish pass against the mockup | Next |
+| 7 | Detail and polish pass against the mockup | ✅ Done |
 
 ## Using it
 
@@ -53,11 +52,15 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 - **Undo / redo:** the arrows in the header, UNDO / REDO on the pedal, or Ctrl+Z / Ctrl+Shift+Z
   (Cmd on a Mac). Each knob move, switch, file or rig load is one step. INPUT, OUTPUT and the
   pedal's position aren't undone.
-- **Expression pedal** (right of the unit): drag it, use the mouse wheel, or send MIDI CC 11 from a
+- **Expression pedal** (right of the unit): drag it, use the mouse wheel, or send MIDI CC 11 (or the CC chosen in SETTINGS) from a
   real expression pedal (route your MIDI track to the plugin). Assign it with EXPRESSION ASSIGN to
   **VOLUME**, **WAH / FILTER** (a wah before the drive) or **MORPH / FX** (fades modulation, delay and
   reverb in from the heel). MIN and MAX set where the heel and toe land. The assignment and range
   are saved with each rig.
+- **Bottom panels:** RIG BROWSER jumps to the PRESETS page filtered; SELECTED RIG files and saves the
+  current rig; TAGS and RIG SUMMARY show the rig at a glance. Click a summary card (or a footswitch name,
+  or a signal-chain block) to edit that block's knobs; **RIG SUMMARY** goes back.
+- **SETTINGS:** the tuner's reference pitch, mute while tuning, and the expression pedal's MIDI CC.
 - The paths of the loaded files are saved in your DAW project. If a file is missing when the project
   opens, the slot says so and keeps the path, so moving the file back fixes it.
 
@@ -108,6 +111,9 @@ PARAGON_SNAPSHOT=editor.png ./build/tests/ParagonX1Tests "[snapshot]"
 ```
 
 ## License
+
+The Inter typeface (in `resources/fonts`) is by Rasmus Andersson, under the SIL Open Font License.
+
 
 Paragon X1 is free software under the [GNU Affero General Public License v3](LICENSE.md),
 which is required by JUCE's open-source licence.

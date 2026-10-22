@@ -275,3 +275,29 @@ TEST_CASE ("Expression pedal as WAH and MORPH FX", "[expression]")
     rig.turn (ParamIDs::expression, 1.0f);
     CHECK (std::abs (rig.play (0.5) - clean) > 0.02f);
 }
+
+TEST_CASE ("SETTINGS: the pedal's MIDI CC and the tuner's reference are saved with the project", "[expression][settings]")
+{
+    TestRig rig;
+    rig.turn (ParamIDs::expressionTarget, (float) ExpressionTargets::volume);
+    rig.processor.setExpressionCc (4);
+    rig.processor.setTunerReferenceHz (432.0);
+
+    // CC 4 now moves the pedal; CC 11 no longer does.
+    juce::MidiBuffer midi;
+    midi.addEvent (juce::MidiMessage::controllerEvent (1, 11, 0), 0);
+    CHECK (rig.play (0.2, midi) > 0.05f);
+    midi.addEvent (juce::MidiMessage::controllerEvent (1, 4, 0), 0);
+    CHECK (rig.play (0.2, midi) < 1.0e-4f);
+
+    juce::MemoryBlock state;
+    rig.processor.getStateInformation (state);
+    ParagonX1AudioProcessor restored;
+    restored.setStateInformation (state.getData(), (int) state.getSize());
+    CHECK (restored.getExpressionCc() == 4);
+    CHECK_THAT (restored.getTunerReferenceHz(), WithinAbs (432.0, 1.0e-9));
+
+    // Out-of-range values are kept sensible.
+    restored.setExpressionCc (500);
+    CHECK (restored.getExpressionCc() == 127);
+}

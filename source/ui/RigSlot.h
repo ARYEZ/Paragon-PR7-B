@@ -5,7 +5,8 @@
 // The RIG window on the pedal: shows the current rig, the arrows step
 // through rigs, and clicking the button opens the rig browser
 // ("Load / Save Full Rig" in the mockup).
-class RigSlot final : public juce::Component
+class RigSlot final : public juce::Component,
+                      public juce::SettableTooltipClient
 {
 public:
     RigSlot();
