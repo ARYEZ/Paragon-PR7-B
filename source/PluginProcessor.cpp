@@ -98,6 +98,7 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     delay.prepare (sampleRate, preparedBlockSize);
     reverb.prepare (sampleRate, preparedBlockSize);
     wah.prepare (sampleRate, preparedBlockSize);
+    inputTap.setSampleRate (sampleRate);
 
     expressionVolume.reset (sampleRate, gainRampSeconds);
     expressionVolume.setCurrentAndTargetValue (1.0f);

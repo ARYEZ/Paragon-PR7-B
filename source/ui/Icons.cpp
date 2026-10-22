@@ -117,6 +117,74 @@ namespace Icons
                 p.addCentredArc (0.44f, 0.5f, 0.32f, 0.32f, 0.0f, 0.55f, 2.6f, true);
                 p.addCentredArc (0.44f, 0.5f, 0.46f, 0.46f, 0.0f, 0.6f, 2.55f, true);
                 break;
+
+            case Type::processor:
+                // Three effect blocks joined by a cable, as on the mockup's PROCESSOR tab.
+                p.addRoundedRectangle (0.04f, 0.1f, 0.3f, 0.3f, 0.06f);
+                p.addRoundedRectangle (0.66f, 0.1f, 0.3f, 0.3f, 0.06f);
+                p.addRoundedRectangle (0.35f, 0.6f, 0.3f, 0.3f, 0.06f);
+                p.startNewSubPath (0.34f, 0.25f);
+                p.lineTo (0.66f, 0.25f);
+                p.startNewSubPath (0.19f, 0.4f);
+                p.quadraticTo (0.19f, 0.75f, 0.35f, 0.75f);
+                break;
+
+            case Type::presets:
+                // A 2 x 2 grid of rounded tiles: a library.
+                for (int i = 0; i < 4; ++i)
+                    p.addRoundedRectangle (0.08f + 0.46f * (float) (i % 2), 0.08f + 0.46f * (float) (i / 2), 0.38f, 0.38f, 0.1f);
+                break;
+
+            case Type::undo:
+            case Type::redo:
+            {
+                // A curved arrow turning back on itself; redo is its mirror image.
+                p.startNewSubPath (0.2f, 0.36f);
+                p.lineTo (0.62f, 0.36f);
+                p.cubicTo (0.98f, 0.36f, 0.98f, 0.86f, 0.62f, 0.86f);
+                p.lineTo (0.36f, 0.86f);
+                p.startNewSubPath (0.36f, 0.18f);
+                p.lineTo (0.18f, 0.36f);
+                p.lineTo (0.36f, 0.54f);
+                if (type == Type::redo)
+                    p.applyTransform (juce::AffineTransform::scale (-1.0f, 1.0f, 0.5f, 0.5f));
+                break;
+            }
+
+            case Type::tap:
+                // A square with a dot: the mockup's TAP icon.
+                p.addRoundedRectangle (0.14f, 0.14f, 0.72f, 0.72f, 0.12f);
+                p.addEllipse (0.4f, 0.4f, 0.2f, 0.2f);
+                break;
+
+            case Type::tuner:
+                // A tuning-meter arc with its needle.
+                p.addCentredArc (0.5f, 0.78f, 0.44f, 0.44f, 0.0f, -1.2f, 1.2f, true);
+                p.startNewSubPath (0.5f, 0.78f);
+                p.lineTo (0.62f, 0.4f);
+                p.addEllipse (0.45f, 0.73f, 0.1f, 0.1f);
+                break;
+
+            case Type::volume:
+                // Rising bars, as on the mockup's VOLUME button.
+                for (int i = 0; i < 4; ++i)
+                {
+                    const auto height = 0.22f + 0.2f * (float) i;
+                    p.addRectangle (0.12f + 0.21f * (float) i, 0.88f - height, 0.1f, height);
+                }
+                break;
+
+            case Type::wah:
+                // A resonant peak sweeping across: a filter's response.
+                p.startNewSubPath (0.0f, 0.72f);
+                p.cubicTo (0.3f, 0.72f, 0.36f, 0.1f, 0.48f, 0.1f);
+                p.cubicTo (0.6f, 0.1f, 0.62f, 0.86f, 1.0f, 0.86f);
+                p.startNewSubPath (0.26f, 0.94f);
+                p.lineTo (0.74f, 0.94f);
+                p.startNewSubPath (0.62f, 0.88f);
+                p.lineTo (0.74f, 0.94f);
+                p.lineTo (0.62f, 1.0f);
+                break;
         }
 
         return p;

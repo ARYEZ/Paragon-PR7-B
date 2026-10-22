@@ -18,6 +18,20 @@ public:
         juce::String bank;           // "A".."D", empty when unsaved
         bool modified = false;
         bool bypassed = false;
+
+        // While the tuner is on, the screen shows it instead of the rig.
+        struct Tuner
+        {
+            bool active = false;
+            bool hasNote = false;   // false: nothing played yet, or the note died away
+            juce::String note;      // "E", "F#"...
+            int octave = 0;
+            double cents = 0.0;     // -50 to +50
+            double frequency = 0.0;
+            bool muted = true;
+
+            bool operator== (const Tuner&) const = default;
+        } tuner;
     };
 
     void setContents (const Contents&);
@@ -30,5 +44,7 @@ public:
     static void drawDigit (juce::Graphics&, juce::juce_wchar digit, juce::Rectangle<float> area, juce::Colour lit);
 
 private:
+    void paintTuner (juce::Graphics&, juce::Rectangle<float> content, juce::Colour colour) const;
+
     Contents contents;
 };

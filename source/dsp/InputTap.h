@@ -36,7 +36,12 @@ public:
 
     int capacity() const noexcept { return (int) samples.size(); }
 
+    // The sample rate the audio is written at (0 before the plugin is prepared).
+    void setSampleRate (double newRate) noexcept { rate = newRate; }
+    double getSampleRate() const noexcept { return rate.load(); }
+
 private:
     std::vector<std::atomic<float>> samples;
     std::atomic<int> writePosition { 0 };
+    std::atomic<double> rate { 0.0 };
 };

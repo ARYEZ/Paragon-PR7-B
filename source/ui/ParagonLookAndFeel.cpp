@@ -189,3 +189,33 @@ void ParagonLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int 
     g.setColour (ParagonColours::text);
     g.fillPath (pointer, juce::AffineTransform::rotation (angle).translated (centre));
 }
+
+void ParagonLookAndFeel::drawLinearSlider (juce::Graphics& g, int x, int y, int width, int height,
+                                          float sliderPos, float minSliderPos, float maxSliderPos,
+                                          juce::Slider::SliderStyle style, juce::Slider& slider)
+{
+    if (style != juce::Slider::TwoValueHorizontal)
+    {
+        LookAndFeel_V4::drawLinearSlider (g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
+        return;
+    }
+
+    const auto centreY = (float) y + (float) height * 0.5f;
+    const auto left = (float) x + 8.0f, right = (float) (x + width) - 8.0f;
+
+    g.setColour (ParagonColours::panelEdge);
+    g.fillRoundedRectangle (left, centreY - 2.0f, right - left, 4.0f, 2.0f);
+    g.setColour (ParagonColours::accent);
+    g.fillRoundedRectangle (minSliderPos, centreY - 2.0f, maxSliderPos - minSliderPos, 4.0f, 2.0f);
+
+    for (auto position : { minSliderPos, maxSliderPos })
+    {
+        const auto thumb = juce::Rectangle<float> (14.0f, 14.0f).withCentre ({ position, centreY });
+        g.setColour (ParagonColours::accent.withAlpha (0.25f));
+        g.fillEllipse (thumb.expanded (4.0f));
+        g.setColour (ParagonColours::accent);
+        g.fillEllipse (thumb);
+        g.setColour (ParagonColours::background);
+        g.fillEllipse (thumb.reduced (4.5f));
+    }
+}

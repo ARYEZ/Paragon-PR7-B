@@ -11,6 +11,7 @@
 #include "ui/LevelMeter.h"
 #include "ui/ModelSlot.h"
 #include "ui/PedalBody.h"
+#include "ui/PerformanceControls.h"
 #include "ui/RigBrowser.h"
 #include "ui/RigSlot.h"
 #include "ui/SignalChain.h"
@@ -38,9 +39,9 @@ private:
 // window size, so the layout is the same at every size and stays sharp
 // (everything is drawn as vectors).
 //
-//   header:  logo | PROCESSOR / PRESETS | < rig > | tempo | SAVE
-//   middle:  INPUT strip | the pedal unit | OUTPUT strip
-//   dock:    the selected block's knobs | CURRENT RIG
+//   header:  logo | PROCESSOR / PRESETS | < rig > | tempo  TAP | undo redo | SAVE
+//   middle:  INPUT strip | the pedal unit + expression pedal | OUTPUT strip
+//   dock:    the selected block's knobs | EXPRESSION ASSIGN | CURRENT RIG
 //   bottom:  SIGNAL CHAIN
 class MainView final : public juce::Component,
                        private juce::ChangeListener,
@@ -55,6 +56,7 @@ public:
 
     void paint (juce::Graphics&) override;
     void resized() override;
+    bool keyPressed (const juce::KeyPress&) override;
 
 private:
     // The blocks in signal-chain order; footswitches and the chain strip
@@ -65,6 +67,9 @@ private:
     void timerCallback() override;
 
     void selectBlock (int block);
+    void refreshPerformance();
+    void toggleTuner();
+    void tap();
     void showPage (bool presets);
     void refreshRig();
     void saveRig();
@@ -73,9 +78,13 @@ private:
     ParagonX1AudioProcessor& audioProcessor;
 
     // Header
-    juce::TextButton processorTab { "PROCESSOR" }, presetsTab { "PRESETS" };
+    IconButton processorTab { "Pedalboard and effect settings", Icons::Type::processor, "PROCESSOR" },
+               presetsTab { "Browse, save and organise rigs", Icons::Type::presets, "PRESETS" };
     juce::TextButton previousRig { "<" }, nextRig { ">" }, rigNameButton, saveButton { "SAVE" };
-    juce::Label tempoLabel;
+    juce::TextButton tempoButton;
+    IconButton tapButton { "Tap the tempo for the delay. Hold to open the tuner.", Icons::Type::tap, "TAP" },
+               undoButton { "Undo (Ctrl+Z)", Icons::Type::undo }, redoButton { "Redo (Ctrl+Shift+Z)", Icons::Type::redo };
+    HoldDetector headerTapHold, pedalTapHold;
     juce::Rectangle<int> headerArea, dockArea;
 
     GainColumn inputColumn, outputColumn;
@@ -86,6 +95,13 @@ private:
     juce::ArrowButton rigUp { "Previous rig", 0.75f, ParagonColours::ink }, rigDown { "Next rig", 0.25f, ParagonColours::ink };
     juce::TextButton pedalSave { "SAVE" }, pedalSaveAs { "SAVE AS..." }, bypassButton;
     juce::AudioProcessorValueTreeState::ButtonAttachment bypassAttachment;
+
+    // The 2 x 3 button cluster: UNDO REDO BYPASS / TUNER MUTE TAP
+    juce::TextButton undoPedal, redoPedal, tunerPedal, mutePedal, tapPedal;
+    juce::AudioProcessorValueTreeState::ButtonAttachment tunerAttachment, muteAttachment;
+    juce::Label undoLabel { {}, "UNDO" }, redoLabel { {}, "REDO" }, tunerLabel { {}, "TUNER" },
+                muteLabel { {}, "MUTE" }, tapLabel { {}, "TAP" }, holdLabel { {}, "HOLD TO TUNER" };
+
     juce::Slider rigLevelKnob { juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::NoTextBox },
                  presenceKnob { juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::NoTextBox };
     juce::AudioProcessorValueTreeState::SliderAttachment rigLevelAttachment, presenceAttachment;
@@ -95,6 +111,14 @@ private:
     juce::ToggleButton normaliseButton { "NORMALISE" };
     juce::AudioProcessorValueTreeState::ButtonAttachment normaliseAttachment;
     std::array<std::unique_ptr<Footswitch>, 4> footswitches;
+
+    // Expression pedal and tuner
+    ExpressionAssign pedalAssign;
+    ExpressionPedal expressionPedal;
+    ExpressionPanel expressionPanel;
+    TunerReader tunerReader;
+    LedDisplay::Contents::Tuner tunerState;
+    int ticks = 0;
 
     // Dock and signal chain
     std::array<std::unique_ptr<EffectPanel>, numBlocks> panels;
