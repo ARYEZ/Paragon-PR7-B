@@ -88,8 +88,8 @@ private:
 };
 
 //==============================================================================
-// The expression pedal beside the unit, drawn from the mockup's artwork:
-// the housing, and the treadle rocking in 3D between heel (0) and toe (1). Drag it up and down, or
+// The expression pedal beside the unit: a base, and the treadle covering it,
+// rocking in 3D between heel (0) and toe (1). Drag it up and down, or
 // use the mouse wheel; a MIDI pedal on CC 11 moves it too. The LED strip
 // shows the position, and the label what it's assigned to.
 class ExpressionPedal final : public juce::Component,
@@ -114,7 +114,7 @@ private:
     juce::ParameterAttachment attachment;
     float position = 1.0f, dragStartPosition = 1.0f;
     float shownPosition = 1.0f;   // where the drawn treadle is; eases towards `position` so it glides
-    juce::Image housing, treadle;   // the mockup's pedal artwork
+    juce::Image treadle;   // the treadle's face, drawn once and rocked in 3D
     int target = 0;
 };
 

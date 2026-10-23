@@ -2,6 +2,16 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.12.4
+
+- **A new expression pedal, drawn square and true.** The mockup's pedal artwork was drawn at a slight angle, so its right edge leaned. Stretched to cover the base and rocked in 3D, that showed up as a crooked treadle, a warped right side and odd bands at the ends. The pedal is now drawn in vector graphics, with no picture to bend:
+  - A brushed chrome treadle in the unit's rose-tinted chrome.
+  - The mockup's two black rubber pads split by a diagonal chrome band, now ribbed across like the DigiTech RP6's.
+  - The PR7 mark engraved at the heel.
+  - A dark base with a chrome lip.
+- The treadle covers the base and stays sharp at any window size. As it rocks, only the base shows round the end that drops.
+- The position readout you see while hovering now sits in the middle of the treadle, clear of the PR7 mark.
+
 ## 0.12.3
 
 - **Expression pedal covers its base:** the treadle is now as big as the base it sits on, as on the DigiTech RP6, rather than sitting inside it with gaps round it. The mockup's treadle artwork was narrower than the base, so it's widened to the base's shape (drawn at twice the size, so it stays sharp), with the PR7 mark re-engraved at its own proportions. The base shows only where the treadle rocks away from it, and the treadle stays within the base's footprint, so it never spills over the unit.

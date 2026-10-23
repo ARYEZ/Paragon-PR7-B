@@ -5,7 +5,6 @@
 #include "ui/ParagonLookAndFeel.h"
 #include "ui/SlotWindow.h"
 
-#include <ParagonImages.h>
 
 namespace
 {
@@ -179,13 +178,114 @@ void ExpressionAssign::resized()
 
 namespace
 {
-    // The pedal's layout, in the housing image's pixels (211 x 490): the
-    // treadle covers the whole base, just inside its outer edge, as on a
-    // real floor unit, so the base only shows where the treadle rocks away
-    // from it.
+    // The pedal's layout, in units of the base's size (211 x 490, the
+    // proportions of the mockup's pedal): the treadle covers the whole base,
+    // just inside its chrome edge, as on a real floor unit, so the base only
+    // shows where the treadle rocks away from it.
     constexpr float housingWidth = 211.0f, housingHeight = 490.0f;
-    const juce::Rectangle<float> treadleInHousing { 3.0f, 3.0f, 205.0f, 484.0f };
-    constexpr float baseCorner = 16.0f;   // the base's rounded corners, in housing pixels
+    const juce::Rectangle<float> treadleInHousing { 4.0f, 4.0f, 203.0f, 482.0f };
+    constexpr float baseCorner = 16.0f, treadleCorner = 13.0f;
+    constexpr int treadleOversample = 2;   // the treadle's face is drawn at twice its size, so it stays sharp when rocked
+
+    // The treadle's face, drawn once: a brushed chrome plate in the unit's
+    // own rose-tinted chrome, two black rubber pads split by a diagonal
+    // chrome band (the mockup's design), ribbed across like the DigiTech
+    // RP6's, and the PR7 mark engraved at the heel. Drawn square and true,
+    // so it rocks without any lean or warp.
+    juce::Image makeTreadleFace (int w, int h)
+    {
+        juce::Image face (juce::Image::ARGB, w, h, true);
+        juce::Graphics g (face);
+        const auto bounds = face.getBounds().toFloat();
+        const auto fw = (float) w, fh = (float) h;
+        const auto corner = treadleCorner * fw / treadleInHousing.getWidth();
+
+        juce::Path plate;
+        plate.addRoundedRectangle (bounds.reduced (1.0f), corner);
+        {
+            juce::ColourGradient metal (ParagonColours::metalDark, 0.0f, 0.0f, ParagonColours::metalDark, fw, 0.0f, false);
+            metal.addColour (0.14, ParagonColours::metalLight);
+            metal.addColour (0.5, ParagonColours::metalMid);
+            metal.addColour (0.86, ParagonColours::metalLight);
+            g.setGradientFill (metal);
+            g.fillPath (plate);
+
+            // Brushed along its length: fine streaks of light and shade.
+            juce::Graphics::ScopedSaveState clip (g);
+            g.reduceClipRegion (plate);
+            juce::Random random (7);
+            for (int x = 0; x < w; ++x)
+            {
+                const auto shade = random.nextFloat();
+                g.setColour ((shade > 0.5f ? juce::Colours::white : juce::Colours::black).withAlpha (0.05f * std::abs (shade - 0.5f) * 2.0f));
+                g.fillRect ((float) x, 0.0f, 1.0f, fh);
+            }
+        }
+
+        // The unit's rose tint, so it reads as the same chrome.
+        g.setColour (ParagonColours::glow.withAlpha (0.07f));
+        g.fillPath (plate);
+
+        // Its bevelled edge: lit along the top and left, darker at the bottom right.
+        g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.9f), bounds.getTopLeft(),
+                                                 juce::Colour (0xff5d4c55), bounds.getBottomRight(), false));
+        g.strokePath (plate, juce::PathStrokeType (fw * 0.012f));
+        juce::Path seam;
+        seam.addRoundedRectangle (bounds.reduced (fw * 0.03f), corner * 0.8f);
+        g.setColour (juce::Colours::black.withAlpha (0.25f));
+        g.strokePath (seam, juce::PathStrokeType (1.5f));
+
+        // The two rubber pads, with the diagonal chrome band between them.
+        const auto margin = fw * 0.075f;
+        const auto addPad = [&] (std::initializer_list<juce::Point<float>> points)
+        {
+            juce::Path pad;
+            auto first = true;
+            for (auto point : points)
+            {
+                if (first)
+                    pad.startNewSubPath (point);
+                else
+                    pad.lineTo (point);
+                first = false;
+            }
+            pad.closeSubPath();
+            pad = pad.createPathWithRoundedCorners (fw * 0.05f);
+
+            // Set into the plate: a dark shadow line round it, deepest along the top.
+            g.setColour (juce::Colours::black.withAlpha (0.55f));
+            g.strokePath (pad, juce::PathStrokeType (fw * 0.014f), juce::AffineTransform::translation (0.0f, -1.0f));
+            g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1a1618), 0.0f, pad.getBounds().getY(),
+                                                     juce::Colour (0xff090708), 0.0f, pad.getBounds().getBottom(), false));
+            g.fillPath (pad);
+
+            // Ribs across it, each with a lit top edge and a shadow under it.
+            juce::Graphics::ScopedSaveState clip (g);
+            g.reduceClipRegion (pad);
+            const auto pitch = fh * 0.0125f;
+            for (auto y = pad.getBounds().getY() + pitch * 0.5f; y < pad.getBounds().getBottom(); y += pitch)
+            {
+                g.setColour (juce::Colours::white.withAlpha (0.07f));
+                g.fillRect (0.0f, y, fw, pitch * 0.18f);
+                g.setColour (juce::Colours::black.withAlpha (0.45f));
+                g.fillRect (0.0f, y + pitch * 0.18f, fw, pitch * 0.22f);
+            }
+
+            // The unit's red glow caught along the pad's edge.
+            g.setColour (ParagonColours::glow.withAlpha (0.28f));
+            g.strokePath (pad, juce::PathStrokeType (1.2f));
+        };
+        addPad ({ { margin, margin }, { fw - margin, margin }, { fw - margin, fh * 0.2f }, { margin, fh * 0.47f } });
+        addPad ({ { fw - margin, fh * 0.28f }, { fw - margin, fh * 0.865f }, { margin, fh * 0.865f }, { margin, fh * 0.55f } });
+
+        // The PR7 mark engraved on the plate at the heel.
+        const auto markHeight = fh * 0.04f;
+        Logo::drawPR7 (g, juce::Rectangle<float> (Logo::widthFor (markHeight), markHeight).withCentre ({ fw * 0.5f, fh * 0.928f }),
+                       juce::Justification::centred,
+                       { juce::Colour (0xfff7f3f5), juce::Colour (0xfff7f3f5), juce::Colours::white.withAlpha (0.6f),
+                         juce::Colour (0xff3a3236), 1.6f });
+        return face;
+    }
 }
 
 //==============================================================================
@@ -196,30 +296,8 @@ ExpressionPedal::ExpressionPedal (ParagonX1AudioProcessor& processorToUse)
     setTooltip ("Expression pedal. Drag up and down (or use the mouse wheel) to rock it from heel to toe; "
                 "a MIDI expression pedal moves it too (CC 11, or the one chosen in SETTINGS). Assign it with the EXPRESSION buttons.");
     setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
-    housing = juce::ImageCache::getFromMemory (ParagonImages::ExpressionHousing_png, ParagonImages::ExpressionHousing_pngSize);
-    // The treadle covers the whole base, as on a real floor unit, but the
-    // mockup's treadle artwork (158 x 462) is narrower than the base. Widen
-    // it to the base's proportions, at twice the size so it stays sharp,
-    // then engrave the PR7 mark on the plate under the toe pad at its own
-    // proportions (not widened), so it rocks with the treadle.
-    {
-        const auto art = juce::ImageCache::getFromMemory (ParagonImages::ExpressionTreadle_png, ParagonImages::ExpressionTreadle_pngSize);
-        constexpr int oversample = 2;
-        treadle = juce::Image (juce::Image::ARGB, juce::roundToInt (treadleInHousing.getWidth()) * oversample,
-                               juce::roundToInt (treadleInHousing.getHeight()) * oversample, true);
-        juce::Graphics g (treadle);
-        g.setImageResamplingQuality (juce::Graphics::highResamplingQuality);
-        g.drawImage (art, treadle.getBounds().toFloat(), juce::RectanglePlacement::stretchToFit);
-
-        const auto toArt = juce::AffineTransform::scale ((float) treadle.getWidth() / (float) art.getWidth(),
-                                                         (float) treadle.getHeight() / (float) art.getHeight());
-        const auto plateCentre = juce::Point<float> (87.5f, 427.0f).transformedBy (toArt);
-        const auto plateHeight = 22.0f * (float) treadle.getHeight() / (float) art.getHeight();
-        Logo::drawPR7 (g, juce::Rectangle<float> (Logo::widthFor (plateHeight * 0.8f), plateHeight).withCentre (plateCentre),
-                       juce::Justification::centred,
-                       { juce::Colour (0xfff4f0f2), juce::Colour (0xfff4f0f2), juce::Colours::white.withAlpha (0.5f),
-                         juce::Colour (0xff3a3236), 0.9f * oversample });
-    }
+    treadle = makeTreadleFace (juce::roundToInt (treadleInHousing.getWidth()) * treadleOversample,
+                               juce::roundToInt (treadleInHousing.getHeight()) * treadleOversample);
     setRepaintsOnMouseActivity (true);   // shows the pedal's position while you hover
     startTimerHz (30);   // follows a MIDI pedal smoothly
     timerCallback();
@@ -266,12 +344,10 @@ juce::Rectangle<float> ExpressionPedal::trackArea() const
 
 void ExpressionPedal::paint (juce::Graphics& g)
 {
-    // The base (from the mockup): it shows only where the treadle rocks away from it.
     g.setImageResamplingQuality (juce::Graphics::highResamplingQuality);
-    g.drawImage (housing, housingArea(), juce::RectanglePlacement::stretchToFit);
 
     //==========================================================================
-    // The treadle (the mockup's artwork), rocking in 3D the way Neural DSP and
+    // The treadle, rocking in 3D the way Neural DSP and
     // IK Multimedia show theirs, and as a real floor unit's pedal does: it
     // covers the whole base and pivots on an axle across its middle. It's
     // kept within the base's footprint, so it never spills over the unit.
@@ -286,10 +362,19 @@ void ExpressionPedal::paint (juce::Graphics& g)
     juce::Path base;
     base.addRoundedRectangle (housingArea().reduced (1.0f), baseCorner * scale);
 
+    // The base: dark, with a chrome lip round its edge. It shows only round
+    // the treadle's edge and where the treadle rocks away from it.
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1d171a), 0.0f, housingArea().getY(),
+                                             juce::Colour (0xff0b090a), 0.0f, housingArea().getBottom(), false));
+    g.fillPath (base);
+    g.setGradientFill (juce::ColourGradient (ParagonColours::metalLight, housingArea().getTopLeft(),
+                                             ParagonColours::metalDark.darker (0.4f), housingArea().getBottomRight(), false));
+    g.strokePath (base, juce::PathStrokeType (2.0f * scale));
+
     constexpr float maxTilt = 0.16f;                                   // about 9 degrees each way
     const auto tilt = (shownPosition * 2.0f - 1.0f) * maxTilt;         // + = toe down
     const auto length = flat.getHeight(), width = flat.getWidth();
-    const auto thickness = width * 0.07f;   // the artwork has its own bevelled edge; this is the body under it
+    const auto thickness = width * 0.07f;   // the treadle's body under its face
     const auto pivotZ = thickness * 1.2f;                              // axle height above the base
     const auto cameraZ = length * 3.0f;                                // camera height: how strong the perspective is
     const auto cameraY = length * 0.6f;                                // camera a little towards the player
@@ -314,14 +399,8 @@ void ExpressionPedal::paint (juce::Graphics& g)
         return project (rotate ({ (u - 0.5f) * width, (v - 0.5f) * length, z }));
     };
 
-    // The treadle's outline within its artwork (0-1 across and along it).
-    // The mockup drew the pedal from slightly to the left, so its right edge
-    // leans out a little towards the heel; everything outside the outline is
-    // transparent in the artwork.
-    constexpr float outlineLeft = 3.5f / 158.0f, outlineTop = 2.0f / 462.0f, outlineBottom = 450.5f / 462.0f;
-    constexpr float outlineRightTop = 146.4f / 158.0f, outlineRightBottom = 159.5f / 158.0f;
-    const std::array<juce::Point<float>, 4> outline { juce::Point<float> { outlineLeft, outlineTop }, { outlineRightTop, outlineTop },
-                                                      { outlineRightBottom, outlineBottom }, { outlineLeft, outlineBottom } };
+    // The treadle's outline (0-1 across and along it): square and true.
+    const std::array<juce::Point<float>, 4> outline { juce::Point<float> { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
 
     {
         juce::Graphics::ScopedSaveState clipToBase (g);
@@ -357,7 +436,7 @@ void ExpressionPedal::paint (juce::Graphics& g)
             g.fillPath (wall);
         }
 
-        // The artwork itself, drawn in thin horizontal slices: each slice is
+        // Its face, drawn in thin horizontal slices: each slice is
         // placed and sized where the tilted treadle puts it, which bends the
         // whole picture through the perspective.
         const auto sourceHeight = treadle.getHeight();
@@ -389,7 +468,7 @@ void ExpressionPedal::paint (juce::Graphics& g)
             const auto shaded = juce::Colours::black.withAlpha (0.35f * std::abs (amount));
             g.setGradientFill (juce::ColourGradient (amount < 0.0f ? lit : shaded, toeEnd,
                                                      amount < 0.0f ? shaded : lit, heelEnd, false));
-            g.fillPath (face.createPathWithRoundedCorners (7.0f));
+            g.fillPath (face.createPathWithRoundedCorners (treadleCorner * scale));
         }
     }
 
@@ -401,7 +480,7 @@ void ExpressionPedal::paint (juce::Graphics& g)
                           + "  " + juce::String (juce::roundToInt (position * 100.0f)) + "%";
         const auto font = juce::FontOptions (11.0f, juce::Font::bold);
         const auto pill = juce::Rectangle<float> ((float) juce::GlyphArrangement::getStringWidthInt (font, text) + 18.0f, 20.0f)
-                              .withCentre ({ flat.getCentreX(), flat.getBottom() - 30.0f });
+                              .withCentre (flat.getCentre());
         g.setColour (juce::Colours::black.withAlpha (0.75f));
         g.fillRoundedRectangle (pill, 10.0f);
         g.setColour (active ? ParagonColours::accent : ParagonColours::text);
