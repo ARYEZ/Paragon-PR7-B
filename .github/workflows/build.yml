@@ -82,7 +82,9 @@ jobs:
   # above, zipped, with notes from CHANGELOG.md.
   release:
     name: Release
-    if: github.event_name == 'push'
+    # Off until this copy is renamed to Paragon PR7-B (see CLAUDE.md, step 7):
+    # otherwise it would publish a Paragon PR7-G release here.
+    if: false && github.event_name == 'push'
     needs: build
     runs-on: ubuntu-24.04
     permissions:
