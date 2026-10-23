@@ -20,6 +20,7 @@ namespace
     const ToText asPercent = [] (float value, int) { return juce::String (juce::roundToInt (value * 100.0f)) + "%"; };
     const ToText asHz = [] (float value, int) { return juce::String (value, value < 1.0f ? 2 : 1) + " Hz"; };
     const ToText asMs = [] (float value, int) { return juce::String (juce::roundToInt (value)) + " ms"; };
+    const ToText asTime = [] (float ms, int) { return ms < 1000.0f ? juce::String (juce::roundToInt (ms)) + " ms" : juce::String (ms / 1000.0f, 1) + " s"; };
     const ToText asSemitones = [] (float value, int)
     {
         const auto semitones = juce::roundToInt (value);
@@ -30,6 +31,18 @@ namespace
         return (semitones > 0 ? "+" : "") + juce::String (semitones) + " st";
     };
     const ToText asRatio = [] (float value, int) { return juce::String (value, 1) + ":1"; };
+    // TUNING: the key a standard-tuned guitar ends up in, or a capo.
+    const ToText asTuning = [] (float value, int)
+    {
+        const auto semitones = juce::roundToInt (value);
+        if (semitones == 0)
+            return juce::String ("E standard");
+        if (semitones > 0)
+            return "Capo " + juce::String (semitones);
+        const char* keys[] = { "Eb", "D", "C#", "C", "B", "Bb", "A", "Ab", "G", "F#", "F", "E (-1 oct)" };
+        const auto key = juce::String (keys[juce::jlimit (0, 11, -semitones - 1)]);
+        return semitones == -12 ? key : key + " (" + juce::String (semitones) + ")";
+    };
     const ToText asGate = [] (float value, int)
     {
         return value <= effects::CompGate::gateOffDb ? juce::String ("Off") : juce::String (juce::roundToInt (value)) + " dB";
@@ -213,5 +226,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::glitchPitch, "Glitch Pitch", { -12.0f, 12.0f, 1.0f }, 0.0f, v23, asSemitones));
     layout.add (makeFloat (ParamIDs::glitchChaos, "Glitch Chaos", { 0.0f, 10.0f, 0.1f }, 3.0f, v23, asKnob));
     layout.add (makeFloat (ParamIDs::glitchMix, "Glitch Mix", { 0.0f, 1.0f, 0.01f }, 0.5f, v23, asPercent));
+
+    constexpr int v24 = 24;
+    layout.add (makeFloat (ParamIDs::pitchTune, "Tuning", { -12.0f, 12.0f, 1.0f }, 0.0f, v24, asTuning));
+    layout.add (makeSwitch (ParamIDs::octOn, "Octaver On", v24, false));
+    layout.add (makeFloat (ParamIDs::octSubTwo, "Octaver 2 Down", { 0.0f, 1.0f, 0.01f }, 0.0f, v24, asPercent));
+    layout.add (makeFloat (ParamIDs::octSubOne, "Octaver 1 Down", { 0.0f, 1.0f, 0.01f }, 0.5f, v24, asPercent));
+    layout.add (makeFloat (ParamIDs::octDry, "Octaver Dry", { 0.0f, 1.0f, 0.01f }, 1.0f, v24, asPercent));
+    layout.add (makeFloat (ParamIDs::octUp, "Octaver 1 Up", { 0.0f, 1.0f, 0.01f }, 0.0f, v24, asPercent));
+    layout.add (makeSwitch (ParamIDs::freezeOn, "Freeze", v24, false));
+    layout.add (makeFloat (ParamIDs::freezeLevel, "Freeze Level", { 0.0f, 1.0f, 0.01f }, 0.7f, v24, asPercent));
+    layout.add (makeFloat (ParamIDs::freezeAttack, "Freeze Attack", skewed (10.0f, 5000.0f, 300.0f, 1.0f), 300.0f, v24, asTime));
+    layout.add (makeFloat (ParamIDs::freezeRelease, "Freeze Release", skewed (50.0f, 8000.0f, 1500.0f, 1.0f), 1500.0f, v24, asTime));
     return layout;
 }

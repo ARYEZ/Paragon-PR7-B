@@ -84,16 +84,16 @@ TEST_CASE ("The chain and footswitches pick which block's knobs show; the graphi
     ParagonX1AudioProcessor processor;
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
 
-    // The knob panels in signal-chain order: ten EffectPanels, with the
-    // graphic EQ's own panel as block 5 (after the cabinet).
+    // The knob panels in signal-chain order: eleven EffectPanels, with the
+    // graphic EQ's own panel as block 6 (after the cabinet).
     std::vector<EffectPanel*> effectPanels;
     findAll (*editor, effectPanels);
-    REQUIRE (effectPanels.size() == 10);
+    REQUIRE (effectPanels.size() == 11);
     std::vector<GraphicEqPanel*> eqPanels;
     findAll (*editor, eqPanels);
     REQUIRE (eqPanels.size() == 1);
     std::vector<juce::Component*> panels (effectPanels.begin(), effectPanels.end());
-    panels.insert (panels.begin() + 5, eqPanels[0]);
+    panels.insert (panels.begin() + 6, eqPanels[0]);
 
     const auto visiblePanel = [&]
     {
@@ -109,25 +109,25 @@ TEST_CASE ("The chain and footswitches pick which block's knobs show; the graphi
     };
 
     // To start with the dock shows the graphic EQ.
-    CHECK (visiblePanel() == 5);
+    CHECK (visiblePanel() == 6);
 
     std::vector<SignalChain*> chains;
     findAll (*editor, chains);
     REQUIRE (chains.size() == 1);
-    for (int block = 0; block < 11; ++block)
+    for (int block = 0; block < 12; ++block)
     {
         chains[0]->onSelect (block);
         CHECK (visiblePanel() == block);
     }
 
-    // Footswitch 3's name shows modulation (block 7); footswitch 4's shows delay (block 8).
+    // Footswitch 3's name shows modulation (block 8); footswitch 4's shows delay (block 9).
     std::vector<Footswitch*> footswitches;
     findAll (*editor, footswitches);
     REQUIRE (footswitches.size() == 4);
     footswitches[2]->onSelect();
-    CHECK (visiblePanel() == 7);
-    footswitches[3]->onSelect();
     CHECK (visiblePanel() == 8);
+    footswitches[3]->onSelect();
+    CHECK (visiblePanel() == 9);
 
     // The GRAPHIC EQ button on any other block's panel goes back to the EQ.
     std::vector<juce::TextButton*> buttons;
@@ -136,7 +136,7 @@ TEST_CASE ("The chain and footswitches pick which block's knobs show; the graphi
     REQUIRE (back != buttons.end());
     CHECK ((*back)->isVisible());
     (*back)->onClick();
-    CHECK (visiblePanel() == 5);
+    CHECK (visiblePanel() == 6);
     CHECK_FALSE ((*back)->isVisible());
 }
 

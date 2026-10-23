@@ -34,6 +34,7 @@ namespace ParagonColours
     inline const juce::Colour eq         { 0xffff5a2c };
     inline const juce::Colour filterPitch { 0xffb8f040 };   // lime
     inline const juce::Colour glitch     { 0xffff4fd8 };   // hot magenta
+    inline const juce::Colour pitch      { 0xffbfe6ff };   // ice blue
     inline const juce::Colour loFi       { 0xffe8d29a };   // old-radio cream   // the plugin's neon orange-red
 }
 

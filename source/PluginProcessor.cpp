@@ -105,6 +105,7 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     reverb.prepare (sampleRate, preparedBlockSize);
     loFi.prepare (sampleRate, preparedBlockSize);
     glitch.prepare (sampleRate, preparedBlockSize);
+    pitchBlock.prepare (sampleRate, preparedBlockSize);
     wah.prepare (sampleRate, preparedBlockSize);
     inputTap.setSampleRate (sampleRate);
 
@@ -248,6 +249,12 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     inputGain.setTargetValue (juce::Decibels::decibelsToGain (inputGainDb->load()));
     inputGain.applyGain (mono, numSamples);
     inputMeter.pushSamples (mono, numSamples);
+
+    // PITCH: TUNING, OCTAVER and FREEZE, before anything else shapes the guitar.
+    pitchBlock.process (monoBlock, { param (ParamIDs::pitchTune), isOn (ParamIDs::octOn), param (ParamIDs::octSubTwo),
+                                     param (ParamIDs::octSubOne), param (ParamIDs::octDry), param (ParamIDs::octUp),
+                                     isOn (ParamIDs::freezeOn), param (ParamIDs::freezeLevel),
+                                     param (ParamIDs::freezeAttack) / 1000.0f, param (ParamIDs::freezeRelease) / 1000.0f });
 
     const auto expressionTarget = (int) param (ParamIDs::expressionTarget);
     const auto pedal = expressionAmount();

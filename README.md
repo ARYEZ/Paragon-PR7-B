@@ -44,6 +44,10 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
     gain-reduction meter.
   - **Lo-Fi** (last in the chain; no footswitch): telephone, AM radio, megaphone, cassette (wow, flutter, hiss)
     or bitcrusher, for intros and breakdowns. AMOUNT, NOISE, MIX and LEVEL.
+  - **Pitch** (first in the signal chain; no footswitch): **TUNING** retunes the whole guitar (-12 to +12 semitones: D
+    standard, B, a capo...), the **OCTAVER** blends two octaves down, one down, the dry guitar and one up (POG-style,
+    chords track too), and **FREEZE** holds what you just played as an endless pad you can play over (with LEVEL,
+    ATTACK and RELEASE).
   - **Glitch** (in the signal chain; no footswitch): granular glitch effects in five MODEs (the fifth, **Killswitch**,
     cuts the end of each step to silence, like flicking a guitar's toggle switch in time): **Pitch Delay** (echoes that each
     step in PITCH), **Sequence** (tempo-locked stutters that repeat the slice just played), **Interfere** (dropouts, backwards

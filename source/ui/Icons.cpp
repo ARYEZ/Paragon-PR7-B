@@ -306,6 +306,23 @@ namespace Icons
                 break;
             }
 
+            case Type::pitch:
+            {
+                // A tuning fork: two tines on a stem, ringing.
+                p.startNewSubPath (0.38f, 0.06f);
+                p.lineTo (0.38f, 0.48f);
+                p.quadraticTo (0.38f, 0.62f, 0.5f, 0.62f);
+                p.quadraticTo (0.62f, 0.62f, 0.62f, 0.48f);
+                p.lineTo (0.62f, 0.06f);
+                p.startNewSubPath (0.5f, 0.62f);
+                p.lineTo (0.5f, 0.94f);
+                p.startNewSubPath (0.2f, 0.16f);
+                p.quadraticTo (0.12f, 0.27f, 0.2f, 0.38f);
+                p.startNewSubPath (0.8f, 0.16f);
+                p.quadraticTo (0.88f, 0.27f, 0.8f, 0.38f);
+                break;
+            }
+
             case Type::glitch:
             {
                 // A waveform chopped up: a smooth start, then square stutter

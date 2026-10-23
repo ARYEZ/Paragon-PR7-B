@@ -13,8 +13,11 @@ SignalChain::SignalChain (juce::AudioProcessorValueTreeState& parametersToUse, s
 
 bool SignalChain::isOn (size_t index) const
 {
-    const auto& id = blocks[index].onParameterId;
-    return id.isNotEmpty() && parameters.getRawParameterValue (id)->load() > 0.5f;
+    // A block with more than one switch (PITCH: "octOn,freezeOn") is on if any is.
+    for (const auto& id : juce::StringArray::fromTokens (blocks[index].onParameterId, ",", {}))
+        if (parameters.getRawParameterValue (id)->load() > 0.5f)
+            return true;
+    return false;
 }
 
 void SignalChain::timerCallback()
@@ -160,9 +163,17 @@ void SignalChain::mouseDoubleClick (const juce::MouseEvent& event)
     if (index < 0 || blocks[(size_t) index].onParameterId.isEmpty())
         return;
 
-    auto* parameter = parameters.getParameter (blocks[(size_t) index].onParameterId);
-    parameter->beginChangeGesture();
-    parameter->setValueNotifyingHost (isOn ((size_t) index) ? 0.0f : 1.0f);
-    parameter->endChangeGesture();
+    // On: switch everything in it off. Off: switch its first switch on.
+    const auto ids = juce::StringArray::fromTokens (blocks[(size_t) index].onParameterId, ",", {});
+    const auto turnOff = isOn ((size_t) index);
+    for (const auto& id : ids)
+    {
+        auto* parameter = parameters.getParameter (id);
+        if (! turnOff && id != ids[0])
+            continue;
+        parameter->beginChangeGesture();
+        parameter->setValueNotifyingHost (turnOff ? 0.0f : 1.0f);
+        parameter->endChangeGesture();
+    }
     timerCallback();
 }

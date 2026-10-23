@@ -2,6 +2,16 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.27.0
+
+- **New PITCH block**, first in the signal chain, before anything else shapes the guitar:
+  - **TUNING:** virtual retuning, -12 to +12 semitones. The knob names the result: D standard (-2), B (-5), A (-7)... or Capo 1-12 going up. It shifts every string together (like tuning the whole guitar down), so it can't drop one string alone the way drop D does. At E standard the guitar passes untouched.
+  - **OCTAVER:** a POG-style octave pedal. Levels for two octaves down, one octave down, the dry guitar and one octave up, so you can blend organ-like stacks. Chords track too, with a little shimmer on dense ones.
+  - **FREEZE:** switch it on and what you just played is caught and held as an endless, smooth pad while you play over it. LEVEL sets how loud it is, ATTACK how it swells in, RELEASE how it fades when switched off.
+- The PITCH tile in the signal chain lights when the octaver or freeze is on. Double-click it to switch them off, or the octaver on.
+- With twelve blocks in the chain, the modulation tile now reads MOD.
+- Times of a second or more show in seconds (1.5 s).
+
 ## 0.26.1
 
 - **Chassis bottom edge fixed.** The face plate came down past the rim's polished top and overhung its front edge, so the inner border didn't line up along the bottom. Now:

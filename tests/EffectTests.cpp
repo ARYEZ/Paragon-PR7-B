@@ -822,6 +822,72 @@ TEST_CASE ("Whammy-Wah: the expression pedal plays the XP-100's programs", "[eff
     }
 }
 
+TEST_CASE ("PITCH: TUNING retunes the guitar, the OCTAVER stacks octaves, FREEZE holds a note", "[effects][pitch]")
+{
+    const auto note = sine (330.0, 0.3f, 1.0);
+
+    SECTION ("TUNING: -12 an octave down, +2 a whole step up, 0 untouched")
+    {
+        const auto tuned = [&] (float semitones)
+        {
+            EffectRig rig;
+            rig.set (ParamIDs::pitchTune, semitones);
+            const auto output = rig.runMono (note);
+            REQUIRE (allFinite (output));
+            return output;
+        };
+        const auto down = tuned (-12.0f);
+        CHECK (dB (levelAt (down, 165.0, 0.2) / levelAt (down, 330.0, 0.2)) > 20.0f);
+        const auto up = tuned (2.0f);
+        CHECK (dB (levelAt (up, 330.0 * 1.1225, 0.2) / levelAt (up, 330.0, 0.2)) > 20.0f);
+        CHECK (maxAbsDifference (tuned (0.0f), note) < 1.0e-4f);
+    }
+
+    SECTION ("OCTAVER: each voice on its octave; DRY alone is the guitar as it was")
+    {
+        const auto octaver = [&] (float subTwo, float subOne, float dryLevel, float upOne)
+        {
+            EffectRig rig;
+            rig.set (ParamIDs::octOn, 1.0f);
+            rig.set (ParamIDs::octSubTwo, subTwo);
+            rig.set (ParamIDs::octSubOne, subOne);
+            rig.set (ParamIDs::octDry, dryLevel);
+            rig.set (ParamIDs::octUp, upOne);
+            const auto output = rig.runMono (note);
+            REQUIRE (allFinite (output));
+            return output;
+        };
+        const auto oneDown = octaver (0.0f, 1.0f, 0.0f, 0.0f);
+        CHECK (dB (levelAt (oneDown, 165.0, 0.2) / levelAt (oneDown, 330.0, 0.2)) > 20.0f);
+        const auto twoDown = octaver (1.0f, 0.0f, 0.0f, 0.0f);
+        CHECK (dB (levelAt (twoDown, 82.5, 0.2) / levelAt (twoDown, 330.0, 0.2)) > 20.0f);
+        const auto oneUp = octaver (0.0f, 0.0f, 0.0f, 1.0f);
+        CHECK (dB (levelAt (oneUp, 660.0, 0.2) / levelAt (oneUp, 330.0, 0.2)) > 20.0f);
+        CHECK (maxAbsDifference (octaver (0.0f, 0.0f, 1.0f, 0.0f), note, (size_t) (0.1 * sampleRate)) < 1.0e-3f);
+    }
+
+    SECTION ("FREEZE: holds the note after you stop, and fades when switched off")
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::freezeAttack, 50.0f);
+        rig.set (ParamIDs::freezeRelease, 200.0f);
+        rig.runMono (sine (440.0, 0.3f, 0.6));        // play a note...
+        rig.set (ParamIDs::freezeOn, 1.0f);            // ...freeze it...
+        const auto held = rig.runMono (silence (1.0)); // ...and stop playing
+        REQUIRE (allFinite (held));
+        // Still sounding, a second later, and still the note: its pieces come
+        // from random places in what was caught, so measure loudness (their
+        // phases don't line up over a long stretch) and check that a short
+        // stretch is mostly 440 Hz.
+        CHECK (rms (held, 0.3) > 0.05f);
+        std::vector<float> stretch (held.begin() + (size_t) (0.5 * sampleRate), held.begin() + (size_t) (0.52 * sampleRate));
+        CHECK (dB (levelAt (stretch, 440.0, 0.0) / levelAt (stretch, 1000.0, 0.0)) > 20.0f);
+        rig.set (ParamIDs::freezeOn, 0.0f);
+        const auto released = rig.runMono (silence (0.6));
+        CHECK (rms (released, 0.4) < 1.0e-3f);         // gone after its release
+    }
+}
+
 TEST_CASE ("The auto-wah opens up as you play harder", "[effects][wah]")
 {
     // A bright test note: a 220 Hz tone with its first 15 harmonics.

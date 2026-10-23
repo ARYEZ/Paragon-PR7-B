@@ -120,6 +120,18 @@ namespace ParamIDs
     inline constexpr auto glitchChaos    = "glitchChaos";
     inline constexpr auto glitchMix      = "glitchMix";
 
+    // Version 24: the PITCH block (first in the chain).
+    inline constexpr auto pitchTune      = "pitchTune";        // TUNING, semitones; 0 is standard (off)
+    inline constexpr auto octOn          = "octOn";            // the OCTAVER
+    inline constexpr auto octSubTwo      = "octSubTwo";
+    inline constexpr auto octSubOne      = "octSubOne";
+    inline constexpr auto octDry         = "octDry";
+    inline constexpr auto octUp          = "octUp";
+    inline constexpr auto freezeOn       = "freezeOn";         // FREEZE
+    inline constexpr auto freezeLevel    = "freezeLevel";
+    inline constexpr auto freezeAttack   = "freezeAttack";     // ms
+    inline constexpr auto freezeRelease  = "freezeRelease";    // ms
+
     // Global settings: kept when switching rigs. Everything else is part of a rig.
     // The expression pedal's position is global for the same reason a real
     // pedal's is: it's where your foot is, not part of the sound. What the
