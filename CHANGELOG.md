@@ -2,6 +2,14 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.17.1
+
+- **Pearl white chassis.** The unit's body is now a bright pearl white instead of grey, to go with the neon red, orange and pink.
+  - The brushed-aluminium lines are gone. The finish is smooth satin, like the original mockup, with a very fine speckle and a few mica-like flecks so it still looks like a real painted surface up close.
+  - A faint pearlescent shift runs across the face plate: rose at the left, peach in the middle, lilac at the right.
+  - The bevelled rim, recessed panels, edge highlights, screws and shadows are all as sharp as before. Shading is rose-tinted rather than grey, so the corners stay white.
+  - This changes the chassis only (rim, face plate, panels and the expression pedal's housing). The display, buttons, footswitches, knobs and expression pedal are unchanged.
+
 ## 0.17.0
 
 - **DUCK knob on DELAY and REVERB.** It turns the repeats or the reverb down while you play and lets them swell back in the gaps, so big delays and spaces don't blur your notes.
