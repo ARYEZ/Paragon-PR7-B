@@ -45,6 +45,7 @@ public:
 
 private:
     void paintTuner (juce::Graphics&, juce::Rectangle<float> content, juce::Colour colour) const;
+    void paintGlassOverlay (juce::Graphics&, juce::Rectangle<float> glass) const;
 
     Contents contents;
 };

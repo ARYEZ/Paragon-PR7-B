@@ -116,12 +116,7 @@ void PedalBody::paint (juce::Graphics& g)
 
     // Crisp machined edges: a bright line along the top of the rim, the
     // reflected red along its bottom, and a dark outline all round.
-    g.setColour (juce::Colours::white);
-    {
-        juce::Graphics::ScopedSaveState topOnly (g);   // the top edge only: clip, so the corners don't curl in halfway down
-        g.reduceClipRegion (top.reduced (1.0f).withHeight (top.reduced (1.0f).getHeight() * 0.45f).toNearestInt());
-        g.drawRoundedRectangle (top.reduced (1.0f), chassisRadius, 1.4f);
-    }
+    strokeTopHighlight (g, top.reduced (1.0f), chassisRadius, 1.4f, 1.0f);
     g.setColour (juce::Colour (0xffff8a8a).withAlpha (0.7f));
     g.drawHorizontalLine ((int) top.getBottom() - 1, top.getX() + chassisRadius, top.getRight() - chassisRadius);
     g.setColour (juce::Colours::black.withAlpha (0.7f));
@@ -253,12 +248,7 @@ void PedalBody::paint (juce::Graphics& g)
         g.setGradientFill (juce::ColourGradient (juce::Colours::black.withAlpha (0.0f), 0.0f, bay.getY(),
                                                  juce::Colours::black.withAlpha (0.2f), 0.0f, bay.getBottom(), false));
         g.fillPath (bayPath);
-        g.setColour (juce::Colours::white);
-        {
-            juce::Graphics::ScopedSaveState topOnly (g);   // the top edge only: clip, so the corners don't curl in halfway down
-            g.reduceClipRegion (bay.reduced (1.5f).withHeight (bay.reduced (1.5f).getHeight() * 0.4f).toNearestInt());
-            g.drawRoundedRectangle (bay.reduced (1.5f), 20.0f, 1.0f);
-        }
+        strokeTopHighlight (g, bay.reduced (1.5f), 20.0f, 1.0f, 1.0f);
         g.setColour (juce::Colours::black.withAlpha (0.65f));
         g.drawRoundedRectangle (bay, 22.0f, 1.0f);
     }
@@ -269,6 +259,20 @@ void PedalBody::paint (juce::Graphics& g)
     g.strokePath (geometry.printedInk, juce::PathStrokeType (1.2f));
 
     paintBadge (g);
+}
+
+void PedalBody::strokeTopHighlight (juce::Graphics& g, juce::Rectangle<float> area, float radius, float thickness, float alpha)
+{
+    // Light catching an edge from above: full strength along the top,
+    // fading smoothly down the sides to nothing by about 40% of the way
+    // down, rather than cut off at a hard line.
+    juce::Path edge;
+    edge.addRoundedRectangle (area, radius);
+    juce::ColourGradient fade (juce::Colours::white.withAlpha (alpha), 0.0f, area.getY(),
+                               juce::Colours::white.withAlpha (0.0f), 0.0f, area.getY() + area.getHeight() * 0.42f, false);
+    fade.addColour (0.15, juce::Colours::white.withAlpha (alpha * 0.85f));
+    g.setGradientFill (fade);
+    g.strokePath (edge, juce::PathStrokeType (thickness));
 }
 
 void PedalBody::drawBrushed (juce::Graphics& g) const

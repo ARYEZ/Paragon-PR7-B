@@ -2,6 +2,21 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.13.1
+
+**Knobs, display and buttons polished to match the chassis**, and a fix to the unit's left edge.
+
+- **Left edge:** the bright line along the top of the chassis rim stopped abruptly halfway down its sides. It now fades out smoothly down the sides, as light catching a curved edge does. The pedal bay's edge gets the same fix.
+- **OUTPUT LEVEL and PRESENCE knobs:**
+  - A knurled grip: fine ridges round the cylinder, closer together where the sides turn away.
+  - A chrome collar where each knob meets the face, like the nut and washer a real pot is mounted with.
+  - A crisp lit chamfer on the top's back edge.
+  - A brighter, sharper pointer.
+- **Display:**
+  - A polished chrome frame round the black bezel.
+  - Glass in front of the readout: faint pixel rows, the bezel's shadow along the top, and diagonal reflections across it.
+- **Small buttons** (UNDO, REDO, BYPASS, TUNER, MUTE, TAP, SAVE, SAVE AS): each key sits in a recessed chrome surround, and its top edge catches the light more crisply.
+
 ## 0.13.0
 
 **A crisper, more polished unit.** The chassis looked flat and washed out: one pale shade, a faint texture, soft edges, and panels that barely stood out. It's redrawn for depth and polish:

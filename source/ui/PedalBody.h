@@ -32,6 +32,7 @@ private:
     void makeBrushedTexture();
     void paintBadge (juce::Graphics&) const;
     void drawBrushed (juce::Graphics&) const;   // the brushed grain over the whole component (clip first)
+    static void strokeTopHighlight (juce::Graphics&, juce::Rectangle<float> area, float radius, float thickness, float alpha);
     static void paintScrew (juce::Graphics&, juce::Point<float> centre, float radius);
 
     juce::Image brushed;

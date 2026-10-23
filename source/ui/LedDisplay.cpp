@@ -128,24 +128,41 @@ void LedDisplay::paint (juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat();
 
-    // Bezel: thick glossy black plastic with a soft shadow on the metal and
-    // a fine highlight round its top edge.
-    juce::Path bezel;
-    bezel.addRoundedRectangle (bounds.reduced (1.0f), 10.0f);
-    juce::DropShadow (juce::Colours::black.withAlpha (0.55f), 8, { 0, 3 }).drawForPath (g, bezel);
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2b292c), bounds.getTopLeft(),
-                                             juce::Colour (0xff070607), bounds.getBottomLeft(), false));
-    g.fillPath (bezel);
-    g.setColour (juce::Colours::white.withAlpha (0.18f));
+    // A polished metal frame set into the face: chrome lit from above, with
+    // a dark seam where it meets the black bezel inside it.
+    juce::Path frame;
+    frame.addRoundedRectangle (bounds.reduced (1.0f), 11.0f);
+    juce::DropShadow (juce::Colours::black.withAlpha (0.6f), 9, { 0, 3 }).drawForPath (g, frame);
     {
-        juce::Graphics::ScopedSaveState topOnly (g);   // the top edge only: clip, so the corners don't curl in halfway down
-        g.reduceClipRegion (bounds.reduced (1.5f).withHeight (bounds.reduced (1.5f).getHeight() * 0.4f).toNearestInt());
-        g.drawRoundedRectangle (bounds.reduced (1.5f), 10.0f, 1.0f);
+        juce::ColourGradient chrome (juce::Colour (0xfffaf3f6), 0.0f, bounds.getY(), juce::Colour (0xff5e4f57), 0.0f, bounds.getBottom(), false);
+        chrome.addColour (0.12, juce::Colour (0xffcbbac3));
+        chrome.addColour (0.5, juce::Colour (0xff8f7d87));
+        chrome.addColour (0.85, juce::Colour (0xffb7a4ae));
+        g.setGradientFill (chrome);
+        g.fillPath (frame);
+    }
+    g.setColour (juce::Colours::black.withAlpha (0.65f));
+    g.strokePath (frame, juce::PathStrokeType (1.0f));
+
+    // Inside it, the bezel: thick glossy black plastic, with a fine highlight
+    // along its top edge fading down the sides.
+    const auto bezelArea = bounds.reduced (4.0f);
+    juce::Path bezel;
+    bezel.addRoundedRectangle (bezelArea, 8.0f);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2b292c), bezelArea.getTopLeft(),
+                                             juce::Colour (0xff070607), bezelArea.getBottomLeft(), false));
+    g.fillPath (bezel);
+    {
+        juce::Path edge;
+        edge.addRoundedRectangle (bezelArea.reduced (0.5f), 8.0f);
+        g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.3f), 0.0f, bezelArea.getY(),
+                                                 juce::Colours::white.withAlpha (0.0f), 0.0f, bezelArea.getY() + bezelArea.getHeight() * 0.4f, false));
+        g.strokePath (edge, juce::PathStrokeType (1.0f));
     }
 
     // Tinted glass: very dark, warmed by the orange light behind it, with a
     // faint reflection across the top.
-    auto glass = bounds.reduced (9.0f);
+    auto glass = bounds.reduced (11.0f);
     juce::Path glassPath;
     glassPath.addRoundedRectangle (glass, 5.0f);
     g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1c0b06), glass.getX() + glass.getWidth() * 0.25f, glass.getCentreY(),
@@ -163,6 +180,7 @@ void LedDisplay::paint (juce::Graphics& g)
     if (contents.tuner.active)
     {
         paintTuner (g, content, ledOrange);
+        paintGlassOverlay (g, glass);
         return;
     }
 
@@ -215,6 +233,42 @@ void LedDisplay::paint (juce::Graphics& g)
     }
     g.setColour (contents.modified ? juce::Colour (0xffff6a5a) : ParagonColours::glow.withAlpha (0.12f));
     g.fillEllipse (dot);
+
+    paintGlassOverlay (g, glass);
+}
+
+void LedDisplay::paintGlassOverlay (juce::Graphics& g, juce::Rectangle<float> glass) const
+{
+    // What sits in front of the readout: the glass itself.
+    juce::Path glassPath;
+    glassPath.addRoundedRectangle (glass, 5.0f);
+    juce::Graphics::ScopedSaveState state (g);
+    g.reduceClipRegion (glassPath);
+
+    // The display's fine pixel rows, faintly visible.
+    g.setColour (juce::Colours::black.withAlpha (0.16f));
+    for (auto y = glass.getY() + 1.0f; y < glass.getBottom(); y += 2.0f)
+        g.fillRect (glass.getX(), y, glass.getWidth(), 0.6f);
+
+    // The bezel's shadow falling on the glass along the top.
+    g.setGradientFill (juce::ColourGradient (juce::Colours::black.withAlpha (0.55f), 0.0f, glass.getY(),
+                                             juce::Colours::black.withAlpha (0.0f), 0.0f, glass.getY() + 9.0f, false));
+    g.fillRect (glass.withHeight (9.0f));
+
+    // A reflection in the glass: a soft diagonal band of light across the
+    // upper left, and a fainter one beside it.
+    const auto band = [&] (float start, float width, float alpha)
+    {
+        juce::Path streak;
+        const auto x = glass.getX() + glass.getWidth() * start, w = glass.getWidth() * width, slant = glass.getHeight() * 0.6f;
+        streak.addQuadrilateral (x + slant, glass.getY(), x + slant + w, glass.getY(),
+                                 x + w, glass.getBottom(), x, glass.getBottom());
+        g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (alpha), 0.0f, glass.getY(),
+                                                 juce::Colours::white.withAlpha (0.0f), 0.0f, glass.getBottom(), false));
+        g.fillPath (streak);
+    };
+    band (0.04f, 0.13f, 0.09f);
+    band (0.2f, 0.035f, 0.06f);
 }
 
 void LedDisplay::paintTuner (juce::Graphics& g, juce::Rectangle<float> content, juce::Colour colour) const
