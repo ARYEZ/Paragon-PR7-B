@@ -2,6 +2,25 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.20.0
+
+- **EQ presets.** The graphic EQ has a **PRESETS** menu next to FLAT with twelve starting curves. These are the shapes guitarists most often dial into an octave-band graphic EQ, like an MXR 10-band or the graphic EQ in an amp sim, after the amp and cab:
+  - **Metal Scoop:** the classic V, big lows and highs, mids pulled down.
+  - **Tight Low End:** cuts the boom under high gain so palm mutes stay tight.
+  - **Mud Cut:** clears the boxy low mids around 250–500 Hz.
+  - **Fizz Tamer:** rolls off the harsh top that high-gain captures can have.
+  - **Lead Mid Boost:** pushes 500 Hz–2 kHz so solos sit on top.
+  - **Cut Through the Mix:** less low end, more upper mids, to be heard in a dense band.
+  - **Fat Rhythm:** thick lows and low mids for big rhythm parts.
+  - **British Crunch:** a forward upper-mid bark.
+  - **Bright Clean:** sparkle and air for cleans and chorus.
+  - **Funk Scoop:** scooped low mids with a crisp top.
+  - **Warm Jazz:** round and dark, the highs rolled off.
+  - **Radio:** a narrow mid band, like an old AM radio.
+- Choosing one sets all nine faders and LEVEL and switches the EQ on, so you hear it straight away. Then tweak to taste.
+- Each preset's LEVEL is set to cancel the volume change of its curve (measured across a guitar's range), so switching between them compares tone, not loudness.
+- The menu shows the preset's name while the faders match it. Move a fader and it goes back to PRESETS, because it's now your own curve. Presets are saved with rigs like any other EQ setting.
+
 ## 0.19.0
 
 - **New name: Paragon PR7-G**, the guitar processor, ready for more processors in the Paragon line. The logo on the unit and in the header now reads PR7-G, in the same slanted, speed-cut lettering.

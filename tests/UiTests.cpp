@@ -4,6 +4,8 @@
 #include "Parameters.h"
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
+#include "ui/GraphicEqPanel.h"
+#include "ui/EqPresets.h"
 #include "ui/PerformanceControls.h"
 
 using Catch::Matchers::WithinAbs;
@@ -252,4 +254,34 @@ TEST_CASE ("The expression screen: click a line to assign the pedal, again to un
     scroll (1.0f);
     scroll (1.0f);
     CHECK (target() == ExpressionTargets::volume);
+}
+
+TEST_CASE ("EQ PRESETS: choosing one sets the faders and switches the EQ on; moving a fader lets go of the name", "[ui]")
+{
+    ParagonX1AudioProcessor processor;
+    auto& state = processor.getParameters();
+    GraphicEqPanel panel (state);
+    panel.setBounds (0, 0, 520, 220);
+
+    juce::ComboBox* menu = nullptr;
+    for (auto* child : panel.getChildren())
+        if (auto* box = dynamic_cast<juce::ComboBox*> (child))
+            menu = box;
+    REQUIRE (menu != nullptr);
+    CHECK (menu->getSelectedItemIndex() == -1);   // a flat EQ isn't one of the presets
+
+    const auto value = [&] (const juce::String& id) { return state.getRawParameterValue (id)->load(); };
+    const auto& scoop = EqPresets::all[0];
+    menu->setSelectedItemIndex (0, juce::sendNotificationSync);
+
+    for (int band = 0; band < effects::GraphicEq::numBands; ++band)
+        CHECK_THAT (value (ParamIDs::eqBands[band]), WithinAbs (scoop.gainsDb[(size_t) band], 0.05));
+    CHECK_THAT (value (ParamIDs::eqLevel), WithinAbs (scoop.levelDb, 0.05));
+    CHECK (value (ParamIDs::eqOn) > 0.5f);
+    CHECK (menu->getText() == juce::String (scoop.name));
+
+    // Nudge 1 kHz: it's no longer the preset, so the menu says PRESETS again.
+    auto* band = state.getParameter (ParamIDs::eqBands[4]);
+    band->setValueNotifyingHost (band->convertTo0to1 (0.0f));
+    CHECK (menu->getSelectedItemIndex() == -1);
 }

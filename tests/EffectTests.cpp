@@ -7,6 +7,7 @@
 #include "dsp/effects/Modulation.h"
 #include "dsp/effects/Delay.h"
 #include "dsp/effects/Reverb.h"
+#include "ui/EqPresets.h"
 
 using Catch::Matchers::WithinAbs;
 
@@ -1019,6 +1020,29 @@ TEST_CASE ("Graphic EQ's drawn curve matches what it does", "[effects][eq]")
     CHECK (std::abs (effects::GraphicEq::responseDb (gains, 63.0f)) < 0.5f);
     // A band above half a low sample rate is pulled down rather than breaking.
     CHECK (effects::GraphicEq::bandFrequency (8, 22050.0) < 11025.0f);
+}
+
+TEST_CASE ("EQ presets: in range, named once each, and loudness-matched by LEVEL", "[effects][eq]")
+{
+    std::set<std::string> names;
+    for (const auto& preset : EqPresets::all)
+    {
+        INFO (preset.name);
+        CHECK (names.insert (preset.name).second);
+        for (const auto gain : preset.gainsDb)
+            CHECK (std::abs (gain) <= effects::GraphicEq::maxGainDb);
+        CHECK (std::abs (preset.levelDb) <= 12.0f);
+
+        // The curve's average power change over a guitar's range (80 Hz to
+        // 5 kHz, sampled every 1/24 octave), plus LEVEL, is
+        // close to nothing: switching presets changes the tone, not the volume.
+        auto power = 0.0;
+        auto count = 0;
+        for (auto frequency = 80.0f; frequency <= 5000.0f; frequency *= std::pow (2.0f, 1.0f / 24.0f), ++count)
+            power += std::pow (10.0, effects::GraphicEq::responseDb (preset.gainsDb, frequency) / 10.0);
+        const auto changeDb = 10.0 * std::log10 (power / count) + preset.levelDb;
+        CHECK (std::abs (changeDb) <= 0.5);
+    }
 }
 
 TEST_CASE ("Reverb types: each is a stable stereo space of its own", "[effects][reverb]")
