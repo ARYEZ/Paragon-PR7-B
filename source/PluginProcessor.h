@@ -272,6 +272,7 @@ private:
 
     int preparedBlockSize = 512;
     std::atomic<double> hostBpm { 120.0 }, tappedBpm { 0.0 };
+    double songBeatsAtBlock = -1.0;   // the song position at this block's start, in beats; -1 when not playing (audio thread only)
     TapTempo tapCounter;
 
     juce::CriticalSection statusLock;

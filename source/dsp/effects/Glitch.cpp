@@ -63,7 +63,7 @@ namespace effects
         return juce::jlimit (-24.0f, 24.0f, semitones);
     }
 
-    void Glitch::process (juce::dsp::AudioBlock<float> monoBlock, const Settings& settings, double bpm) noexcept
+    void Glitch::process (juce::dsp::AudioBlock<float> monoBlock, const Settings& settings, double bpm, double songBeats) noexcept
     {
         if (! settings.on && bypass.isSilent())
         {
@@ -92,10 +92,27 @@ namespace effects
             const auto length = lengthInSamples (settings, bpm);
             auto* samples = block.getChannelPointer (0);
 
+            // On the song's grid: only for synced steps, while the song plays.
+            onGrid = songBeats >= 0.0 && settings.sync && bpm > 0.0
+                     && (settings.mode == Mode::sequence || settings.mode == Mode::interfere);
+            if (! onGrid)
+                lastGridStep = std::numeric_limits<juce::int64>::min();
+            const auto stepBeats = (double) syncBeats[(size_t) juce::jlimit (0, (int) std::size (syncBeats) - 1, settings.division)];
+            const auto beatsPerSample = bpm / 60.0 / sampleRate;
+
             for (size_t i = 0; i < block.getNumSamples(); ++i)
             {
                 const auto dry = samples[i];
                 history[(size_t) (written & historyMask)] = dry;
+
+                if (onGrid)
+                {
+                    // Which grid step this sample is in; a new one (or a jump,
+                    // when the DAW loops or seeks) starts a step here.
+                    const auto gridStep = (juce::int64) std::floor ((songBeats + (double) i * beatsPerSample) / stepBeats + 1.0e-9);
+                    gridLine = gridStep != lastGridStep;
+                    lastGridStep = gridStep;
+                }
 
                 float wet = 0.0f;
                 switch (settings.mode)
@@ -142,12 +159,24 @@ namespace effects
         return shifted;
     }
 
+    bool Glitch::startsStep() noexcept
+    {
+        if (! onGrid)
+            return stepRemaining <= 0;   // free-running: one step straight after another
+
+        // On the grid, steps start only on its lines. A step that ends early
+        // (Interfere shortens them) goes back to the live guitar until the next line.
+        if (! gridLine && stepRemaining <= 0)
+            action = Action::live;
+        return gridLine;
+    }
+
     float Glitch::sequenceSample (float input, const Settings& settings, int length) noexcept
     {
         // At each step, maybe (DENSITY) repeat the slice just played for the
         // whole step instead of the live guitar. CHAOS chops the repeat finer
         // (halves, quarters, eighths of the step) and sometimes plays it backwards.
-        if (stepRemaining <= 0)
+        if (startsStep())
         {
             stepRemaining = length;
             stepPlayed = 0;
@@ -186,7 +215,7 @@ namespace effects
         // The guitar in segments (LENGTH, shortened at random by CHAOS); some
         // (DENSITY) are broken: dropped out, played backwards, or caught in a
         // short buzzing loop.
-        if (stepRemaining <= 0)
+        if (startsStep())
         {
             const auto shorten = 1.0f - settings.chaos / 10.0f * 0.75f * chance();
             stepRemaining = juce::jmax (32, (int) ((float) length * shorten));

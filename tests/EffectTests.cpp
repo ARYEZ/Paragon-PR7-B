@@ -21,10 +21,17 @@ namespace
     struct FakePlayHead final : juce::AudioPlayHead
     {
         double bpm = 120.0;
+        bool playing = false;              // a transport that's playing reports the song position
+        double startBeats = 0.0;           // where the song was when the run began, in beats
+        juce::int64 samplesPlayed = 0;     // moved on by EffectRig::run
+
         juce::Optional<PositionInfo> getPosition() const override
         {
             PositionInfo info;
             info.setBpm (bpm);
+            info.setIsPlaying (playing);
+            if (playing)
+                info.setPpqPosition (startBeats + (double) samplesPlayed / sampleRate * bpm / 60.0);
             return info;
         }
     };
@@ -58,6 +65,7 @@ namespace
                 buffer.clear();
                 std::copy (input.begin() + (long) start, input.begin() + (long) start + count, buffer.getWritePointer (0));
                 processor.processBlock (buffer, midi);
+                playHead.samplesPlayed += count;
                 for (int ch = 0; ch < channels; ++ch)
                     output[(size_t) ch].insert (output[(size_t) ch].end(), buffer.getReadPointer (ch), buffer.getReadPointer (ch) + count);
             }
@@ -323,6 +331,32 @@ TEST_CASE ("GLITCH: each mode chops, repeats or smears the guitar as it says", "
         rig.set (ParamIDs::expressionTarget, (float) ExpressionTargets::glitch);
         rig.set (ParamIDs::expression, 0.0f);
         CHECK (maxAbsDifference (rig.runMono (noise), noise, (size_t) (0.1 * sampleRate)) < 1.0e-3f);
+    }
+
+    SECTION ("Synced, with the song playing: steps start on the song's grid lines")
+    {
+        // 1/16 at 120 BPM: steps of a quarter of a beat (6000 samples). The
+        // song starts 0.1 beats in, so the first grid line comes 3600 samples
+        // in, then every 6000. Every step repeats the one before it, so the
+        // step from 9600 is a repeat of the audio from 3600 to 9600.
+        const auto run = [&] (bool playing)
+        {
+            EffectRig rig;
+            glitchRig (rig, effects::Glitch::Mode::sequence, 10.0f, 0.0f);
+            rig.set (ParamIDs::glitchSync, 1.0f);
+            rig.set (ParamIDs::glitchDivision, 3.0f);   // 1/16
+            rig.playHead.playing = playing;
+            rig.playHead.startBeats = 0.1;
+            return rig.runMono (noise);
+        };
+        const auto matchesGrid = [&] (const std::vector<float>& output)
+        {
+            std::vector<float> got (output.begin() + 9600 + 200, output.begin() + 15600 - 200);
+            std::vector<float> expected (noise.begin() + 3600 + 200, noise.begin() + 9600 - 200);
+            return maxAbsDifference (got, expected) < 0.01f;
+        };
+        CHECK (matchesGrid (run (true)));
+        CHECK_FALSE (matchesGrid (run (false)));   // stopped: steps count from switch-on (0, 6000, 12000...)
     }
 
     SECTION ("PRE and POST both glitch the guitar")

@@ -2,6 +2,13 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.24.1
+
+- **GLITCH locks to the song's grid.** With SYNC on and your DAW playing, **Sequence** and **Interfere** start each step exactly on the song's grid lines: every 1/16 on a 16th note, every 1-bar step on the downbeat.
+  - Stutters now lock to the drums, and fall in the same places every time you play the song back.
+  - If the DAW loops or you jump to another spot, the steps follow the new position.
+  - When the transport is stopped, or the tempo is tapped (which doesn't match the DAW's grid), the steps count from when GLITCH switches on, as before. Pitch Delay and Texturizer aren't grid-based, so they're unchanged.
+
 ## 0.24.0
 
 - **GLITCH**, a new block for granular glitch, stutter and texture effects. It keeps the last few seconds of your playing and plays pieces of it back. Four MODEs:

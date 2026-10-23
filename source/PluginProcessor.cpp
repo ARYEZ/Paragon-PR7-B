@@ -129,10 +129,17 @@ float ParagonX1AudioProcessor::param (const char* id) const
 
 void ParagonX1AudioProcessor::readHostTempo()
 {
+    // The song position too, while the transport plays, so GLITCH can put its
+    // steps on the song's grid. -1: not playing, or the host doesn't say.
+    songBeatsAtBlock = -1.0;
     if (auto* host = getPlayHead())
         if (const auto position = host->getPosition())
+        {
             if (const auto bpm = position->getBpm(); bpm.hasValue() && *bpm > 0.0)
                 hostBpm = *bpm;
+            if (const auto beats = position->getPpqPosition(); position->getIsPlaying() && beats.hasValue())
+                songBeatsAtBlock = *beats;
+        }
 }
 
 bool ParagonX1AudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -267,8 +274,13 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
                                                      param (ParamIDs::glitchPitch), param (ParamIDs::glitchChaos),
                                                      param (ParamIDs::glitchMix) * (expressionTarget == ExpressionTargets::glitch ? pedal : 1.0f) };
     const auto glitchPre = (int) param (ParamIDs::glitchPosition) == (int) effects::Glitch::Position::pre;
+    // Where this chunk starts in the song. Only while the DAW's own tempo is
+    // in charge: a tapped tempo doesn't match the DAW's grid.
+    const auto songBeats = songBeatsAtBlock >= 0.0 && tappedBpm.load() <= 0.0
+                               ? songBeatsAtBlock + (double) start / getSampleRate() * hostBpm.load() / 60.0
+                               : -1.0;
     if (glitchPre)
-        glitch.process (monoBlock, glitchSettings, getTempoBpm());
+        glitch.process (monoBlock, glitchSettings, getTempoBpm(), songBeats);
 
     drive.process (monoBlock, { isOn (ParamIDs::driveOn), (effects::Drive::Model) (int) param (ParamIDs::driveModel),
                                 param (ParamIDs::driveGain), param (ParamIDs::driveTone), param (ParamIDs::driveLevel) });
@@ -284,7 +296,7 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     eq.levelDb = param (ParamIDs::eqLevel);
     graphicEq.process (monoBlock, eq);
     if (! glitchPre)
-        glitch.process (monoBlock, glitchSettings, getTempoBpm());
+        glitch.process (monoBlock, glitchSettings, getTempoBpm(), songBeats);
 
     // From here on, stereo: modulation, delay and reverb spread the sound
     // across both speakers.

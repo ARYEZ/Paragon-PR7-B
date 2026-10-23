@@ -47,7 +47,8 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
   - **Glitch** (in the signal chain; no footswitch): granular glitch effects in four MODEs: **Pitch Delay** (echoes that each
     step in PITCH), **Sequence** (tempo-locked stutters that repeat the slice just played), **Interfere** (dropouts, backwards
     slivers and buzzing loops) and **Texturizer** (a cloud of grains). LENGTH (in note values with SYNC), DENSITY, PITCH, CHAOS
-    (randomises everything together: low is rhythmic, high is unpredictable) and MIX. POSITION puts it after the amp (POST,
+    (randomises everything together: low is rhythmic, high is unpredictable) and MIX. With SYNC on and the DAW playing,
+    Sequence and Interfere start their steps on the song's grid (every 1/16, every bar...), locked to the drums. POSITION puts it after the amp (POST,
     the default: exact chops) or before it (PRE: the chops hit the drive). The expression pedal's GLITCH setting fades it in.
   - **Filter / Pitch** (in the signal chain; no footswitch): an auto-wah (envelope filter), a pitch shifter
     (two octaves down to two up, blended with the dry guitar for harmonies and octaves), or a **Whammy-Wah**: the

@@ -55,7 +55,13 @@ namespace effects
 
         void prepare (double sampleRate, int maxBlockSize);
         void reset();
-        void process (juce::dsp::AudioBlock<float> monoBlock, const Settings& settings, double bpm) noexcept;
+        // `songBeats`: where the block's first sample is in the song, in beats
+        // (quarter notes), while the DAW's transport is playing; negative when
+        // it isn't (or the tempo is tapped, so the DAW's grid doesn't apply).
+        // With SYNC on, Sequence and Interfere then start their steps on the
+        // song's grid lines (every 1/16, every bar...) rather than counting
+        // from when GLITCH was switched on.
+        void process (juce::dsp::AudioBlock<float> monoBlock, const Settings& settings, double bpm, double songBeats = -1.0) noexcept;
 
         // LENGTH in samples for these settings (at least a few milliseconds,
         // at most two seconds).
@@ -75,6 +81,7 @@ namespace effects
         float pitchDelaySample (float input, const Settings& settings, int length) noexcept;
         float sequenceSample (float input, const Settings& settings, int length) noexcept;
         float interfereSample (float input, const Settings& settings, int length) noexcept;
+        bool startsStep() noexcept;   // whether this sample begins a new step or segment
         float texturizerSample (const Settings& settings, int length) noexcept;
         float chance() noexcept { return random.nextFloat(); }
         float semitonesWithChaos (float semitones, float chaos) noexcept;
@@ -105,6 +112,10 @@ namespace effects
         juce::int64 sliceStart = 0;
         double loopStep = 1.0;
         float blend = 0.0f;   // 0: live, 1: the action
+
+        // Grid alignment: while the song plays, steps start on its grid lines.
+        bool onGrid = false, gridLine = false;
+        juce::int64 lastGridStep = std::numeric_limits<juce::int64>::min();
 
         // Texturizer
         std::array<Grain, 32> grains;
