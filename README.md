@@ -56,7 +56,7 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 - **Rigs:** SAVE in the header saves the current sound as a rig; **<** and **>** step through rigs; a
   `*` after the name means it's changed since loading. The **PRESETS** tab browses, searches, files
   (banks A-D), tags and favourites rigs. Factory rigs set the effects and keep your amp and cab.
-  INPUT and OUTPUT stay put when you switch rigs; each rig has its own **OUTPUT LEVEL**.
+  INPUT and OUTPUT stay put when you switch rigs; each rig has its own **RIG LEVEL** (on the unit), which adds to OUTPUT.
 - **TAP** (header or pedal) sets the delay's tempo from your taps; the BPM turns orange. Click the
   BPM to follow your DAW's tempo again. The TAP light flashes in time.
 - **Tuner:** hold TAP, or press TUNER on the pedal. The screen shows the note, how many cents off it

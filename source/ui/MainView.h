@@ -112,7 +112,7 @@ private:
     juce::Slider rigLevelKnob { juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::NoTextBox },
                  presenceKnob { juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::NoTextBox };
     juce::AudioProcessorValueTreeState::SliderAttachment rigLevelAttachment, presenceAttachment;
-    juce::Label rigLevelLabel { {}, "OUTPUT LEVEL" }, presenceLabel { {}, "PRESENCE" };
+    juce::Label rigLevelLabel { {}, "RIG LEVEL" }, presenceLabel { {}, "PRESENCE" };
     ModelSlot ampSlot, cabSlot;
     RigSlot rigSlot;
     std::array<std::unique_ptr<Footswitch>, 4> footswitches;

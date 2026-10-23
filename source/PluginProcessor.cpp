@@ -307,7 +307,7 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
                                  param (ParamIDs::lofiAmount), param (ParamIDs::lofiNoise),
                                  param (ParamIDs::lofiMix) * loFiPedal, param (ParamIDs::lofiLevel) });
 
-    // The master OUTPUT knob plus the rig's own OUTPUT LEVEL, and the
+    // The master OUTPUT knob plus the rig's own RIG LEVEL, and the
     // expression pedal when it's a VOLUME pedal. Squaring the position gives
     // the "audio taper" of a real volume pedal: half way down is about
     // -12 dB rather than -6 dB, so the quiet end of the travel is usable.

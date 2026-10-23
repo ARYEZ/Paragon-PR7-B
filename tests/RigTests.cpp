@@ -374,7 +374,7 @@ TEST_CASE ("The DAW project remembers which rig was loaded", "[rigs][state]")
     CHECK_THAT (restored.getParameters().getRawParameterValue (ParamIDs::driveGain)->load(), WithinAbs (3.0, 0.01));
 }
 
-TEST_CASE ("Each rig's OUTPUT LEVEL adds to the master output", "[rigs]")
+TEST_CASE ("Each rig's RIG LEVEL adds to the master output", "[rigs]")
 {
     RigRig r;
     r.set (ParamIDs::rigLevel, 6.0f);

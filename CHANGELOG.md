@@ -2,6 +2,10 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.14.1
+
+- The knob on the unit that was labelled **OUTPUT LEVEL** is now **RIG LEVEL**, so it isn't confused with the master **OUTPUT** knob on the right. It works as before: it's each rig's own volume, saved with the rig for balancing rigs against each other, and it adds to OUTPUT, the overall volume that stays put when you switch rigs. Hover over it for a reminder.
+
 ## 0.14.0
 
 - **The graphic EQ is now the dock's main view.** The TAGS / RIG SUMMARY panel is gone: the middle of the dock shows the graphic EQ until you pick another block in the signal chain or click a footswitch's name. A **GRAPHIC EQ** button on the other blocks' panels takes you back. You can still edit tags on the PRESETS page.

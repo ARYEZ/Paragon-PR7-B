@@ -42,7 +42,7 @@ public:
     ParagonLookAndFeel();
 
     // Set this property on a slider to draw it as one of the big black
-    // knobs on the pedal face (OUTPUT LEVEL, PRESENCE) instead of the
+    // knobs on the pedal face (RIG LEVEL, PRESENCE) instead of the
     // small ringed knob.
     static constexpr const char* pedalKnobProperty = "pedalKnob";
 

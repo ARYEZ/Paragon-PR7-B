@@ -297,7 +297,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                          { ParamIDs::driveLevel, "LEVEL" } } } });
     panels[ampBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "AMP (NAM)", { { ParamIDs::ampOn, "ON" }, { ParamIDs::ampNormalise, "NORMALISE" }, { ParamIDs::presence, "PRESENCE" },
-                         { ParamIDs::rigLevel, "OUTPUT LEVEL" } } } });
+                         { ParamIDs::rigLevel, "RIG LEVEL" } } } });
     panels[cabBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "CABINET (IR)", { { ParamIDs::cabOn, "ON" }, { ParamIDs::presence, "PRESENCE" } } } });
     panels[modBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {

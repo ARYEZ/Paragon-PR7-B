@@ -117,7 +117,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::reverbTone, "Reverb Tone", { 0.0f, 10.0f, 0.1f }, 6.0f, v3, asKnob));
     layout.add (makeFloat (ParamIDs::reverbMix, "Reverb Mix", { 0.0f, 1.0f, 0.01f }, 0.28f, v3, asPercent));
 
-    // Added in plugin version 4 (Phase 4): the OUTPUT LEVEL knob on the
+    // Added in plugin version 4 (Phase 4): the RIG LEVEL knob (first called OUTPUT LEVEL) on the
     // mockup's pedal face, saved with each rig to balance rigs' volumes.
     layout.add (makeFloat (ParamIDs::rigLevel, "Rig Level", { -24.0f, 12.0f, 0.1f }, 0.0f, 4, asDb));
 
