@@ -56,8 +56,10 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
     DigiTech XP-100's factory programs 01–28, numbered as on the pedal and played with the expression pedal (WHAMMY-WAH):
     a volume pedal, five wahs, six auto-wahs (the pedal sets sensitivity or attack), eight whammy bends (heel: no shift,
     toe: the interval, as far as six octaves down) and eight harmonies (your note plus a voice the pedal moves between two intervals).
-  - **2 OD / Distortion:** two models: **Screamer**, modelled on the Ibanez TS808 Tube Screamer's circuit, and
-    **Classic**, Paragon's original overdrive. Drive, tone, level; 8x oversampled to avoid harsh aliasing.
+  - **2 OD / Distortion:** four models: **Screamer**, modelled on the Ibanez TS808 Tube Screamer's circuit;
+    **Classic**, Paragon's original overdrive; **Muff Fuzz**, following the Big Muff's two clipping stages and
+    mid-scooping tone stack (long, violin-like sustain); and **Face Fuzz**, following the silicon Fuzz Face's uneven
+    clipping (raspy and round, cleaning up with the guitar's volume). Drive, tone, level; 8x oversampled to avoid harsh aliasing.
   - **3 Modulation:** eleven types: chorus, flanger, phaser, tremolo, Dimension chorus, Uni-Vibe, rotary
     (Leslie), vibrato, harmonic tremolo, auto-pan and doubler. SYNC locks the rate to the tapped or DAW tempo.
   - **4 Reverb / Delay:** switches both; each also has its own ON switch. The delay syncs to your

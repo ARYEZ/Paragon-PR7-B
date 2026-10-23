@@ -386,6 +386,63 @@ TEST_CASE ("GLITCH: each mode chops, repeats or smears the guitar as it says", "
     }
 }
 
+TEST_CASE ("Fuzzes: Muff sustains with odd harmonics and scoops the mids; Face clips unevenly and cleans up", "[effects][drive]")
+{
+    const auto play = [] (effects::Drive::Model model, float amplitude, float drive = 5.0f, float tone = 5.0f, double hz = 220.0)
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::driveOn, 1.0f);
+        rig.set (ParamIDs::driveModel, (float) model);
+        rig.set (ParamIDs::driveGain, drive);
+        rig.set (ParamIDs::driveTone, tone);
+        const auto output = rig.runMono (sine (hz, amplitude, 1.0));
+        REQUIRE (allFinite (output));
+        return output;
+    };
+
+    SECTION ("At LEVEL 0 dB both sit near the guitar's own level, at any FUZZ / SUSTAIN")
+    {
+        for (const auto model : { effects::Drive::Model::muff, effects::Drive::Model::face })
+            for (const auto drive : { 2.0f, 5.0f, 9.0f })
+            {
+                INFO ("model " << (int) model << ", drive " << drive);
+                CHECK (std::abs (dB (rms (play (model, 0.3f, drive), 0.3) / (0.3f / std::sqrt (2.0f)))) < 3.0f);
+            }
+    }
+
+    SECTION ("Muff clips both halves alike (odd harmonics); Face clips one harder (a strong 2nd)")
+    {
+        const auto secondToThird = [&] (effects::Drive::Model model)
+        {
+            const auto output = play (model, 0.3f, 7.0f, 7.0f);
+            return dB (levelAt (output, 440.0, 0.3) / levelAt (output, 660.0, 0.3));
+        };
+        CHECK (secondToThird (effects::Drive::Model::face) > secondToThird (effects::Drive::Model::muff) + 10.0f);
+    }
+
+    SECTION ("Face cleans up as the guitar's volume comes down")
+    {
+        const auto harmonics = [&] (float amplitude)
+        {
+            const auto output = play (effects::Drive::Model::face, amplitude, 5.0f);
+            return dB ((levelAt (output, 440.0, 0.3) + levelAt (output, 660.0, 0.3)) / levelAt (output, 220.0, 0.3));
+        };
+        CHECK (harmonics (0.3f) > harmonics (0.01f) + 10.0f);
+    }
+
+    SECTION ("Muff's TONE scoops the mids at noon")
+    {
+        // A quiet 1 kHz tone (still fuzzed), against 250 Hz, through the tone stack.
+        const auto midsAgainstLows = [&] (float tone)
+        {
+            const auto mids = play (effects::Drive::Model::muff, 0.3f, 5.0f, tone, 1000.0);
+            const auto lows = play (effects::Drive::Model::muff, 0.3f, 5.0f, tone, 250.0);
+            return dB (rms (mids, 0.3) / rms (lows, 0.3));
+        };
+        CHECK (midsAgainstLows (5.0f) < midsAgainstLows (10.0f) - 3.0f);
+    }
+}
+
 TEST_CASE ("Noise gate silences signal below its threshold", "[effects][comp]")
 {
     EffectRig rig;

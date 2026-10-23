@@ -4,7 +4,7 @@
 
 namespace effects
 {
-    // Footswitch 2: an overdrive pedal, before the amp, in two models.
+    // Footswitch 2: an overdrive or fuzz pedal, before the amp, in four models.
     //
     // SCREAMER is modelled on the Ibanez TS808 Tube Screamer's circuit:
     //
@@ -30,12 +30,29 @@ namespace effects
     // (aliasing). Running the clipper at 8x the rate keeps them out: at full
     // drive a high note is close to a square wave, whose harmonics reach far
     // enough that 4x still let audible fold-back through.
+    //
+    // MUFF FUZZ follows the Big Muff's circuit (David Gilmour's lead sound):
+    //
+    //   x -> low cut -> [gain -> diode clip] -> [gain -> diode clip] -> tone stack -> level
+    //
+    // Two clipping stages one after the other give its long, violin-like
+    // sustain (DRIVE is its SUSTAIN). Its tone stack blends a low-pass and a
+    // high-pass with one knob, so the middle of TONE scoops the mids.
+    //
+    // FACE FUZZ follows the silicon Fuzz Face (Gilmour's earlier sound):
+    //
+    //   x -> pickup loading (a soft treble cut) -> gain -> asymmetric clip -> treble cut (TONE) -> level
+    //
+    // One high-gain stage that clips one half of the wave harder than the
+    // other: a raspy, round fuzz full of even harmonics, which cleans up
+    // when the guitar's volume comes down. The original has no tone knob:
+    // TONE here is a gentle treble cut.
     class Drive
     {
     public:
         // Saved by number in rigs and projects: only ever add to the end.
-        enum class Model { classic, screamer };
-        static inline const juce::StringArray modelNames { "Classic", "Screamer (TS)" };
+        enum class Model { classic, screamer, muff, face };
+        static inline const juce::StringArray modelNames { "Classic", "Screamer (TS)", "Muff Fuzz", "Face Fuzz" };
 
         struct Settings
         {
@@ -57,6 +74,8 @@ namespace effects
     private:
         void processClassic (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept;
         void processScreamer (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept;
+        void processMuff (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept;
+        void processFace (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept;
 
         double sampleRate = 48000.0;
         juce::dsp::Oversampling<float> oversampling;
@@ -71,6 +90,11 @@ namespace effects
         juce::dsp::IIR::Filter<float> screamerLowCut;
         float clipLowPassState = 0.0f, toneState = 0.0f, outputCouplingState = 0.0f;
         juce::SmoothedValue<float> screamerGain, screamerTone, screamerLevel;
+        // The fuzzes' one-pole filters: Muff (input cut, two stages' tops and
+        // the coupling between them, tone stack) and Face (pickup loading,
+        // the transistors' top, the output coupling, tone).
+        std::array<float, 8> fuzzStates {};
+        juce::SmoothedValue<float> fuzzGain, fuzzTone, fuzzLevel;
         Model lastModel = Model::screamer;
         BypassFade bypass;
     };

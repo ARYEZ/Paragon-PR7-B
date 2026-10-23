@@ -28,6 +28,8 @@ namespace effects
         constexpr float toneCornerHz = 723.0f;
         constexpr float diodeVolts = 0.6f;         // about where a silicon diode starts conducting
         constexpr float screamerOutputScale = 0.35f;   // so LEVEL 0 dB is roughly the guitar's own level
+        constexpr float muffOutputScale = 0.82f;       // the same for the fuzzes
+        constexpr float faceOutputScale = 0.29f;
 
         float onePoleCoefficient (double rate, float hz)
         {
@@ -70,6 +72,10 @@ namespace effects
         screamerGain.reset (sampleRate, 0.02);
         screamerTone.reset (sampleRate, 0.02);
         screamerLevel.reset (sampleRate, 0.02);
+        fuzzStates.fill (0.0f);
+        fuzzGain.reset (sampleRate, 0.02);
+        fuzzTone.reset (sampleRate, 0.02);
+        fuzzLevel.reset (sampleRate, 0.02);
 
         lowCut.coefficients = juce::dsp::IIR::Coefficients<float>::makeFirstOrderHighPass (sampleRate, lowCutHz);
         toneFilter.coefficients = juce::dsp::IIR::Coefficients<float>::makeLowPass (sampleRate, 4000.0f);
@@ -97,12 +103,16 @@ namespace effects
                 lowCut.reset();
                 toneFilter.reset();
                 clipLowPassState = toneState = outputCouplingState = 0.0f;
+                fuzzStates.fill (0.0f);
             }
 
-            if (settings.model == Model::screamer)
-                processScreamer (block, settings);
-            else
-                processClassic (block, settings);
+            switch (settings.model)
+            {
+                case Model::screamer: processScreamer (block, settings); break;
+                case Model::muff:     processMuff (block, settings); break;
+                case Model::face:     processFace (block, settings); break;
+                case Model::classic:  processClassic (block, settings); break;
+            }
         });
     }
 
@@ -186,6 +196,114 @@ namespace effects
             const auto toned = toneState + screamerTone.getNextValue() * (summed[i] - toneState);
             outputCouplingState += (toned - outputCouplingState) * coupling;
             samples[i] = (toned - outputCouplingState) * screamerLevel.getNextValue();
+        }
+    }
+
+    void Drive::processMuff (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept
+    {
+        const auto numSamples = (int) block.getNumSamples();
+        auto* samples = block.getChannelPointer (0);
+        auto& [inputCut, stage1Top, coupling, stage2Top, toneLow, toneHigh, outputCoupling, unused] = fuzzStates;
+        juce::ignoreUnused (unused);
+
+        // SUSTAIN: each stage's gain, from about 12 to 34 dB.
+        const auto knob = juce::jlimit (0.0f, 10.0f, settings.drive) / 10.0f;
+        fuzzGain.setTargetValue (juce::Decibels::decibelsToGain (12.0f + 22.0f * knob));
+
+        // The input coupling: a low cut at 100 Hz, so low notes don't flub.
+        const auto inputCutCoefficient = onePoleCoefficient (sampleRate, 100.0f);
+        for (int i = 0; i < numSamples; ++i)
+        {
+            inputCut += (samples[i] - inputCut) * inputCutCoefficient;
+            samples[i] -= inputCut;
+        }
+
+        // At 8x the rate: two stages of gain and diode clipping, each with its
+        // top softened (as the transistors' capacitors do), coupled between
+        // them by a low cut that keeps the second stage from farting out.
+        auto upsampled = oversampling.processSamplesUp (block);
+        const auto fastRate = sampleRate * (double) oversampling.getOversamplingFactor();
+        const auto top1 = onePoleCoefficient (fastRate, 5000.0f), top2 = onePoleCoefficient (fastRate, 3500.0f);
+        const auto couplingCut = onePoleCoefficient (fastRate, 80.0f);
+        auto* fast = upsampled.getChannelPointer (0);
+        for (size_t i = 0; i < upsampled.getNumSamples(); ++i)
+        {
+            const auto gain = fuzzGain.getNextValue();
+            stage1Top += (fast[i] * gain - stage1Top) * top1;
+            auto x = diodeClip (stage1Top);
+            coupling += (x - coupling) * couplingCut;
+            x = (x - coupling) * gain;
+            stage2Top += (x - stage2Top) * top2;
+            fast[i] = diodeClip (stage2Top);
+        }
+        oversampling.processSamplesDown (block);
+
+        // The tone stack: a low-pass (400 Hz) and a high-pass (1.1 kHz) blended
+        // by TONE, so it runs from warm and woolly through a mid scoop to bright.
+        const auto lowCoefficient = onePoleCoefficient (sampleRate, 400.0f), highCoefficient = onePoleCoefficient (sampleRate, 1100.0f);
+        const auto outputCouplingCoefficient = onePoleCoefficient (sampleRate, 20.0f);
+        fuzzTone.setTargetValue (juce::jlimit (0.0f, 10.0f, settings.tone) / 10.0f);
+        fuzzLevel.setTargetValue (muffOutputScale * juce::Decibels::decibelsToGain (settings.levelDb));
+        for (int i = 0; i < numSamples; ++i)
+        {
+            toneLow += (samples[i] - toneLow) * lowCoefficient;
+            toneHigh += (samples[i] - toneHigh) * highCoefficient;
+            const auto tone = fuzzTone.getNextValue();
+            const auto mixed = toneLow * (1.0f - tone) + (samples[i] - toneHigh) * tone * 1.6f;   // the high path is the quieter one
+            outputCoupling += (mixed - outputCoupling) * outputCouplingCoefficient;
+            samples[i] = (mixed - outputCoupling) * fuzzLevel.getNextValue();
+        }
+    }
+
+    void Drive::processFace (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept
+    {
+        const auto numSamples = (int) block.getNumSamples();
+        auto* samples = block.getChannelPointer (0);
+        auto& [loading, inputCut, transistorTop, outputCoupling, toneState2, unused1, unused2, unused3] = fuzzStates;
+        juce::ignoreUnused (unused1, unused2, unused3);
+
+        // FUZZ: the gain into the clipping, from about 8 to 42 dB.
+        const auto knob = juce::jlimit (0.0f, 10.0f, settings.drive) / 10.0f;
+        fuzzGain.setTargetValue (juce::Decibels::decibelsToGain (8.0f + 34.0f * knob));
+
+        // The Fuzz Face's low input impedance loads the pickup: a soft treble
+        // cut before it even starts. And a low cut at 40 Hz (its input capacitor).
+        const auto loadingCoefficient = onePoleCoefficient (sampleRate, 6000.0f);
+        const auto inputCutCoefficient = onePoleCoefficient (sampleRate, 40.0f);
+        for (int i = 0; i < numSamples; ++i)
+        {
+            loading += (samples[i] - loading) * loadingCoefficient;
+            inputCut += (loading - inputCut) * inputCutCoefficient;
+            samples[i] = loading - inputCut;
+        }
+
+        // At 8x the rate: gain, then a clip that's softer on top than below
+        // (the transistors saturate one way and cut off the other), and the
+        // transistors' own treble roll-off.
+        auto upsampled = oversampling.processSamplesUp (block);
+        const auto fastRate = sampleRate * (double) oversampling.getOversamplingFactor();
+        const auto topCoefficient = onePoleCoefficient (fastRate, 7000.0f);
+        auto* fast = upsampled.getChannelPointer (0);
+        for (size_t i = 0; i < upsampled.getNumSamples(); ++i)
+        {
+            const auto x = fast[i] * fuzzGain.getNextValue();
+            const auto clipped = x >= 0.0f ? std::tanh (x) : 0.6f * std::tanh (x / 0.6f);
+            transistorTop += (clipped - transistorTop) * topCoefficient;
+            fast[i] = transistorTop;
+        }
+        oversampling.processSamplesDown (block);
+
+        // TONE: a treble cut from 2.5 kHz (dark) to 12 kHz (open), after the
+        // output capacitor that removes the DC the uneven clipping leaves.
+        const auto couplingCoefficient = onePoleCoefficient (sampleRate, 20.0f);
+        fuzzTone.setTargetValue (knobToFrequency (settings.tone, 2500.0f, 12000.0f));
+        fuzzLevel.setTargetValue (faceOutputScale * juce::Decibels::decibelsToGain (settings.levelDb));
+        for (int i = 0; i < numSamples; ++i)
+        {
+            outputCoupling += (samples[i] - outputCoupling) * couplingCoefficient;
+            const auto coupled = samples[i] - outputCoupling;
+            toneState2 += (coupled - toneState2) * onePoleCoefficient (sampleRate, fuzzTone.getNextValue());
+            samples[i] = toneState2 * fuzzLevel.getNextValue();
         }
     }
 }

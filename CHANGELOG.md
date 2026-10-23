@@ -2,6 +2,19 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.26.0
+
+- **Two fuzz models** in OD / DISTORTION:
+  - **Muff Fuzz** follows the Big Muff's circuit: two clipping stages one after another, for long, violin-like sustain (DRIVE is its sustain). Its tone stack scoops the mids at noon, from warm and woolly to bright. This is David Gilmour's lead sound.
+  - **Face Fuzz** follows the silicon Fuzz Face: one high-gain stage that clips one half of the wave harder than the other, for a raspy, round fuzz. Turn your guitar's volume down and it cleans up. It also darkens the guitar slightly, as the real pedal's input does. The original has no tone knob, so TONE here is a gentle treble cut.
+  - Both sit near your guitar's own level at LEVEL 0 dB.
+- **Pink Floyd rigs in bank E**, built from David Gilmour's documented gear:
+  - **E3 Numb Solo (Floyd):** the "Comfortably Numb" solos. Muff Fuzz (sustain 7, tone 3.5) into a 370 ms delay, through a subtly mixed rotating speaker, with hall reverb.
+  - **E4 Us and Them (Floyd):** the neck pickup, clean, through a slow rotating speaker with tape echo. For the louder chorus, stomp footswitch 2: a Face Fuzz is set up and waiting.
+  - **E5 Run Like Hell (Floyd):** muted eighths into a 380 ms delay with five or six repeats (the gallop), with flanger and light compression.
+  - **E6 Money Solo (Floyd):** the bridge pickup into the Face Fuzz, with a multi-tap echo in the spirit of his Binson Echorec.
+  - These are our settings for the sound. The rest is in your hands: Gilmour's tech says his tone is mostly his fingers.
+
 ## 0.25.0
 
 - **Bank E: song-inspired rigs.** A fifth bank for rigs built around particular songs' sounds. These are our settings for the sound, not the artists' own rigs. The first two:
