@@ -101,6 +101,13 @@ namespace ParamIDs
     // (Version 20's "fpWhammyWahMode" was replaced by this the same day.)
     inline constexpr auto fpXpProgram = "fpXpProgram";
 
+    // Version 22: the Daybreak compressor (COMP / GATE's second TYPE).
+    inline constexpr auto compType      = "compType";
+    inline constexpr auto compAmount    = "compAmount";      // COMP
+    inline constexpr auto compDetail    = "compDetail";      // DETAIL
+    inline constexpr auto compMix       = "compMix";         // MIX
+    inline constexpr auto compIntensity = "compIntensity";   // INTENSITY
+
     // Global settings: kept when switching rigs. Everything else is part of a rig.
     // The expression pedal's position is global for the same reason a real
     // pedal's is: it's where your foot is, not part of the sound. What the

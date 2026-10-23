@@ -2,6 +2,19 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.23.0
+
+- **Daybreak compressor.** COMP / GATE has a TYPE: **Classic** (the original, still the default, so your rigs sound the same) or **Daybreak**, a modern pedal compressor laid out like the boutique ones metal players use:
+  - **COMP:** how much it squeezes, in one knob. Its make-up gain turns up with it, so more COMP means more squeeze rather than just quieter.
+  - **DETAIL:** how much pick attack gets through before it clamps. Low: the pick is flattened for a smooth, even sound. High: every pick snaps through.
+  - **MIX:** parallel compression. Blend the squeezed sound with your dry guitar for sustain and evenness with a natural attack.
+  - **INTENSITY:** off is smooth and gentle, for cleans and leads. On grabs earlier and harder and lets go faster, for tight modern rhythm.
+  - **LEVEL:** the volume after it.
+  - Its detector ignores the lowest bass, so low palm mutes don't make it pump.
+- **Gain-reduction meter.** The COMP / GATE panel's header has a row of LEDs and a dB readout showing how hard the compressor is working. It works for both types.
+- The panel shows only the knobs for the chosen TYPE. The others hide and the cards close up.
+- **New factory rig: Daybreak Clean (A5).** Daybreak at half mix into a light chorus and plate reverb.
+
 ## 0.22.1
 
 - **New factory rig: Nu-Metal Screech (B10).** The late-'90s octave screech.

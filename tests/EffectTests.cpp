@@ -155,6 +155,82 @@ TEST_CASE ("Compressor turns loud playing down and leaves quiet playing alone", 
     CHECK_THAT (dB (rms (rig.runMono (quiet), 0.5) / rms (quiet, 0.5)), WithinAbs (0.0, 0.3));
 }
 
+TEST_CASE ("Daybreak compressor: COMP, DETAIL, MIX and INTENSITY do what they say", "[effects][comp]")
+{
+    const auto daybreak = [] (EffectRig& rig, float amount, float detail = 5.0f, float mixAmount = 1.0f, bool intensity = false)
+    {
+        rig.set (ParamIDs::compOn, 1.0f);
+        rig.set (ParamIDs::compType, (float) effects::CompGate::Type::daybreak);
+        rig.set (ParamIDs::compAmount, amount);
+        rig.set (ParamIDs::compDetail, detail);
+        rig.set (ParamIDs::compMix, mixAmount);
+        rig.set (ParamIDs::compIntensity, intensity ? 1.0f : 0.0f);
+    };
+
+    SECTION ("Its curve: nothing below the threshold, more squeeze with more COMP, harder with INTENSITY")
+    {
+        CHECK (effects::CompGate::daybreakCurveDb (-50.0f, 5.0f, false) == 0.0f);
+        CHECK (effects::CompGate::daybreakCurveDb (-6.0f, 8.0f, false) < effects::CompGate::daybreakCurveDb (-6.0f, 2.0f, false) - 6.0f);
+        CHECK (effects::CompGate::daybreakCurveDb (-6.0f, 5.0f, true) < effects::CompGate::daybreakCurveDb (-6.0f, 5.0f, false) - 6.0f);
+    }
+
+    SECTION ("It evens out loud and soft playing, and the meter shows it working")
+    {
+        const auto levelFor = [&] (float amplitude, float amount)
+        {
+            EffectRig rig;
+            daybreak (rig, amount);
+            return rms (rig.runMono (sine (440.0, amplitude, 1.0)), 0.5);
+        };
+        // 24 dB apart going in; with COMP up, much closer coming out.
+        const auto spreadIn = dB (0.5f / 0.0315f);
+        const auto spreadOut = dB (levelFor (0.5f, 8.0f) / levelFor (0.0315f, 8.0f));
+        CHECK (spreadOut < spreadIn - 10.0f);
+
+        EffectRig rig;
+        daybreak (rig, 8.0f);
+        rig.runMono (sine (440.0, 0.5f, 0.5));
+        CHECK (rig.processor.getCompGainReductionDb() < -6.0f);
+    }
+
+    SECTION ("MIX at 0 leaves the guitar as it was")
+    {
+        EffectRig rig;
+        daybreak (rig, 10.0f, 5.0f, 0.0f, true);
+        const auto input = sine (440.0, 0.5f, 0.5);
+        CHECK (maxAbsDifference (rig.runMono (input), input, (size_t) (0.2 * sampleRate)) < 1.0e-3f);
+    }
+
+    SECTION ("DETAIL lets more of the pick attack through")
+    {
+        // A note that starts loud from silence: the first few milliseconds
+        // against the settled level.
+        auto input = silence (0.3);
+        const auto note = sine (440.0, 0.5f, 0.5);
+        input.insert (input.end(), note.begin(), note.end());
+        const auto attackRatio = [&] (float detail)
+        {
+            EffectRig rig;
+            daybreak (rig, 8.0f, detail);
+            const auto output = rig.runMono (input);
+            return rms (output, 0.3, 0.305) / rms (output, 0.6, 0.8);
+        };
+        CHECK (dB (attackRatio (10.0f) / attackRatio (0.0f)) > 4.0f);
+    }
+
+    SECTION ("Low bass doesn't make it pump")
+    {
+        const auto reductionFor = [&] (double hz)
+        {
+            EffectRig rig;
+            daybreak (rig, 7.0f);
+            rig.runMono (sine (hz, 0.4f, 0.5));
+            return rig.processor.getCompGainReductionDb();
+        };
+        CHECK (reductionFor (40.0) > reductionFor (440.0) + 3.0f);
+    }
+}
+
 TEST_CASE ("Noise gate silences signal below its threshold", "[effects][comp]")
 {
     EffectRig rig;

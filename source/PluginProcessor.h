@@ -172,6 +172,8 @@ public:
 
     juce::AudioProcessorValueTreeState& getParameters() noexcept { return parameters; }
     LevelMeterSource& getInputMeter() noexcept { return inputMeter; }
+    // How hard the compressor is working (dB, 0 or less), for its meter.
+    float getCompGainReductionDb() const noexcept { return compGate.getGainReductionDb(); }
     LevelMeterSource& getOutputMeter() noexcept { return outputMeter; }
 
 private:

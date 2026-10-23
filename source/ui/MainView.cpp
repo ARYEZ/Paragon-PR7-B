@@ -279,10 +279,21 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     // Edit panels, one per block, shown in place of the rig summary. Each
     // starts with the block's on switch.
     using Group = EffectPanel::Group;
+    // The compressor's TYPE shows only its own knobs: Classic's THRESHOLD and
+    // RATIO, or Daybreak's COMP, DETAIL, MIX and INTENSITY.
+    const auto compIs = [this] (effects::CompGate::Type type)
+    {
+        return [this, type] { return juce::roundToInt (rawValue (ParamIDs::compType)) == (int) type; };
+    };
+    const auto classic = compIs (effects::CompGate::Type::classic), daybreak = compIs (effects::CompGate::Type::daybreak);
     panels[compBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
-        { "COMPRESSOR", { { ParamIDs::compOn, "ON" }, { ParamIDs::compThreshold, "THRESHOLD" }, { ParamIDs::compRatio, "RATIO" },
+        { "COMPRESSOR", { { ParamIDs::compOn, "ON" }, { ParamIDs::compType, "TYPE" },
+                          { ParamIDs::compThreshold, "THRESHOLD", classic, true }, { ParamIDs::compRatio, "RATIO", classic, true },
+                          { ParamIDs::compAmount, "COMP", daybreak, true }, { ParamIDs::compDetail, "DETAIL", daybreak, true },
+                          { ParamIDs::compMix, "MIX", daybreak, true }, { ParamIDs::compIntensity, "INTENSITY", daybreak, true },
                           { ParamIDs::compLevel, "LEVEL" } } },
         { "NOISE GATE", { { ParamIDs::gateThreshold, "THRESHOLD" } } } });
+    panels[compBlock]->setMeter ([this] { return audioProcessor.getCompGainReductionDb(); });
     const auto fpIs = [this] (effects::FilterPitch::Type type)
     {
         return [this, type] { return juce::roundToInt (rawValue (ParamIDs::fpType)) == (int) type; };

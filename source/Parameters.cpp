@@ -193,5 +193,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::reverbDuck, "Reverb Duck", { 0.0f, 1.0f, 0.01f }, 0.0f, 17, asPercent));
 
     layout.add (makeChoice (ParamIDs::fpXpProgram, "Whammy-Wah Program", 21, effects::FilterPitch::xpProgramNames(), 1));
+
+    constexpr int v22 = 22;
+    layout.add (makeChoice (ParamIDs::compType, "Comp Type", v22, effects::CompGate::typeNames, 0));
+    layout.add (makeFloat (ParamIDs::compAmount, "Comp Amount", { 0.0f, 10.0f, 0.1f }, 5.0f, v22, asKnob));
+    layout.add (makeFloat (ParamIDs::compDetail, "Comp Detail", { 0.0f, 10.0f, 0.1f }, 5.0f, v22, asKnob));
+    layout.add (makeFloat (ParamIDs::compMix, "Comp Mix", { 0.0f, 1.0f, 0.01f }, 1.0f, v22, asPercent));
+    layout.add (makeSwitch (ParamIDs::compIntensity, "Comp Intensity", v22, false));
     return layout;
 }

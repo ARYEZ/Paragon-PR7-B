@@ -27,6 +27,7 @@ namespace
                     harmonicTremolo = 8, autoPan = 9, doubler = 10;
     // FILTER / PITCH types.
     constexpr float autoWah = 0, pitchShifter = 1, whammyWah = 2;
+    constexpr float daybreakComp = 1;   // COMP / GATE's TYPE
     constexpr float xpCryWah = 1, xpUpOctave = 12, xpOctDownOctUp = 20, xpUp4thUp5th = 23;   // Whammy-Wah programs 02, 13, 21 and 24
     constexpr float pedalWhammyWah = 6;   // the expression pedal's WHAMMY-WAH setting
     // Delay types (index into effects::Delay::typeNames).
@@ -57,6 +58,13 @@ std::vector<Rig> makeFactoryRigs()
         make ("Edge of Breakup", A, 4, "Crunch,Drive", {
             { driveOn, 1 }, { driveGain, 2 }, { driveTone, 6 }, { driveLevel, 4 },
             { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.2f } }),
+
+        // Daybreak on a clean: smooth, even and sustaining, with half the dry
+        // guitar mixed back in so every pick attack still speaks.
+        make ("Daybreak Clean", A, 5, "Clean,Compressor", {
+            { compOn, 1 }, { compType, daybreakComp }, { compAmount, 6 }, { compDetail, 6 }, { compMix, 0.5f }, { compLevel, 1 },
+            { modOn, 1 }, { modType, chorus }, { modRate, 0.4f }, { modDepth, 0.3f }, { modMix, 0.25f },
+            { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.2f } }),
 
         make ("Lead Boost", B, 1, "Lead,Drive", {
             { compThreshold, -20 }, { gateThreshold, -60 }, { compOn, 1 }, { compRatio, 2 },
