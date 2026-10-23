@@ -2,6 +2,79 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.13.1
+
+**Knobs, display and buttons polished to match the chassis**, and a fix to the unit's left edge.
+
+- **Left edge:** the bright line along the top of the chassis rim stopped abruptly halfway down its sides. It now fades out smoothly down the sides, as light catching a curved edge does. The pedal bay's edge gets the same fix.
+- **OUTPUT LEVEL and PRESENCE knobs:**
+  - A knurled grip: fine ridges round the cylinder, closer together where the sides turn away.
+  - A chrome collar where each knob meets the face, like the nut and washer a real pot is mounted with.
+  - A crisp lit chamfer on the top's back edge.
+  - A brighter, sharper pointer.
+- **Display:**
+  - A polished chrome frame round the black bezel.
+  - Glass in front of the readout: faint pixel rows, the bezel's shadow along the top, and diagonal reflections across it.
+- **Small buttons** (UNDO, REDO, BYPASS, TUNER, MUTE, TAP, SAVE, SAVE AS): each key sits in a recessed chrome surround, and its top edge catches the light more crisply.
+
+## 0.13.0
+
+**A crisper, more polished unit.** The chassis looked flat and washed out: one pale shade, a faint texture, soft edges, and panels that barely stood out. It's redrawn for depth and polish:
+
+- **Real brushed metal:** a fine grain across the face, rim, panels and pedal bay: every row slightly different, with longer streaks and a light speckle. It's built at twice the resolution, so it stays fine on high-resolution screens.
+- **More tonal range:** the face is bright under the light at the top, with a darker reflection band through the middle. It has a sharp diagonal sheen across the upper left and darkens towards its edges, as polished metal does. The chassis rim runs from near-white highlights to deep shadow.
+- **Crisp machined edges:** a bright line along the rim's top, the red glow reflected along its bottom, dark outlines, and a bright lip where the face steps down from the rim.
+- **Recessed panels:** the slot row and footswitch row sit down in the face, with a shadow under the face's edge along their top and a lit lip along their bottom. The panels behind the slot windows are more deeply engraved.
+- **Screws:** recessed hex-head screws in the face's four corners.
+- **Less pink wash:** the red glow now catches only the face's bottom edge instead of tinting its whole lower half.
+
+## 0.12.5
+
+- **Expression pedal corners:** the treadle's body under its face was drawn as a square box, so its corners poked out past the face's rounded corners as little points. The body now follows the face's rounded corners all the way down.
+- The PR7 mark is no longer on the expression pedal: the treadle is plain brushed chrome at the heel. PR7 stays on the unit's badge and in the header.
+
+## 0.12.4
+
+- **A new expression pedal, drawn square and true.** The mockup's pedal artwork was drawn at a slight angle, so its right edge leaned. Stretched to cover the base and rocked in 3D, that showed up as a crooked treadle, a warped right side and odd bands at the ends. The pedal is now drawn in vector graphics, with no picture to bend:
+  - A brushed chrome treadle in the unit's rose-tinted chrome.
+  - The mockup's two black rubber pads split by a diagonal chrome band, now ribbed across like the DigiTech RP6's.
+  - The PR7 mark engraved at the heel.
+  - A dark base with a chrome lip.
+- The treadle covers the base and stays sharp at any window size. As it rocks, only the base shows round the end that drops.
+- The position readout you see while hovering now sits in the middle of the treadle, clear of the PR7 mark.
+
+## 0.12.3
+
+- **Expression pedal covers its base:** the treadle is now as big as the base it sits on, as on the DigiTech RP6, rather than sitting inside it with gaps round it. The mockup's treadle artwork was narrower than the base, so it's widened to the base's shape (drawn at twice the size, so it stays sharp), with the PR7 mark re-engraved at its own proportions. The base shows only where the treadle rocks away from it, and the treadle stays within the base's footprint, so it never spills over the unit.
+
+## 0.12.2
+
+- **Expression pedal sits in the unit:** the treadle now sits down in a well in the housing, as on a real floor unit like the DigiTech RP6, rather than being drawn on top of it.
+  - It's set slightly inside the opening, with a gap all round.
+  - It's drawn only within the well, with a chrome rim and the rim's shadow on top.
+  - As it rocks, its ends tuck under the rim instead of sliding over the side rails or above the unit.
+  - The rocking shows as the raised end catching the light and the lowered end dropping away into shadow, with the gap at that end opening up.
+
+## 0.12.1
+
+- **Expression pedal:** only the treadle rocks now. Its artwork had been cut from the mockup as a rectangle, so it carried pieces of the housing with it: the chrome strip down the right, the base's lip and corner along the bottom, and a dark band across the top. Those moved with the treadle, as if part of the unit were tilting. Everything outside the treadle's own outline is now transparent. Its sides, shadow and shading follow that outline, and the perspective is slightly gentler, so the lifted end stays within the housing's rails.
+
+## 0.12.0
+
+**LO-FI: telephone, radio, megaphone, cassette and bitcrusher, for intros and breakdowns.**
+
+- A new **LO-FI** block, last in the signal chain after the reverb, so the whole sound (echoes and reverb included) goes "through the phone", as it's done in the studio. Click LO-FI in the signal chain to open it. Five types:
+  - **Telephone:** only 300 Hz to 3.4 kHz gets through, with steep edges and a little carbon-mic grit, in mono.
+  - **AM Radio:** a small radio speaker: wider than a phone, a nasal midrange bump, gentle saturation, in mono.
+  - **Megaphone:** a horn speaker: narrow, honky and driven hard, in mono.
+  - **Cassette:** a worn tape: the pitch wobbles (slow wow, fast flutter and a random drift), the top end dulls, and the tape saturates and hisses.
+  - **Bitcrusher:** fewer bits (down to 3) and a lower sample rate (down to 3 kHz), for early-sampler and video-game crunch.
+- **AMOUNT** sets how strong it is: narrower, dirtier, wobblier or crunchier. **NOISE** adds line hiss, static or tape hiss. **MIX** and **LEVEL** blend it and match its volume.
+- **LO-FI on the expression pedal** (new EXPRESSION ASSIGN target): fades the effect in, from the full band at the heel to full lo-fi at the toe. Start toe-down for a phone-sounding intro, then rock back to the heel as the band comes in. Assigning it switches LO-FI on.
+- To switch it at a set point in a song, automate **Lo-Fi On** (or **Lo-Fi Mix**) in your DAW.
+- Five new factory rigs: Phone Intro and Megaphone Verse (bank B), Old Radio (bank C), Cassette Dreams and 8-Bit Crunch (bank D).
+- The EXPRESSION ASSIGN list has larger text, and the signal chain's gaps are narrower to fit the tenth block.
+
 ## 0.11.0
 
 **Paragon X1 is now Paragon PR7, and the expression pedal can bend pitch.**

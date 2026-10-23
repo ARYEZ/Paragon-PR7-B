@@ -27,6 +27,8 @@ namespace
                     harmonicTremolo = 8, autoPan = 9, doubler = 10;
     // FILTER / PITCH types.
     constexpr float autoWah = 0, pitchShifter = 1;
+    // LO-FI types.
+    constexpr float telephone = 0, amRadio = 1, megaphone = 2, cassette = 3, bitcrusher = 4;
 }
 
 std::vector<Rig> makeFactoryRigs()
@@ -124,6 +126,33 @@ std::vector<Rig> makeFactoryRigs()
             { driveOn, 1 }, { driveGain, 3 }, { driveTone, 5 },
             { modOn, 1 }, { modType, doubler }, { modRate, 0.8f }, { modDepth, 0.4f }, { modMix, 0.7f },
             { reverbOn, 1 }, { reverbSize, 0.35f }, { reverbMix, 0.15f } }),
+
+        // LO-FI: for intros and breakdowns. Assign the expression pedal to
+        // LO-FI to sweep from the full band (heel) into the effect (toe).
+        make ("Phone Intro", B, 5, "Lo-Fi,Clean", {
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 },
+            { reverbOn, 1 }, { reverbSize, 0.35f }, { reverbMix, 0.2f },
+            { lofiOn, 1 }, { lofiType, telephone }, { lofiAmount, 6 }, { lofiNoise, 3 }, { lofiLevel, 2 } }),
+
+        make ("Megaphone Verse", B, 6, "Lo-Fi,Drive", {
+            { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 },
+            { lofiOn, 1 }, { lofiType, megaphone }, { lofiAmount, 6 }, { lofiNoise, 2 } }),
+
+        make ("Old Radio", C, 7, "Lo-Fi,Vintage", {
+            { modOn, 1 }, { modType, tremolo }, { modRate, 4.5f }, { modDepth, 0.3f },
+            { reverbOn, 1 }, { reverbSize, 0.5f }, { reverbMix, 0.3f },
+            { lofiOn, 1 }, { lofiType, amRadio }, { lofiAmount, 5 }, { lofiNoise, 5 }, { lofiLevel, 1 } }),
+
+        make ("Cassette Dreams", D, 7, "Lo-Fi,Ambient", {
+            { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 },
+            { modOn, 1 }, { modType, chorus }, { modRate, 0.4f }, { modDepth, 0.4f }, { modMix, 0.35f },
+            { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.35f }, { delayMix, 0.25f },
+            { reverbOn, 1 }, { reverbSize, 0.8f }, { reverbMix, 0.35f },
+            { lofiOn, 1 }, { lofiType, cassette }, { lofiAmount, 5 }, { lofiNoise, 4 } }),
+
+        make ("8-Bit Crunch", D, 8, "Lo-Fi,Drive", {
+            { driveOn, 1 }, { driveGain, 3 },
+            { lofiOn, 1 }, { lofiType, bitcrusher }, { lofiAmount, 6 }, { lofiNoise, 0 }, { lofiMix, 0.8f } }),
 
         // These two follow the tempo (tapped, or the DAW's).
         make ("Brownface Trem", C, 4, "Modulation,Clean,Vintage", {

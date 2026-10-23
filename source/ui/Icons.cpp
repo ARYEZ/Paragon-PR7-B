@@ -290,6 +290,22 @@ namespace Icons
                 p.lineTo (0.94f, 0.5f);
                 break;
 
+            case Type::loFi:
+            {
+                // An old transistor radio: the case, its round speaker grille and the antenna.
+                p.addRoundedRectangle (0.06f, 0.34f, 0.88f, 0.58f, 0.08f);
+                p.addEllipse (0.16f, 0.45f, 0.36f, 0.36f);
+                p.startNewSubPath (0.62f, 0.52f);
+                p.lineTo (0.84f, 0.52f);
+                p.startNewSubPath (0.62f, 0.66f);
+                p.lineTo (0.84f, 0.66f);
+                p.startNewSubPath (0.62f, 0.8f);
+                p.lineTo (0.84f, 0.8f);
+                p.startNewSubPath (0.3f, 0.34f);
+                p.lineTo (0.78f, 0.06f);
+                break;
+            }
+
             case Type::flame:
                 // The mockup's "All Rigs" icon.
                 p.startNewSubPath (0.5f, 0.05f);

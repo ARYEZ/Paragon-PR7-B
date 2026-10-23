@@ -81,8 +81,17 @@ void ParagonLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& 
 
     if (button.getProperties()[pedalButtonProperty])
     {
-        // A small piano-black key sitting on the metal.
-        drawPianoBlackKey (g, button.getLocalBounds().toFloat().reduced (1.0f, 1.0f).withTrimmedBottom (1.0f), 3.5f, 2.5f, down, highlighted);
+        // A small piano-black key, in a recessed chrome surround on the metal:
+        // a dark well round the key, a lit lower lip, and a chrome rim.
+        const auto surround = button.getLocalBounds().toFloat().reduced (0.5f);
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff6e5f67), 0.0f, surround.getY(),
+                                                 juce::Colour (0xffe9dde3), 0.0f, surround.getBottom(), false));
+        g.fillRoundedRectangle (surround, 5.0f);
+        g.setColour (juce::Colour (0xff1a1216));
+        g.fillRoundedRectangle (surround.reduced (1.5f), 4.0f);
+        g.setColour (juce::Colours::black.withAlpha (0.55f));
+        g.drawRoundedRectangle (surround, 5.0f, 0.8f);
+        drawPianoBlackKey (g, surround.reduced (2.2f, 2.0f).withTrimmedBottom (0.6f), 3.0f, 2.2f, down, highlighted);
         return;
     }
 
@@ -192,6 +201,19 @@ void ParagonLookAndFeel::drawPedalKnob (juce::Graphics& g, juce::Rectangle<float
     // 2. The back of the ring (the knob hides most of it).
     strokeNeon (ringArc (MathConstants::pi * 1.5f, MathConstants::pi * 2.5f));
 
+    // A chrome collar where the knob meets the face, like the nut and washer
+    // a real pot is mounted with: lit along its back, dark at the front.
+    {
+        const auto collar = juce::Rectangle<float> (rx * 2.3f, ry * 2.3f).withCentre ({ cx, baseY });
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfff6eef2), collar.getX(), collar.getY(),
+                                                 juce::Colour (0xff3e3238), collar.getRight(), collar.getBottom(), false));
+        g.fillEllipse (collar);
+        g.setColour (juce::Colours::black.withAlpha (0.6f));
+        g.drawEllipse (collar, 0.8f);
+        g.setColour (juce::Colours::white.withAlpha (0.7f));
+        g.drawEllipse (collar.reduced (1.2f), 0.6f);
+    }
+
     // 3. The cylinder: glossy black, with the red glow reflected up its
     //    sides and a faint highlight where it faces the light.
     juce::Path side;
@@ -209,6 +231,22 @@ void ParagonLookAndFeel::drawPedalKnob (juce::Graphics& g, juce::Rectangle<float
 
         juce::Graphics::ScopedSaveState state (g);
         g.reduceClipRegion (side);
+
+        // Knurled grip: fine vertical ridges round the cylinder, closer
+        // together towards its sides as they turn away, each with a lit
+        // edge and a dark one.
+        constexpr int ridges = 36;
+        for (int i = 1; i < ridges; ++i)
+        {
+            const auto theta = MathConstants::pi * (float) i / (float) ridges;
+            const auto x = cx - rx * std::cos (theta);
+            const auto facing = std::sin (theta);
+            g.setColour (juce::Colours::white.withAlpha (0.11f * facing));
+            g.fillRect (juce::Rectangle<float> (x, topY, 0.7f, (baseY + ry) - topY));
+            g.setColour (juce::Colours::black.withAlpha (0.5f * facing));
+            g.fillRect (juce::Rectangle<float> (x + 0.7f, topY, 0.7f, (baseY + ry) - topY));
+        }
+
         for (auto x : { cx - rx * 0.78f, cx + rx * 0.82f, cx - rx * 0.35f })
         {
             const auto strong = std::abs (x - cx) > rx * 0.5f;
@@ -266,13 +304,22 @@ void ParagonLookAndFeel::drawPedalKnob (juce::Graphics& g, juce::Rectangle<float
         {
             return juce::Point<float> (cx + std::sin (angle) * rx * fraction, topY - std::cos (angle) * ry * fraction);
         };
-        g.setColour (juce::Colours::black.withAlpha (0.6f));
-        g.drawLine ({ at (0.45f).translated (0.0f, 1.0f), at (0.9f).translated (0.0f, 1.0f) }, size * 0.018f);
-        g.setColour (juce::Colours::white.withAlpha (0.55f));
-        g.drawLine ({ at (0.45f), at (0.9f) }, size * 0.012f);
+        g.setColour (juce::Colours::black.withAlpha (0.7f));
+        g.drawLine ({ at (0.4f).translated (0.0f, 1.0f), at (0.9f).translated (0.0f, 1.0f) }, size * 0.02f);
+        g.setColour (juce::Colours::white.withAlpha (0.9f));
+        g.drawLine ({ at (0.4f), at (0.9f) }, size * 0.013f);
     }
-    g.setColour (juce::Colours::white.withAlpha (0.22f));   // bevel catching the light round the top's back edge
-    g.drawEllipse (top.reduced (0.5f), 1.0f);
+
+    // The top's chamfered rim: a crisp bright edge along the back, where it
+    // faces the light, and a fine bright ring just inside it.
+    {
+        juce::Path backEdge;
+        backEdge.addCentredArc (cx, topY, rx - 0.5f, ry - 0.5f, 0.0f, -MathConstants::pi * 0.5f, MathConstants::pi * 0.5f, true);
+        g.setColour (juce::Colours::white.withAlpha (0.55f));
+        g.strokePath (backEdge, juce::PathStrokeType (1.1f));
+        g.setColour (juce::Colours::white.withAlpha (0.12f));
+        g.drawEllipse (top.reduced (rx * 0.12f, ry * 0.12f), 0.7f);
+    }
     g.setColour (juce::Colours::black);
     {
         juce::Path frontEdge;
@@ -474,7 +521,7 @@ void ParagonLookAndFeel::drawPianoBlackKey (juce::Graphics& g, juce::Rectangle<f
         g.setGradientFill (gloss);
         g.fillRoundedRectangle (top.reduced (top.getWidth() * 0.03f, 1.0f).withHeight (top.getHeight() * 0.55f), topRadius);
     }
-    g.setColour (juce::Colours::white.withAlpha (0.32f));
+    g.setColour (juce::Colours::white.withAlpha (0.45f));
     g.drawHorizontalLine (juce::roundToInt (top.getY()), top.getX() + topRadius, top.getRight() - topRadius);
     g.setColour (juce::Colours::black.withAlpha (0.6f));
     g.drawRoundedRectangle (top, topRadius, 0.8f);

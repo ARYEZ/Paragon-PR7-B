@@ -78,6 +78,14 @@ namespace ParamIDs
     inline constexpr auto fpInterval    = "fpInterval";      // pitch shifter, in semitones
     inline constexpr auto fpMix         = "fpMix";
 
+    // Version 12: the LO-FI block, last in the chain.
+    inline constexpr auto lofiOn     = "lofiOn";
+    inline constexpr auto lofiType   = "lofiType";
+    inline constexpr auto lofiAmount = "lofiAmount";
+    inline constexpr auto lofiNoise  = "lofiNoise";
+    inline constexpr auto lofiMix    = "lofiMix";
+    inline constexpr auto lofiLevel  = "lofiLevel";
+
     // Global settings: kept when switching rigs. Everything else is part of a rig.
     // The expression pedal's position is global for the same reason a real
     // pedal's is: it's where your foot is, not part of the sound. What the
@@ -88,8 +96,8 @@ namespace ParamIDs
 namespace ExpressionTargets
 {
     // Saved by number: only ever add to the end.
-    enum { off, volume, wah, morph, pitch };
-    inline const juce::StringArray names { "Off", "Volume", "Wah / Filter", "Morph FX", "Pitch / Whammy" };
+    enum { off, volume, wah, morph, pitch, loFi };
+    inline const juce::StringArray names { "Off", "Volume", "Wah / Filter", "Morph FX", "Pitch / Whammy", "Lo-Fi" };
 }
 
 namespace ParamRanges

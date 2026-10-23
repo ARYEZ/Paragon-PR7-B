@@ -351,6 +351,8 @@ void RigSummary::refresh()
           (synced ? text (ParamIDs::delaySync) : text (ParamIDs::delayTime)) + "  " + text (ParamIDs::delayMix),
           Icons::Type::delay, ParagonColours::delay, on (ParamIDs::delayOn), {} },
         { "REVERB", "Hall Reverb", "Mix " + text (ParamIDs::reverbMix), Icons::Type::reverb, ParagonColours::reverb, on (ParamIDs::reverbOn), {} },
+        { "LO-FI", text (ParamIDs::lofiType), "Amount " + text (ParamIDs::lofiAmount), Icons::Type::loFi, ParagonColours::loFi,
+          on (ParamIDs::lofiOn), {} },
     };
 
     juce::StringArray newTags;
@@ -482,7 +484,7 @@ void RigSummary::mouseMove (const juce::MouseEvent& event)
     // The cards' titles are abbreviated to fit; the tooltip names the block in full.
     static const juce::StringArray blockNames { "the compressor and gate", "the filter / pitch block", "the overdrive",
                                                 "the amp", "the cabinet", "the graphic EQ", "the modulation",
-                                                "the delay", "the reverb" };
+                                                "the delay", "the reverb", "the lo-fi effect" };
     setTooltip (card >= 0 ? "Edit " + blockNames[card]
                           : overTag && canEditTags ? juce::String ("+ adds a tag; click a tag to remove it") : juce::String());
 

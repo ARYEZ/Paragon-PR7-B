@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.24)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "macOS architectures")
 
-project(ParagonX1 VERSION 0.11.0 LANGUAGES C CXX)
+project(ParagonX1 VERSION 0.13.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -43,15 +43,6 @@ juce_add_binary_data(ParagonX1Fonts
         resources/fonts/Inter-SemiBold.ttf
         resources/fonts/InterDisplay-BlackItalic.ttf)
 
-# The expression pedal's artwork, cut from the design mockup (Paragon x1.png):
-# the housing, and the treadle drawn over it at an angle as it rocks.
-juce_add_binary_data(ParagonX1Images
-    HEADER_NAME ParagonImages.h
-    NAMESPACE   ParagonImages
-    SOURCES
-        resources/images/ExpressionHousing.png
-        resources/images/ExpressionTreadle.png)
-
 target_sources(ParagonX1
     PRIVATE
         source/Parameters.cpp
@@ -66,6 +57,7 @@ target_sources(ParagonX1
         source/dsp/effects/Drive.cpp
         source/dsp/effects/FilterPitch.cpp
         source/dsp/effects/GraphicEq.cpp
+        source/dsp/effects/LoFi.cpp
         source/dsp/effects/Modulation.cpp
         source/dsp/effects/Reverb.cpp
         source/dsp/effects/Wah.cpp
@@ -101,7 +93,6 @@ target_compile_definitions(ParagonX1
 target_link_libraries(ParagonX1
     PRIVATE
         ParagonX1Fonts
-        ParagonX1Images
         juce::juce_audio_utils
         juce::juce_dsp
         juce::juce_recommended_warning_flags   # strict warnings for our code only

@@ -1,16 +1,14 @@
 #include "PerformanceControls.h"
 
 #include "Parameters.h"
-#include "ui/Logo.h"
 #include "ui/ParagonLookAndFeel.h"
 #include "ui/SlotWindow.h"
 
-#include <ParagonImages.h>
 
 namespace
 {
-    const Icons::Type targetIcons[] = { Icons::Type::volume, Icons::Type::wah, Icons::Type::rig, Icons::Type::filterPitch };
-    const char* pedalNames[] = { "VOLUME", "WAH / FILTER", "MORPH / FX", "PITCH / WHAMMY" };
+    const Icons::Type targetIcons[] = { Icons::Type::volume, Icons::Type::wah, Icons::Type::rig, Icons::Type::filterPitch, Icons::Type::loFi };
+    const char* pedalNames[] = { "VOLUME", "WAH / FILTER", "MORPH / FX", "PITCH / WHAMMY", "LO-FI" };
 
     juce::RangedAudioParameter& parameter (juce::AudioProcessorValueTreeState& state, const char* id)
     {
@@ -53,7 +51,7 @@ void IconButton::paintButton (juce::Graphics& g, bool highlighted, bool down)
         return;
     }
 
-    const auto font = juce::FontOptions (juce::jmin (15.0f, bounds.getHeight() * 0.42f), on ? juce::Font::bold : juce::Font::plain);
+    const auto font = juce::FontOptions (juce::jmin (15.0f, bounds.getHeight() * 0.55f), on ? juce::Font::bold : juce::Font::plain);
     const auto textWidth = (float) juce::GlyphArrangement::getStringWidthInt (font, text);
     const auto gap = iconSize * 0.45f;
 
@@ -80,7 +78,7 @@ ExpressionAssign::ExpressionAssign (juce::AudioProcessorValueTreeState& stateToU
           repaint();
       })
 {
-    for (int target = ExpressionTargets::volume; target <= ExpressionTargets::pitch; ++target)
+    for (int target = ExpressionTargets::volume; target <= ExpressionTargets::loFi; ++target)
     {
         const auto index = (size_t) (target - 1);
         std::unique_ptr<juce::Button> button;
@@ -115,20 +113,25 @@ void ExpressionAssign::select (int target)
     // Clicking the lit one again turns the pedal off.
     const auto newTarget = target == currentTarget ? ExpressionTargets::off : target;
 
+    const auto set = [this] (const char* id, float plainValue)
+    {
+        auto* parameter = state.getParameter (id);
+        parameter->beginChangeGesture();
+        parameter->setValueNotifyingHost (parameter->convertTo0to1 (plainValue));
+        parameter->endChangeGesture();
+    };
+
     // PITCH / WHAMMY bends the pitch shifter, so make sure there's one
     // running: switch the FILTER / PITCH block on as a pitch shifter.
     if (newTarget == ExpressionTargets::pitch)
     {
-        const auto set = [this] (const char* id, float plainValue)
-        {
-            auto* parameter = state.getParameter (id);
-            parameter->beginChangeGesture();
-            parameter->setValueNotifyingHost (parameter->convertTo0to1 (plainValue));
-            parameter->endChangeGesture();
-        };
         set (ParamIDs::fpOn, 1.0f);
         set (ParamIDs::fpType, (float) effects::FilterPitch::Type::pitchShifter);
     }
+
+    // LO-FI fades the LO-FI block in, so switch it on.
+    if (newTarget == ExpressionTargets::loFi)
+        set (ParamIDs::lofiOn, 1.0f);
 
     attachment.setValueAsCompleteGesture ((float) newTarget);
 }
@@ -161,13 +164,120 @@ void ExpressionAssign::resized()
         area.removeFromTop (36);
         const auto rowHeight = area.getHeight() / (int) buttons.size();
         for (auto& button : buttons)
-            button->setBounds (area.removeFromTop (rowHeight).withSizeKeepingCentre (juce::jmin (82, area.getWidth()), 20));
+            button->setBounds (area.removeFromTop (rowHeight).withSizeKeepingCentre (juce::jmin (82, area.getWidth()),
+                                                                                     juce::jmin (20, rowHeight - 3)));
     }
     else
     {
         const auto rowHeight = area.getHeight() / (int) buttons.size();
         for (auto& button : buttons)
-            button->setBounds (area.removeFromTop (rowHeight).reduced (0, 3));
+            button->setBounds (area.removeFromTop (rowHeight).reduced (0, 2));
+    }
+}
+
+namespace
+{
+    // The pedal's layout, in units of the base's size (211 x 490, the
+    // proportions of the mockup's pedal): the treadle covers the whole base,
+    // just inside its chrome edge, as on a real floor unit, so the base only
+    // shows where the treadle rocks away from it.
+    constexpr float housingWidth = 211.0f, housingHeight = 490.0f;
+    const juce::Rectangle<float> treadleInHousing { 4.0f, 4.0f, 203.0f, 482.0f };
+    constexpr float baseCorner = 16.0f, treadleCorner = 13.0f;
+    constexpr int treadleOversample = 2;   // the treadle's face is drawn at twice its size, so it stays sharp when rocked
+
+    // The treadle's face, drawn once: a brushed chrome plate in the unit's
+    // own rose-tinted chrome, two black rubber pads split by a diagonal
+    // chrome band (the mockup's design), ribbed across like the DigiTech
+    // RP6's, and the PR7 mark engraved at the heel. Drawn square and true,
+    // so it rocks without any lean or warp.
+    juce::Image makeTreadleFace (int w, int h)
+    {
+        juce::Image face (juce::Image::ARGB, w, h, true);
+        juce::Graphics g (face);
+        const auto bounds = face.getBounds().toFloat();
+        const auto fw = (float) w, fh = (float) h;
+        const auto corner = treadleCorner * fw / treadleInHousing.getWidth();
+
+        juce::Path plate;
+        plate.addRoundedRectangle (bounds.reduced (1.0f), corner);
+        {
+            juce::ColourGradient metal (ParagonColours::metalDark, 0.0f, 0.0f, ParagonColours::metalDark, fw, 0.0f, false);
+            metal.addColour (0.14, ParagonColours::metalLight);
+            metal.addColour (0.5, ParagonColours::metalMid);
+            metal.addColour (0.86, ParagonColours::metalLight);
+            g.setGradientFill (metal);
+            g.fillPath (plate);
+
+            // Brushed along its length: fine streaks of light and shade.
+            juce::Graphics::ScopedSaveState clip (g);
+            g.reduceClipRegion (plate);
+            juce::Random random (7);
+            for (int x = 0; x < w; ++x)
+            {
+                const auto shade = random.nextFloat();
+                g.setColour ((shade > 0.5f ? juce::Colours::white : juce::Colours::black).withAlpha (0.05f * std::abs (shade - 0.5f) * 2.0f));
+                g.fillRect ((float) x, 0.0f, 1.0f, fh);
+            }
+        }
+
+        // The unit's rose tint, so it reads as the same chrome.
+        g.setColour (ParagonColours::glow.withAlpha (0.07f));
+        g.fillPath (plate);
+
+        // Its bevelled edge: lit along the top and left, darker at the bottom right.
+        g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.9f), bounds.getTopLeft(),
+                                                 juce::Colour (0xff5d4c55), bounds.getBottomRight(), false));
+        g.strokePath (plate, juce::PathStrokeType (fw * 0.012f));
+        juce::Path seam;
+        seam.addRoundedRectangle (bounds.reduced (fw * 0.03f), corner * 0.8f);
+        g.setColour (juce::Colours::black.withAlpha (0.25f));
+        g.strokePath (seam, juce::PathStrokeType (1.5f));
+
+        // The two rubber pads, with the diagonal chrome band between them.
+        const auto margin = fw * 0.075f;
+        const auto addPad = [&] (std::initializer_list<juce::Point<float>> points)
+        {
+            juce::Path pad;
+            auto first = true;
+            for (auto point : points)
+            {
+                if (first)
+                    pad.startNewSubPath (point);
+                else
+                    pad.lineTo (point);
+                first = false;
+            }
+            pad.closeSubPath();
+            pad = pad.createPathWithRoundedCorners (fw * 0.05f);
+
+            // Set into the plate: a dark shadow line round it, deepest along the top.
+            g.setColour (juce::Colours::black.withAlpha (0.55f));
+            g.strokePath (pad, juce::PathStrokeType (fw * 0.014f), juce::AffineTransform::translation (0.0f, -1.0f));
+            g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1a1618), 0.0f, pad.getBounds().getY(),
+                                                     juce::Colour (0xff090708), 0.0f, pad.getBounds().getBottom(), false));
+            g.fillPath (pad);
+
+            // Ribs across it, each with a lit top edge and a shadow under it.
+            juce::Graphics::ScopedSaveState clip (g);
+            g.reduceClipRegion (pad);
+            const auto pitch = fh * 0.0125f;
+            for (auto y = pad.getBounds().getY() + pitch * 0.5f; y < pad.getBounds().getBottom(); y += pitch)
+            {
+                g.setColour (juce::Colours::white.withAlpha (0.07f));
+                g.fillRect (0.0f, y, fw, pitch * 0.18f);
+                g.setColour (juce::Colours::black.withAlpha (0.45f));
+                g.fillRect (0.0f, y + pitch * 0.18f, fw, pitch * 0.22f);
+            }
+
+            // The unit's red glow caught along the pad's edge.
+            g.setColour (ParagonColours::glow.withAlpha (0.28f));
+            g.strokePath (pad, juce::PathStrokeType (1.2f));
+        };
+        addPad ({ { margin, margin }, { fw - margin, margin }, { fw - margin, fh * 0.2f }, { margin, fh * 0.47f } });
+        addPad ({ { fw - margin, fh * 0.28f }, { fw - margin, fh * 0.865f }, { margin, fh * 0.865f }, { margin, fh * 0.55f } });
+
+        return face;
     }
 }
 
@@ -179,18 +289,8 @@ ExpressionPedal::ExpressionPedal (ParagonX1AudioProcessor& processorToUse)
     setTooltip ("Expression pedal. Drag up and down (or use the mouse wheel) to rock it from heel to toe; "
                 "a MIDI expression pedal moves it too (CC 11, or the one chosen in SETTINGS). Assign it with the EXPRESSION buttons.");
     setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
-    housing = juce::ImageCache::getFromMemory (ParagonImages::ExpressionHousing_png, ParagonImages::ExpressionHousing_pngSize);
-    treadle = juce::ImageCache::getFromMemory (ParagonImages::ExpressionTreadle_png, ParagonImages::ExpressionTreadle_pngSize).createCopy();
-
-    // Engrave the PR7 mark on the plate under the toe pad (the artwork
-    // leaves it blank), so it rocks with the treadle.
-    {
-        juce::Graphics g (treadle);
-        const auto plate = juce::Rectangle<float> (62.0f, 416.0f, 51.0f, 22.0f);
-        Logo::drawPR7 (g, plate, juce::Justification::centred,
-                       { juce::Colour (0xfff4f0f2), juce::Colour (0xfff4f0f2), juce::Colours::white.withAlpha (0.5f),
-                         juce::Colour (0xff3a3236), 0.9f });
-    }
+    treadle = makeTreadleFace (juce::roundToInt (treadleInHousing.getWidth()) * treadleOversample,
+                               juce::roundToInt (treadleInHousing.getHeight()) * treadleOversample);
     setRepaintsOnMouseActivity (true);   // shows the pedal's position while you hover
     startTimerHz (30);   // follows a MIDI pedal smoothly
     timerCallback();
@@ -219,13 +319,6 @@ void ExpressionPedal::timerCallback()
     }
 }
 
-namespace
-{
-    // The pedal artwork's own layout: the housing image is 211 x 490 px and
-    // the treadle sits in it at (5, 6), 158 x 462 px (as cut from the mockup).
-    constexpr float housingWidth = 211.0f, housingHeight = 490.0f;
-    const juce::Rectangle<float> treadleInHousing { 5.0f, 6.0f, 158.0f, 462.0f };
-}
 
 juce::Rectangle<float> ExpressionPedal::housingArea() const
 {
@@ -244,26 +337,39 @@ juce::Rectangle<float> ExpressionPedal::trackArea() const
 
 void ExpressionPedal::paint (juce::Graphics& g)
 {
-    // The housing (from the mockup), with a dark recess where the treadle sits.
     g.setImageResamplingQuality (juce::Graphics::highResamplingQuality);
-    g.drawImage (housing, housingArea(), juce::RectanglePlacement::stretchToFit);
 
     //==========================================================================
-    // The treadle (also the mockup's artwork), rocking in 3D the way Neural
-    // DSP and IK Multimedia show theirs: a slab pivoting on an axle across
-    // its middle, seen through a perspective camera a little in front of it.
-    // The end that lifts comes towards you (larger, moving outwards), the
-    // end that drops goes away, and its thickness and shadow show.
+    // The treadle, rocking in 3D the way Neural DSP and
+    // IK Multimedia show theirs, and as a real floor unit's pedal does: it
+    // covers the whole base and pivots on an axle across its middle. It's
+    // kept within the base's footprint, so it never spills over the unit.
+    // The rocking shows as one end dropping away (narrower and darker, the
+    // base showing round it) and the other coming up (lit, its shadow
+    // spreading across the base).
     //
     // World units are pixels. X runs across the pedal, Y along it (toe at
     // -Y, heel at +Y), Z up towards the camera.
     const auto flat = trackArea();
-    constexpr float maxTilt = 0.14f;                                   // about 8 degrees each way
+    const auto scale = housingArea().getWidth() / housingWidth;
+    juce::Path base;
+    base.addRoundedRectangle (housingArea().reduced (1.0f), baseCorner * scale);
+
+    // The base: dark, with a chrome lip round its edge. It shows only round
+    // the treadle's edge and where the treadle rocks away from it.
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1d171a), 0.0f, housingArea().getY(),
+                                             juce::Colour (0xff0b090a), 0.0f, housingArea().getBottom(), false));
+    g.fillPath (base);
+    g.setGradientFill (juce::ColourGradient (ParagonColours::metalLight, housingArea().getTopLeft(),
+                                             ParagonColours::metalDark.darker (0.4f), housingArea().getBottomRight(), false));
+    g.strokePath (base, juce::PathStrokeType (2.0f * scale));
+
+    constexpr float maxTilt = 0.16f;                                   // about 9 degrees each way
     const auto tilt = (shownPosition * 2.0f - 1.0f) * maxTilt;         // + = toe down
     const auto length = flat.getHeight(), width = flat.getWidth();
-    const auto thickness = width * 0.07f;   // the artwork has its own bevelled edge; this is the body under it
+    const auto thickness = width * 0.07f;   // the treadle's body under its face
     const auto pivotZ = thickness * 1.2f;                              // axle height above the base
-    const auto cameraZ = length * 2.2f;                                // camera height: how strong the perspective is
+    const auto cameraZ = length * 3.0f;                                // camera height: how strong the perspective is
     const auto cameraY = length * 0.6f;                                // camera a little towards the player
     const auto centre = flat.getCentre();
     const auto topZ = pivotZ + thickness * 0.5f;
@@ -286,74 +392,96 @@ void ExpressionPedal::paint (juce::Graphics& g)
         return project (rotate ({ (u - 0.5f) * width, (v - 0.5f) * length, z }));
     };
 
-    juce::Path recess;
-    recess.addRoundedRectangle (flat, 11.0f);
+    // The treadle's outline (0-1 across and along it): square and true.
+    const std::array<juce::Point<float>, 4> outline { juce::Point<float> { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
 
-    // Shadow on the floor of the recess, spreading under whichever end lifts.
+    // The same outline with the face's rounded corners, at height `z`, as
+    // the camera sees it. The body under the face follows it too, so no
+    // square corner pokes out past the rounded face.
+    const auto roundedOutline = [&] (float z)
     {
-        juce::Path shadow;
-        const auto onBase = [&] (float u, float v)
+        const auto ru = treadleCorner / treadleInHousing.getWidth(), rv = treadleCorner / treadleInHousing.getHeight();
+        const std::array<std::pair<juce::Point<float>, float>, 4> corners { std::pair { juce::Point<float> { 1.0f - ru, rv }, -90.0f },
+                                                                            { { 1.0f - ru, 1.0f - rv }, 0.0f },
+                                                                            { { ru, 1.0f - rv }, 90.0f },
+                                                                            { { ru, rv }, 180.0f } };
+        juce::Path path;
+        auto first = true;
+        for (const auto& [centreUv, startDegrees] : corners)
+            for (int step = 0; step <= 8; ++step)
+            {
+                const auto angle = juce::degreesToRadians (startDegrees + 90.0f * (float) step / 8.0f);
+                const auto point = corner (centreUv.x + ru * std::cos (angle), centreUv.y + rv * std::sin (angle), z);
+                if (first)
+                    path.startNewSubPath (point);
+                else
+                    path.lineTo (point);
+                first = false;
+            }
+        path.closeSubPath();
+        return path;
+    };
+
+    {
+        juce::Graphics::ScopedSaveState clipToBase (g);
+        g.reduceClipRegion (base);
+
+        // The treadle's shadow on the base, spreading under whichever end lifts.
         {
-            const auto p = rotate ({ (u - 0.5f) * width, (v - 0.5f) * length, pivotZ - thickness * 0.5f });
-            return project ({ p.x + p.z * 0.1f, p.y + p.z * 0.3f, 0.0f });
-        };
-        shadow.startNewSubPath (onBase (0, 0));
-        shadow.lineTo (onBase (1, 0));
-        shadow.lineTo (onBase (1, 1));
-        shadow.lineTo (onBase (0, 1));
-        shadow.closeSubPath();
-        juce::Graphics::ScopedSaveState state (g);
-        g.reduceClipRegion (recess);
-        juce::DropShadow (juce::Colours::black.withAlpha (0.9f), 12, {}).drawForPath (g, shadow);
-    }
+            juce::Path shadow;
+            const auto onBase = [&] (float u, float v)
+            {
+                const auto p = rotate ({ (u - 0.5f) * width, (v - 0.5f) * length, pivotZ - thickness * 0.5f });
+                return project ({ p.x + p.z * 0.1f, p.y + p.z * 0.3f, 0.0f });
+            };
+            shadow.startNewSubPath (onBase (outline[0].x, outline[0].y));
+            for (size_t i = 1; i < outline.size(); ++i)
+                shadow.lineTo (onBase (outline[i].x, outline[i].y));
+            shadow.closeSubPath();
+            juce::DropShadow (juce::Colours::black, 14, {}).drawForPath (g, shadow);
+        }
 
-    // The treadle's edges (its thickness): chrome, lit along the top.
-    const std::array<std::pair<juce::Point<float>, juce::Point<float>>, 4> edges {
-        std::pair<juce::Point<float>, juce::Point<float>> { { 0, 0 }, { 1, 0 } },
-        { { 1, 0 }, { 1, 1 } }, { { 1, 1 }, { 0, 1 } }, { { 0, 1 }, { 0, 0 } } };
-    for (const auto& [a, b] : edges)
-    {
-        juce::Path wall;
-        wall.startNewSubPath (corner (a.x, a.y, topZ));
-        wall.lineTo (corner (b.x, b.y, topZ));
-        wall.lineTo (corner (b.x, b.y, topZ - thickness));
-        wall.lineTo (corner (a.x, a.y, topZ - thickness));
-        wall.closeSubPath();
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xffcdb6c1), corner (a.x, a.y, topZ),
-                                                 juce::Colour (0xff3e3037), corner (a.x, a.y, topZ - thickness), false));
-        g.fillPath (wall);
-    }
+        // The treadle's body under its face (its thickness): chrome, dark at
+        // the bottom and lit towards the top, built up in layers so its sides
+        // follow the face's rounded corners.
+        constexpr int layers = 8;
+        for (int layer = 0; layer < layers; ++layer)
+        {
+            const auto t = (float) layer / (float) (layers - 1);
+            g.setColour (juce::Colour (0xff3e3037).interpolatedWith (juce::Colour (0xffcdb6c1), t));
+            g.fillPath (roundedOutline (topZ - thickness * (1.0f - t)));
+        }
 
-    // The artwork itself, drawn in thin horizontal slices: each slice is
-    // placed and sized where the tilted treadle puts it, which bends the
-    // whole picture through the perspective.
-    const auto sourceHeight = treadle.getHeight();
-    constexpr int sliceRows = 2;
-    for (int row = 0; row < sourceHeight; row += sliceRows)
-    {
-        const auto rows = juce::jmin (sliceRows, sourceHeight - row);
-        const auto v0 = (float) row / (float) sourceHeight, v1 = (float) (row + rows) / (float) sourceHeight;
-        const auto topLeft = corner (0, v0, topZ), topRight = corner (1, v0, topZ);
-        const auto bottomLeft = corner (0, v1, topZ), bottomRight = corner (1, v1, topZ);
-        const auto x0 = (topLeft.x + bottomLeft.x) * 0.5f, x1 = (topRight.x + bottomRight.x) * 0.5f;
-        const auto y0 = topLeft.y, y1 = bottomLeft.y + 0.6f;   // a hair of overlap hides the seams
-        const auto slice = treadle.getClippedImage ({ 0, row, treadle.getWidth(), rows });
-        g.drawImageTransformed (slice, juce::AffineTransform::scale ((x1 - x0) / (float) treadle.getWidth(), (y1 - y0) / (float) rows)
-                                           .translated (x0, y0));
-    }
+        // Its face, drawn in thin horizontal slices: each slice is
+        // placed and sized where the tilted treadle puts it, which bends the
+        // whole picture through the perspective.
+        const auto sourceHeight = treadle.getHeight();
+        constexpr int sliceRows = 2;
+        for (int row = 0; row < sourceHeight; row += sliceRows)
+        {
+            const auto rows = juce::jmin (sliceRows, sourceHeight - row);
+            const auto v0 = (float) row / (float) sourceHeight, v1 = (float) (row + rows) / (float) sourceHeight;
+            const auto topLeft = corner (0, v0, topZ), topRight = corner (1, v0, topZ);
+            const auto bottomLeft = corner (0, v1, topZ), bottomRight = corner (1, v1, topZ);
+            const auto x0 = (topLeft.x + bottomLeft.x) * 0.5f, x1 = (topRight.x + bottomRight.x) * 0.5f;
+            const auto y0 = topLeft.y, y1 = bottomLeft.y + 0.6f;   // a hair of overlap hides the seams
+            const auto slice = treadle.getClippedImage ({ 0, row, treadle.getWidth(), rows });
+            g.drawImageTransformed (slice, juce::AffineTransform::scale ((x1 - x0) / (float) treadle.getWidth(), (y1 - y0) / (float) rows)
+                                               .translated (x0, y0));
+        }
 
-    // Light: the treadle's face brightens a touch as it tips towards the
-    // light (toe down) and darkens tipped away.
-    {
-        juce::Path face;
-        face.startNewSubPath (corner (0, 0, topZ));
-        face.lineTo (corner (1, 0, topZ));
-        face.lineTo (corner (1, 1, topZ));
-        face.lineTo (corner (0, 1, topZ));
-        face.closeSubPath();
-        const auto amount = tilt / maxTilt;
-        g.setColour (amount > 0.0f ? juce::Colours::white.withAlpha (0.06f * amount) : juce::Colours::black.withAlpha (-0.18f * amount));
-        g.fillPath (face.createPathWithRoundedCorners (10.0f));
+        // Light from above and in front: the end tipped up towards it
+        // brightens and the end tipped away darkens, along the treadle.
+        {
+            const auto face = roundedOutline (topZ);
+            const auto amount = tilt / maxTilt;   // +1 toe down (heel up), -1 heel down (toe up)
+            const auto toeEnd = corner (0.5f, 0.0f, topZ), heelEnd = corner (0.5f, 1.0f, topZ);
+            const auto lit = juce::Colours::white.withAlpha (0.10f * std::abs (amount));
+            const auto shaded = juce::Colours::black.withAlpha (0.35f * std::abs (amount));
+            g.setGradientFill (juce::ColourGradient (amount < 0.0f ? lit : shaded, toeEnd,
+                                                     amount < 0.0f ? shaded : lit, heelEnd, false));
+            g.fillPath (face);
+        }
     }
 
     // While you hover or drag: what the pedal controls and where it is.
@@ -364,7 +492,7 @@ void ExpressionPedal::paint (juce::Graphics& g)
                           + "  " + juce::String (juce::roundToInt (position * 100.0f)) + "%";
         const auto font = juce::FontOptions (11.0f, juce::Font::bold);
         const auto pill = juce::Rectangle<float> ((float) juce::GlyphArrangement::getStringWidthInt (font, text) + 18.0f, 20.0f)
-                              .withCentre ({ flat.getCentreX(), flat.getBottom() - 30.0f });
+                              .withCentre (flat.getCentre());
         g.setColour (juce::Colours::black.withAlpha (0.75f));
         g.fillRoundedRectangle (pill, 10.0f);
         g.setColour (active ? ParagonColours::accent : ParagonColours::text);

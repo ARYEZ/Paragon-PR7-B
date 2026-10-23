@@ -4,8 +4,8 @@
 
 // The floor unit from the mockup, drawn as one piece of rose-tinted chrome:
 // a thick bevelled rim with the red-orange light spilling round it, the
-// brushed face plate, raised section panels (the slot row and the
-// footswitch row), the recessed panels behind the slot windows, the
+// brushed face plate with screws in its corners, recessed section panels
+// (the slot row and the footswitch row), the panels behind the slot windows, the
 // PARAGON PR7 badge, and the bay on the right that the expression pedal sits
 // in. Purely visual: the controls on it are separate components on top.
 class PedalBody final : public juce::Component
@@ -31,6 +31,9 @@ public:
 private:
     void makeBrushedTexture();
     void paintBadge (juce::Graphics&) const;
+    void drawBrushed (juce::Graphics&) const;   // the brushed grain over the whole component (clip first)
+    static void strokeTopHighlight (juce::Graphics&, juce::Rectangle<float> area, float radius, float thickness, float alpha);
+    static void paintScrew (juce::Graphics&, juce::Point<float> centre, float radius);
 
     juce::Image brushed;
     Geometry geometry;

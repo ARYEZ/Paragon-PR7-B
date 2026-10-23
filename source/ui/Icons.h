@@ -14,7 +14,9 @@ namespace Icons
                       // Phase 8
                       eq,
                       // Version 0.10
-                      filterPitch };
+                      filterPitch,
+                      // Version 0.12
+                      loFi };
 
     juce::Path get (Type type);
 
