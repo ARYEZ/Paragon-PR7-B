@@ -64,7 +64,6 @@ private:
     // The blocks in signal-chain order; footswitches, the chain strip and
     // the summary cards select these to show their knobs.
     enum Block { compBlock, filterPitchBlock, driveBlock, ampBlock, cabBlock, eqBlock, modBlock, delayBlock, reverbBlock, loFiBlock, numBlocks };
-    static constexpr int noBlock = -1;   // the dock shows the rig summary
 
     enum class Page { processor, presets, settings };
 
@@ -113,7 +112,7 @@ private:
     juce::Slider rigLevelKnob { juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::NoTextBox },
                  presenceKnob { juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::NoTextBox };
     juce::AudioProcessorValueTreeState::SliderAttachment rigLevelAttachment, presenceAttachment;
-    juce::Label rigLevelLabel { {}, "OUTPUT LEVEL" }, presenceLabel { {}, "PRESENCE" };
+    juce::Label rigLevelLabel { {}, "RIG LEVEL" }, presenceLabel { {}, "PRESENCE" };
     ModelSlot ampSlot, cabSlot;
     RigSlot rigSlot;
     std::array<std::unique_ptr<Footswitch>, 4> footswitches;
@@ -129,13 +128,12 @@ private:
     // Dock and signal chain
     RigNavigator rigNavigator;
     SelectedRigPanel selectedRig;
-    RigSummary rigSummary;
     ExpressionPanel expressionPanel;
     std::array<std::unique_ptr<EffectPanel>, numBlocks> panels;   // empty at eqBlock: the EQ has its own panel
     GraphicEqPanel eqPanel;
-    juce::TextButton closePanel { "RIG SUMMARY" };
+    juce::TextButton closePanel { "GRAPHIC EQ" };   // back to the EQ, the dock's default
     SignalChain signalChain;
-    int selectedBlock = noBlock;
+    int selectedBlock = eqBlock;
 
     // Other pages
     RigBrowser rigBrowser;

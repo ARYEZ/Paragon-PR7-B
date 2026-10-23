@@ -14,7 +14,7 @@ class ModelSlot final : public juce::Component,
                         public juce::FileDragAndDropTarget
 {
 public:
-    ModelSlot (const juce::String& title, Icons::Type icon, juce::Colour iconColour, const juce::String& wildcard,
+    ModelSlot (const juce::String& title, const juce::String& wildcard,
                const juce::String& hint, juce::AudioProcessorValueTreeState& parameters, const juce::String& powerParameterId);
 
     // Called when the title is clicked (to show this block's settings).
@@ -43,8 +43,6 @@ private:
     bool matchesWildcard (const juce::File& file) const;
 
     juce::String title, wildcard, hint;
-    Icons::Type icon;
-    juce::Colour iconColour;
     SlotStatus status;
     bool dragHover = false, buttonHover = false;
 

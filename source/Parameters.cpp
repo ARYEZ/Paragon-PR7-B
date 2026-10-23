@@ -7,6 +7,7 @@
 #include "dsp/effects/LoFi.h"
 #include "dsp/effects/GraphicEq.h"
 #include "dsp/effects/Modulation.h"
+#include "dsp/effects/Reverb.h"
 
 namespace
 {
@@ -117,7 +118,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::reverbTone, "Reverb Tone", { 0.0f, 10.0f, 0.1f }, 6.0f, v3, asKnob));
     layout.add (makeFloat (ParamIDs::reverbMix, "Reverb Mix", { 0.0f, 1.0f, 0.01f }, 0.28f, v3, asPercent));
 
-    // Added in plugin version 4 (Phase 4): the OUTPUT LEVEL knob on the
+    // Added in plugin version 4 (Phase 4): the RIG LEVEL knob (first called OUTPUT LEVEL) on the
     // mockup's pedal face, saved with each rig to balance rigs' volumes.
     layout.add (makeFloat (ParamIDs::rigLevel, "Rig Level", { -24.0f, 12.0f, 0.1f }, 0.0f, 4, asDb));
 
@@ -173,5 +174,22 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::lofiNoise, "Lo-Fi Noise", { 0.0f, 10.0f, 0.1f }, 3.0f, v12, asKnob));
     layout.add (makeFloat (ParamIDs::lofiMix, "Lo-Fi Mix", { 0.0f, 1.0f, 0.01f }, 1.0f, v12, asPercent));
     layout.add (makeFloat (ParamIDs::lofiLevel, "Lo-Fi Level", { -12.0f, 12.0f, 0.1f }, 0.0f, v12, asDb));
+
+    // Added in plugin version 15: reverb types and pre-delay. New rigs get
+    // DIGITAL (the 80s arena-rock reverb); projects and rigs saved before it existed load as CLASSIC, the
+    // original reverb (see setStateInformation and Rig::fromXml), so they
+    // sound as they did.
+    constexpr int v15 = 15;
+    layout.add (makeChoice (ParamIDs::reverbType, "Reverb Type", v15, effects::Reverb::typeNames, (int) effects::Reverb::Type::digital));
+    layout.add (makeFloat (ParamIDs::reverbPreDelay, "Reverb Pre-Delay", { 0.0f, effects::Reverb::maxPreDelayMs, 1.0f }, 20.0f, v15, asMs));
+
+    // Added in plugin version 16: delay types. DIGITAL, the default, is the
+    // original delay, so earlier projects and rigs sound the same.
+    layout.add (makeChoice (ParamIDs::delayType, "Delay Type", 16, effects::Delay::typeNames, (int) effects::Delay::Type::digital));
+
+    // Added in plugin version 17: DUCK for the delay and the reverb. Off by
+    // default, so earlier projects and rigs sound the same.
+    layout.add (makeFloat (ParamIDs::delayDuck, "Delay Duck", { 0.0f, 1.0f, 0.01f }, 0.0f, 17, asPercent));
+    layout.add (makeFloat (ParamIDs::reverbDuck, "Reverb Duck", { 0.0f, 1.0f, 0.01f }, 0.0f, 17, asPercent));
     return layout;
 }

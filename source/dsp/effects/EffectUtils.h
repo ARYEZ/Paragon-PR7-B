@@ -99,6 +99,38 @@ namespace effects
         int silentSamplesNeeded = 24000;
     };
 
+    // DUCK: turns an effect's wet signal down while you play and lets it
+    // swell back in the gaps, so big delays and reverbs don't blur the
+    // notes. It follows the level of the playing (fast up, a fifth of a
+    // second down) and dips the wet signal by up to 24 dB at full amount.
+    class Ducker
+    {
+    public:
+        static constexpr float maxDepth = 0.937f;   // gain 0.063 at full: -24 dB
+
+        void prepare (double sampleRate)
+        {
+            attack = 1.0f - std::exp (-1.0f / (0.005f * (float) sampleRate));
+            release = 1.0f - std::exp (-1.0f / (0.12f * (float) sampleRate));
+            reset();
+        }
+        void reset() noexcept { envelope = 0.0f; gain = 1.0f; }
+
+        // Call every sample with the playing's level (0 to 1) and the DUCK
+        // amount (0 to 1); returns the gain for the wet signal.
+        float next (float level, float amount) noexcept
+        {
+            envelope += (level - envelope) * (level > envelope ? attack : release);
+            // Fully ducked from about -18 dBFS of playing.
+            const auto target = 1.0f - juce::jlimit (0.0f, 1.0f, amount) * maxDepth * juce::jlimit (0.0f, 1.0f, envelope * 8.0f);
+            gain += (target - gain) * (target < gain ? attack : release);
+            return gain;
+        }
+
+    private:
+        float attack = 0.1f, release = 0.001f, envelope = 0.0f, gain = 1.0f;
+    };
+
     // Knob "0 to 10" to a frequency, spaced evenly by ear (logarithmically).
     inline float knobToFrequency (float knob0to10, float lowHz, float highHz)
     {

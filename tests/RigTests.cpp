@@ -374,7 +374,7 @@ TEST_CASE ("The DAW project remembers which rig was loaded", "[rigs][state]")
     CHECK_THAT (restored.getParameters().getRawParameterValue (ParamIDs::driveGain)->load(), WithinAbs (3.0, 0.01));
 }
 
-TEST_CASE ("Each rig's OUTPUT LEVEL adds to the master output", "[rigs]")
+TEST_CASE ("Each rig's RIG LEVEL adds to the master output", "[rigs]")
 {
     RigRig r;
     r.set (ParamIDs::rigLevel, 6.0f);
@@ -391,11 +391,11 @@ TEST_CASE ("Each rig's OUTPUT LEVEL adds to the master output", "[rigs]")
     CHECK_THAT (buffer.getMagnitude (0, 0, 256), WithinAbs (0.1 * 1.9953, 0.005));
 }
 
-TEST_CASE ("Rigs saved under the old name (Paragon X1) carry over to Paragon PR7", "[rigs]")
+TEST_CASE ("Rigs saved under an old name (Paragon X1, Paragon PR7) carry over to Paragon PR7-G", "[rigs]")
 {
     const auto root = juce::File::getSpecialLocation (juce::File::tempDirectory)
                           .getChildFile ("ParagonRename-" + juce::String::toHexString (juce::Random::getSystemRandom().nextInt64()));
-    const auto oldFolder = root.getChildFile ("Paragon X1"), newFolder = root.getChildFile ("Paragon PR7");
+    const auto oldFolder = root.getChildFile ("Paragon PR7"), newFolder = root.getChildFile ("Paragon PR7-G");
     REQUIRE (oldFolder.getChildFile ("Rigs").createDirectory());
     REQUIRE (oldFolder.getChildFile ("Rigs").getChildFile ("My Rig.x1rig").replaceWithText ("<ParagonRig/>"));
 
@@ -424,4 +424,18 @@ TEST_CASE ("Rig files from Paragon X1 (.x1rig) still load", "[rigs]")
     CHECK (std::any_of (library.getEntries().begin(), library.getEntries().end(),
                         [] (const auto& entry) { return entry.rig.name == "From X1"; }));
     folder.deleteRecursively();
+}
+
+TEST_CASE ("A rig file saved before reverb types loads with the original reverb", "[rigs]")
+{
+    auto xml = juce::XmlDocument::parse (R"(<ParagonRig version="1" parameterVersion="10" name="Old"><Param id="reverbOn" value="1"/></ParagonRig>)");
+    REQUIRE (xml != nullptr);
+    const auto rig = Rig::fromXml (*xml);
+    REQUIRE (rig.has_value());
+    REQUIRE (rig->parameters.count ("reverbType") == 1);
+    CHECK (rig->parameters.at ("reverbType") == 0.0f);
+
+    Rig current;   // saved by this version: written with its reverb type, and read back as it is
+    current.parameters["reverbType"] = 4.0f;
+    CHECK (Rig::fromXml (*current.toXml())->parameters.at ("reverbType") == 4.0f);
 }

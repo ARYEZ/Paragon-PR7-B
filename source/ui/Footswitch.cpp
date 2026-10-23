@@ -96,49 +96,14 @@ void Footswitch::paint (juce::Graphics& g)
     const auto pressed = isMouseButtonDown() && switchArea.contains (getMouseXYRelative());
     const auto hover = isMouseOver() && switchArea.contains (getMouseXYRelative());
     const auto bezel = switchArea.toFloat();
-    constexpr float bezelRadius = 11.0f;
-    {
-        juce::Path outline;
-        outline.addRoundedRectangle (bezel, bezelRadius);
-        juce::DropShadow (juce::Colours::black.withAlpha (0.45f), 10, { 0, 4 }).drawForPath (g, outline);
-
-        juce::ColourGradient chrome (juce::Colour (0xfffbf5f8), 0.0f, bezel.getY(), juce::Colour (0xff4a3c43), 0.0f, bezel.getBottom(), false);
-        chrome.addColour (0.1, juce::Colour (0xffd6c6ce));
-        chrome.addColour (0.55, juce::Colour (0xff998792));
-        chrome.addColour (0.82, juce::Colour (0xffc2b0b9));
-        g.setGradientFill (chrome);
-        g.fillPath (outline);
-
-        // Bright where its sides catch the light, a little darker just inside.
-        juce::ColourGradient sides (juce::Colours::white.withAlpha (0.35f), bezel.getX(), 0.0f,
-                                    juce::Colours::white.withAlpha (0.35f), bezel.getRight(), 0.0f, false);
-        sides.addColour (0.04, juce::Colours::black.withAlpha (0.12f));
-        sides.addColour (0.5, juce::Colours::white.withAlpha (0.0f));
-        sides.addColour (0.96, juce::Colours::black.withAlpha (0.12f));
-        g.setGradientFill (sides);
-        g.fillPath (outline);
-
-        g.setColour (juce::Colours::black.withAlpha (0.6f));
-        g.strokePath (outline, juce::PathStrokeType (1.0f));
-
-        // The well the key sits down in.
-        const auto well = bezel.reduced (4.5f);
-        g.setColour (juce::Colour (0xff120b0e));
-        g.fillRoundedRectangle (well, bezelRadius - 3.5f);
-        g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.0f), 0.0f, well.getCentreY(),
-                                                 juce::Colours::white.withAlpha (0.25f), 0.0f, well.getBottom(), false));
-        g.drawRoundedRectangle (well, bezelRadius - 3.5f, 1.0f);
-    }
+    ParagonLookAndFeel::drawChromeBezel (g, bezel, 11.0f);
     ParagonLookAndFeel::drawPianoBlackKey (g, bezel.reduced (7.0f, 6.5f).withTrimmedBottom (1.0f), 6.0f, 6.0f, pressed, hover);
 
     // Number and name stamped into the metal: ink, with a fine light edge
     // underneath where the stamped letters' lower walls catch the light.
     const auto stamped = [&g] (const juce::String& text, juce::Rectangle<int> area, juce::Colour colour)
     {
-        g.setColour (juce::Colours::white.withAlpha (0.7f));
-        g.drawText (text, area.toFloat().translated (0.0f, 1.0f), juce::Justification::centred, false);
-        g.setColour (colour);
-        g.drawText (text, area, juce::Justification::centred, false);
+        ParagonLookAndFeel::drawStampedText (g, text, area.toFloat(), juce::Justification::centred, colour);
     };
     g.setFont (juce::FontOptions (32.0f, juce::Font::bold));
     stamped (juce::String (number), switchArea.withX (0).withWidth (switchArea.getX() - 8).withTrimmedLeft (switchArea.getX() - 34),

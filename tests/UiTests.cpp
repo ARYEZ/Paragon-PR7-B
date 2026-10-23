@@ -4,6 +4,7 @@
 #include "Parameters.h"
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
+#include "ui/PerformanceControls.h"
 
 using Catch::Matchers::WithinAbs;
 
@@ -76,7 +77,7 @@ TEST_CASE ("The window lays out cleanly at every size", "[ui]")
     }
 }
 
-TEST_CASE ("The chain, footswitches and summary cards pick which block's knobs show", "[ui]")
+TEST_CASE ("The chain and footswitches pick which block's knobs show; the graphic EQ is the default", "[ui]")
 {
     ParagonX1AudioProcessor processor;
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
@@ -105,9 +106,8 @@ TEST_CASE ("The chain, footswitches and summary cards pick which block's knobs s
         return index;
     };
 
-    // To start with the dock shows the rig summary, as in the mockup: no knobs.
-    const auto numVisible = [&] { return std::count_if (panels.begin(), panels.end(), [] (auto* p) { return p->isVisible(); }); };
-    CHECK (numVisible() == 0);
+    // To start with the dock shows the graphic EQ.
+    CHECK (visiblePanel() == 5);
 
     std::vector<SignalChain*> chains;
     findAll (*editor, chains);
@@ -127,14 +127,15 @@ TEST_CASE ("The chain, footswitches and summary cards pick which block's knobs s
     footswitches[3]->onSelect();
     CHECK (visiblePanel() == 7);
 
-    // Each summary card opens its block too, the EQ's included.
-    std::vector<RigSummary*> summaries;
-    findAll (*editor, summaries);
-    REQUIRE (summaries.size() == 1);
-    summaries[0]->onSelectBlock (2);
-    CHECK (visiblePanel() == 2);
-    summaries[0]->onSelectBlock (5);
+    // The GRAPHIC EQ button on any other block's panel goes back to the EQ.
+    std::vector<juce::TextButton*> buttons;
+    findAll (*editor, buttons);
+    const auto back = std::find_if (buttons.begin(), buttons.end(), [] (auto* b) { return b->getButtonText() == "GRAPHIC EQ"; });
+    REQUIRE (back != buttons.end());
+    CHECK ((*back)->isVisible());
+    (*back)->onClick();
     CHECK (visiblePanel() == 5);
+    CHECK_FALSE ((*back)->isVisible());
 }
 
 TEST_CASE ("BYPASS passes the clean guitar, on both channels", "[ui][bypass]")
@@ -200,4 +201,55 @@ TEST_CASE ("BYPASS is global: rigs don't change it and it doesn't mark them modi
     processor.loadRig (*processor.getRigLibrary().findFactory ("Slapback"));
     CHECK (processor.getParameters().getRawParameterValue (ParamIDs::bypass)->load() > 0.5f);
     folder.deleteRecursively();
+}
+
+TEST_CASE ("The expression screen: click a line to assign the pedal, again to unassign; scroll to step", "[ui]")
+{
+    ParagonX1AudioProcessor processor;
+    auto& state = processor.getParameters();
+    ExpressionAssign screen (state, ExpressionAssign::Style::pedal);
+    screen.setBounds (0, 0, 88, 101);   // about its size on the unit
+
+    const auto target = [&] { return juce::roundToInt (state.getRawParameterValue (ParamIDs::expressionTarget)->load()); };
+    const auto rowCentre = [&] (int line)
+    {
+        // The glass's content: the heading at the top, the position bar at
+        // the bottom, the five lines evenly between (as the screen lays them out).
+        const auto glass = screen.getLocalBounds().toFloat().reduced (7.0f).reduced (5.0f, 4.0f);
+        const auto top = glass.getY() + 17.0f, height = (glass.getHeight() - 29.0f) / 5.0f;
+        return juce::Point<float> (glass.getCentreX(), top + height * ((float) line + 0.5f));
+    };
+    const auto click = [&] (int line)
+    {
+        const auto position = rowCentre (line);
+        const auto now = juce::Time::getCurrentTime();
+        screen.mouseUp (juce::MouseEvent (juce::Desktop::getInstance().getMainMouseSource(), position, {}, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                          &screen, &screen, now, position, now, 1, false));
+    };
+    const auto scroll = [&] (float deltaY)
+    {
+        juce::MouseWheelDetails wheel {};
+        wheel.deltaY = deltaY;
+        const auto now = juce::Time::getCurrentTime();
+        screen.mouseWheelMove (juce::MouseEvent (juce::Desktop::getInstance().getMainMouseSource(), {}, {}, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                                 &screen, &screen, now, {}, now, 0, false), wheel);
+    };
+
+    REQUIRE (target() == ExpressionTargets::off);
+
+    click (1);
+    CHECK (target() == ExpressionTargets::wah);
+    click (4);
+    CHECK (target() == ExpressionTargets::loFi);
+    click (4);
+    CHECK (target() == ExpressionTargets::off);
+
+    // Scrolling down from unassigned starts at the top, then steps down; it stops at the ends.
+    scroll (-1.0f);
+    CHECK (target() == ExpressionTargets::volume);
+    scroll (-1.0f);
+    CHECK (target() == ExpressionTargets::wah);
+    scroll (1.0f);
+    scroll (1.0f);
+    CHECK (target() == ExpressionTargets::volume);
 }

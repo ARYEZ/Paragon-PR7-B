@@ -2,7 +2,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
-// The PR7 mark: heavy, wide, forward-slanted block letters with two "speed"
+// The PR7-G mark: heavy, wide, forward-slanted block letters with two "speed"
 // cuts through their lower half, in the spirit of late-'90s floor
 // processors. Drawn from vector outlines (not a font), so it's the same
 // shape everywhere: the header, the unit's badge and the expression pedal.
@@ -10,7 +10,7 @@ namespace Logo
 {
     struct Style
     {
-        juce::Colour letters;                              // P and R
+        juce::Colour letters;                              // P, R and "-G"
         juce::Colour seven;                                // the 7, usually the accent colour
         juce::Colour highlight = juce::Colours::transparentBlack;   // a light edge underneath, to look stamped into metal
         juce::Colour outline = juce::Colours::transparentBlack;     // an engraved outline
@@ -23,5 +23,5 @@ namespace Logo
 
     // Draws the mark as large as fits in `area`, placed by `justification`.
     // Returns where it was drawn.
-    juce::Rectangle<float> drawPR7 (juce::Graphics&, juce::Rectangle<float> area, juce::Justification justification, const Style&);
+    juce::Rectangle<float> drawMark (juce::Graphics&, juce::Rectangle<float> area, juce::Justification justification, const Style&);
 }

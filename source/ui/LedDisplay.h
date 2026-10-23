@@ -43,9 +43,18 @@ public:
     // Draws one seven-segment digit ('0'-'9' or '-') in `area`. Public for reuse.
     static void drawDigit (juce::Graphics&, juce::juce_wchar digit, juce::Rectangle<float> area, juce::Colour lit);
 
+    // The screen itself, shared with the expression pedal's small screen so
+    // the two always match: the chrome frame, black bezel and dark glass,
+    // returning the glass's area to draw the readout in. `size` scales the
+    // frame and bezel (1 is this screen's).
+    static juce::Rectangle<float> paintScreen (juce::Graphics&, juce::Rectangle<float> bounds, float size = 1.0f);
+    // What sits in front of the readout: pixel rows, the bezel's shadow and reflections.
+    static void paintGlassOverlay (juce::Graphics&, juce::Rectangle<float> glass, float size = 1.0f);
+
+    static inline const juce::Colour ledOrange { 0xffff7a1a };
+
 private:
     void paintTuner (juce::Graphics&, juce::Rectangle<float> content, juce::Colour colour) const;
-    void paintGlassOverlay (juce::Graphics&, juce::Rectangle<float> glass) const;
 
     Contents contents;
 };

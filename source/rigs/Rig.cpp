@@ -8,7 +8,8 @@ namespace
     // Which plugin version's parameters the rig was saved with, for the
     // occasional parameter whose default changed (older plugins ignore it).
     // 10: the drive's MODEL, defaulting to the Tube Screamer model.
-    constexpr int parameterVersion = 10;
+    // 15: the reverb's TYPE, defaulting to HALL.
+    constexpr int parameterVersion = 15;
 
     const juce::Identifier rigTag { "ParagonRig" };
     const juce::Identifier parameterTag { "Param" };
@@ -75,8 +76,12 @@ std::optional<Rig> Rig::fromXml (const juce::XmlElement& xml)
 
     // Saved before the drive had a MODEL: it was the original overdrive,
     // model 0. Without this it would load as the newer default.
-    if (xml.getIntAttribute ("parameterVersion", 0) < 10 && rig.parameters.count ("driveModel") == 0)
+    const auto savedWith = xml.getIntAttribute ("parameterVersion", 0);
+    if (savedWith < 10 && rig.parameters.count ("driveModel") == 0)
         rig.parameters["driveModel"] = 0.0f;
+    // Saved before the reverb had a TYPE: it was the original, now CLASSIC (0).
+    if (savedWith < 15 && rig.parameters.count ("reverbType") == 0)
+        rig.parameters["reverbType"] = 0.0f;
 
     return rig;
 }

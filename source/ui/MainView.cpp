@@ -95,16 +95,15 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
       muteAttachment (processorToShow.getParameters(), ParamIDs::tunerMute, mutePedal),
       rigLevelAttachment (processorToShow.getParameters(), ParamIDs::rigLevel, rigLevelKnob),
       presenceAttachment (processorToShow.getParameters(), ParamIDs::presence, presenceKnob),
-      ampSlot ("AMP", Icons::Type::amp, ParagonColours::amp, "*.nam", "Load / Edit NAM Model",
+      ampSlot ("AMP", "*.nam", "Load / Edit NAM Model",
                processorToShow.getParameters(), ParamIDs::ampOn),
-      cabSlot ("CABINET", Icons::Type::cabinet, ParagonColours::text, "*.wav;*.aif;*.aiff;*.flac", "Load / Edit IR",
+      cabSlot ("CABINET", "*.wav;*.aif;*.aiff;*.flac", "Load / Edit IR",
                processorToShow.getParameters(), ParamIDs::cabOn),
       pedalAssign (processorToShow.getParameters(), ExpressionAssign::Style::pedal),
       expressionPedal (processorToShow),
       heelIndicator (processorToShow),
       tunerReader (processorToShow),
       selectedRig (processorToShow),
-      rigSummary (processorToShow),
       expressionPanel (processorToShow.getParameters()),
       eqPanel (processorToShow.getParameters()),
       signalChain (processorToShow.getParameters(), {
@@ -254,7 +253,8 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     footswitches[3]->describe = [this]
     {
         const auto synced = audioProcessor.getParameters().getRawParameterValue (ParamIDs::delaySync)->load() > 0.5f;
-        return "Delay " + valueText (synced ? ParamIDs::delaySync : ParamIDs::delayTime) + "  Reverb " + valueText (ParamIDs::reverbMix);
+        return valueText (ParamIDs::delayType) + " " + valueText (synced ? ParamIDs::delaySync : ParamIDs::delayTime)
+             + "  " + valueText (ParamIDs::reverbType) + " " + valueText (ParamIDs::reverbMix);
     };
     const int footswitchBlocks[] = { compBlock, driveBlock, modBlock, delayBlock };
     for (size_t i = 0; i < footswitches.size(); ++i)
@@ -269,7 +269,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                       &undoLabel, &redoLabel, &bypassLabel, &tunerLabel, &muteLabel, &tapLabel, &holdLabel,
                       &rigLevelKnob, &presenceKnob, &rigLevelLabel, &presenceLabel,
                       &ampSlot, &cabSlot, &rigSlot, &pedalAssign, &expressionPedal, &heelIndicator,
-                      &rigNavigator, &selectedRig, &rigSummary, &expressionPanel };
+                      &rigNavigator, &selectedRig, &expressionPanel };
     for (auto& footswitch : footswitches)
         processorPage.push_back (footswitch.get());
     for (auto* component : processorPage)
@@ -298,7 +298,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                          { ParamIDs::driveLevel, "LEVEL" } } } });
     panels[ampBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "AMP (NAM)", { { ParamIDs::ampOn, "ON" }, { ParamIDs::ampNormalise, "NORMALISE" }, { ParamIDs::presence, "PRESENCE" },
-                         { ParamIDs::rigLevel, "OUTPUT LEVEL" } } } });
+                         { ParamIDs::rigLevel, "RIG LEVEL" } } } });
     panels[cabBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "CABINET (IR)", { { ParamIDs::cabOn, "ON" }, { ParamIDs::presence, "PRESENCE" } } } });
     panels[modBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
@@ -308,13 +308,14 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                           { ParamIDs::modMix, "MIX", [this] {
                               return effects::Modulation::usesMix ((effects::Modulation::Type) juce::roundToInt (rawValue (ParamIDs::modType))); } } } } });
     panels[delayBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
-        { "DELAY", { { ParamIDs::delayOn, "ON" }, { ParamIDs::delaySync, "SYNC" },
+        { "DELAY", { { ParamIDs::delayOn, "ON" }, { ParamIDs::delayType, "TYPE" }, { ParamIDs::delaySync, "SYNC" },
                      { ParamIDs::delayTime, "TIME", [this] { return rawValue (ParamIDs::delaySync) < 0.5f; } },
-                     { ParamIDs::delayFeedback, "FEEDBACK" }, { ParamIDs::delayTone, "TONE" }, { ParamIDs::delayMix, "MIX" },
+                     { ParamIDs::delayFeedback, "FEEDBACK" }, { ParamIDs::delayTone, "TONE" }, { ParamIDs::delayMix, "MIX" }, { ParamIDs::delayDuck, "DUCK" },
                      { ParamIDs::delayPingPong, "PING-PONG" } } } });
     panels[reverbBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
-        { "REVERB", { { ParamIDs::reverbOn, "ON" }, { ParamIDs::reverbSize, "SIZE" }, { ParamIDs::reverbTone, "TONE" },
-                      { ParamIDs::reverbMix, "MIX" } } } });
+        { "REVERB", { { ParamIDs::reverbOn, "ON" }, { ParamIDs::reverbType, "TYPE" }, { ParamIDs::reverbSize, "SIZE" },
+                      { ParamIDs::reverbPreDelay, "PRE-DELAY" }, { ParamIDs::reverbTone, "TONE" }, { ParamIDs::reverbMix, "MIX" },
+                      { ParamIDs::reverbDuck, "DUCK" } } } });
     panels[loFiBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "LO-FI", { { ParamIDs::lofiOn, "ON" }, { ParamIDs::lofiType, "TYPE" }, { ParamIDs::lofiAmount, "AMOUNT" },
                      { ParamIDs::lofiNoise, "NOISE" }, { ParamIDs::lofiMix, "MIX" }, { ParamIDs::lofiLevel, "LEVEL" } } } });
@@ -335,9 +336,9 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     }
     addChildComponent (eqPanel);
 
-    closePanel.setTooltip ("Back to the rig summary");
+    closePanel.setTooltip ("Back to the graphic EQ");
     closePanel.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff151217));
-    closePanel.onClick = [this] { selectBlock (noBlock); };
+    closePanel.onClick = [this] { selectBlock (eqBlock); };
     addChildComponent (closePanel);
 
     rigNavigator.onShow = [this] (int filter, int bank)
@@ -347,14 +348,13 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     };
     selectedRig.onSave = [this] { saveRig(); };
     selectedRig.onSaveAs = [this] { rigBrowser.promptSaveAs(); };
-    rigSummary.onSelectBlock = [this] (int block) { selectBlock (block); };
 
     signalChain.onSelect = [this] (int block) { selectBlock (block); };
     addAndMakeVisible (signalChain);
     addChildComponent (rigBrowser);
     addChildComponent (settingsPage);
 
-    selectBlock (noBlock);
+    selectBlock (eqBlock);   // the dock shows the graphic EQ until another block is picked
 
     audioProcessor.rigBroadcaster.addChangeListener (this);
     audioProcessor.statusBroadcaster.addChangeListener (this);
@@ -386,16 +386,15 @@ float MainView::rawValue (const char* parameterId) const
 
 void MainView::selectBlock (int block)
 {
-    // A block's knobs replace the TAGS / RIG SUMMARY panel; noBlock shows the summary again.
+    // The selected block's knobs fill the middle of the dock; the graphic EQ is the default.
     selectedBlock = block;
     const auto onProcessorPage = page == Page::processor;
     for (size_t i = 0; i < panels.size(); ++i)
         if (panels[i] != nullptr)
             panels[i]->setVisible ((int) i == block && onProcessorPage);
     eqPanel.setVisible (block == eqBlock && onProcessorPage);
-    closePanel.setVisible (block != noBlock && onProcessorPage);
-    rigSummary.setVisible (block == noBlock && onProcessorPage);
-    if (block != noBlock)
+    closePanel.setVisible (block != eqBlock && onProcessorPage);
+    if (block != eqBlock)
         closePanel.toFront (false);
 
     const int footswitchBlocks[] = { compBlock, driveBlock, modBlock, delayBlock };
@@ -536,7 +535,6 @@ void MainView::changeListenerCallback (juce::ChangeBroadcaster*)
     refreshRig();
     ampSlot.setStatus (audioProcessor.getAmpStatus());
     cabSlot.setStatus (audioProcessor.getCabStatus());
-    rigSummary.refresh();
 }
 
 void MainView::paint (juce::Graphics& g)
@@ -565,7 +563,7 @@ void MainView::paint (juce::Graphics& g)
     g.setColour (ParagonColours::text);
     g.drawText ("PARAGON", nameArea, juce::Justification::centredLeft, false);
     const auto nameWidth = (float) juce::GlyphArrangement::getStringWidthInt (nameFont, "PARAGON ");
-    Logo::drawPR7 (g, nameArea.withTrimmedLeft (nameWidth).withSizeKeepingCentre (nameArea.getWidth() - nameWidth, 17.0f),
+    Logo::drawMark (g, nameArea.withTrimmedLeft (nameWidth).withSizeKeepingCentre (nameArea.getWidth() - nameWidth, 17.0f),
                    juce::Justification::centredLeft, { ParagonColours::glow, ParagonColours::glow, {}, {}, 1.0f, true });
 
     // Framed groups: the tabs, the rig selector and the tempo.
@@ -657,7 +655,7 @@ void MainView::resized()
     ampSlot.setBounds (mock (253, 250, 512, 382));
     cabSlot.setBounds (mock (578, 250, 820, 382));
     rigSlot.setBounds (mock (870, 250, 1148, 382));
-    pedalAssign.setBounds (mock (1204, 250, 1314, 386));
+    pedalAssign.setBounds (mock (1196, 250, 1310, 382));   // level with the AMP / CABINET / RIG panels, as a fourth window
     heelIndicator.setBounds (mock (1262, 407, 1314, 423));
 
     for (size_t i = 0; i < footswitches.size(); ++i)
@@ -671,7 +669,6 @@ void MainView::resized()
     rigNavigator.setBounds (mock (12, 568, 246, 822));
     selectedRig.setBounds (mock (256, 568, 652, 822));
     const auto summaryArea = mock (662, 568, 1334, 822);
-    rigSummary.setBounds (summaryArea);
     for (auto& panel : panels)
         if (panel != nullptr)
             panel->setBounds (summaryArea);

@@ -2,14 +2,11 @@
 
 #include "ParagonLookAndFeel.h"
 
-ModelSlot::ModelSlot (const juce::String& titleText, Icons::Type iconToShow, juce::Colour iconColourToUse,
-                      const juce::String& wildcardToUse, const juce::String& hintText,
+ModelSlot::ModelSlot (const juce::String& titleText, const juce::String& wildcardToUse, const juce::String& hintText,
                       juce::AudioProcessorValueTreeState& parameters, const juce::String& powerParameterId)
     : title (titleText),
       wildcard (wildcardToUse),
       hint (hintText),
-      icon (iconToShow),
-      iconColour (iconColourToUse),
       powerAttachment (*parameters.getParameter (powerParameterId), [this] (float value) { powerOn = value > 0.5f; repaint(); }),
       previous (SlotWindow::makeArrow (true)),
       next (SlotWindow::makeArrow (false))
@@ -102,7 +99,7 @@ void ModelSlot::paint (juce::Graphics& g)
     SlotWindow::drawRingLed (g, ledCentre, powerOn);
 
     const auto hasFile = status.file != juce::File();
-    SlotWindow::drawButton (g, layout.button, icon, hasFile ? iconColour : iconColour.withAlpha (0.45f), buttonHover, dragHover);
+    SlotWindow::drawButton (g, layout.button, buttonHover, dragHover);
 
     // Under the block: what's loaded, or what to do, or what went wrong.
     const auto isError = status.error.isNotEmpty() && ! status.loading;

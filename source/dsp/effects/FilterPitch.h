@@ -1,6 +1,6 @@
 #pragma once
 
-#include "EffectUtils.h"
+#include "PitchShifter.h"
 
 namespace effects
 {
@@ -40,8 +40,6 @@ namespace effects
     private:
         void processAutoWah (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept;
         void processPitch (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept;
-        float readAt (float delay) const noexcept;
-        float findSplice (float fromDelay, float direction, float ratioNow) const noexcept;
 
         double sampleRate = 48000.0;
         BypassFade bypass;
@@ -51,14 +49,8 @@ namespace effects
         juce::dsp::StateVariableTPTFilter<float> wahFilter;
         float envelope = 0.0f, sweep = 0.0f;
 
-        // Pitch shifter: a read head moving through the recent guitar at the
-        // new speed, and the head it's fading out from after a jump.
-        std::vector<float> history;   // a circular buffer, a power of two long
-        int historyMask = 0, writeIndex = 0;
-        float headDelay = 0.0f, fadingDelay = 0.0f;
-        int fadeRemaining = 0;
-        int jumpSamples = 0, searchSamples = 0, fadeSamples = 0;
-        float minDelay = 4.0f, maxDelay = 0.0f;
+        // Pitch shifter
+        PitchShifter shifter;
         juce::SmoothedValue<float> ratio;
     };
 }

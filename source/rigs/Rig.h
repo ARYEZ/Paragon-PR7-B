@@ -11,7 +11,7 @@
 // The INPUT and OUTPUT knobs at the sides aren't part of a rig: they suit
 // the player's guitar and monitoring, not a particular sound, so switching
 // rigs leaves them alone (as on hardware modellers). Each rig has its own
-// OUTPUT LEVEL for balancing rigs against each other instead.
+// RIG LEVEL for balancing rigs against each other instead.
 struct Rig
 {
     static constexpr int numBanks = 4;          // A to D

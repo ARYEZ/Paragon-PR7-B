@@ -295,10 +295,12 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
                                        param (ParamIDs::modMix) * (morphsDepth ? 1.0f : morph) });
     delay.process (stereoBlock, { isOn (ParamIDs::delayOn), param (ParamIDs::delayTime), (int) param (ParamIDs::delaySync),
                                   param (ParamIDs::delayFeedback), param (ParamIDs::delayTone), param (ParamIDs::delayMix) * morph,
-                                  isOn (ParamIDs::delayPingPong) },
+                                  isOn (ParamIDs::delayPingPong), (effects::Delay::Type) (int) param (ParamIDs::delayType),
+                                  param (ParamIDs::delayDuck) },
                    getTempoBpm());
-    reverb.process (stereoBlock, { isOn (ParamIDs::reverbOn), param (ParamIDs::reverbSize), param (ParamIDs::reverbTone),
-                                   param (ParamIDs::reverbMix) * morph });
+    reverb.process (stereoBlock, { isOn (ParamIDs::reverbOn), (effects::Reverb::Type) (int) param (ParamIDs::reverbType),
+                                   param (ParamIDs::reverbSize), param (ParamIDs::reverbTone), param (ParamIDs::reverbMix) * morph,
+                                   param (ParamIDs::reverbPreDelay), param (ParamIDs::reverbDuck) });
 
     // LO-FI last, so the whole sound goes through the phone. Assigned to the
     // expression pedal, the pedal fades it in: full band at the heel, lo-fi at the toe.
@@ -307,7 +309,7 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
                                  param (ParamIDs::lofiAmount), param (ParamIDs::lofiNoise),
                                  param (ParamIDs::lofiMix) * loFiPedal, param (ParamIDs::lofiLevel) });
 
-    // The master OUTPUT knob plus the rig's own OUTPUT LEVEL, and the
+    // The master OUTPUT knob plus the rig's own RIG LEVEL, and the
     // expression pedal when it's a VOLUME pedal. Squaring the position gives
     // the "audio taper" of a real volume pedal: half way down is about
     // -12 dB rather than -6 dB, so the quiet end of the travel is usable.
@@ -797,14 +799,19 @@ void ParagonX1AudioProcessor::setStateInformation (const void* data, int sizeInB
 
     auto state = juce::ValueTree::fromXml (*xml);
 
-    // Saved before the drive had a MODEL: it was the original overdrive.
-    if (! state.getChildWithProperty ("id", ParamIDs::driveModel).isValid())
+    // Parameters whose default changed: a project saved before they existed
+    // gets the setting it had then, so it sounds the same.
+    const auto addIfMissing = [&state] (const char* id, int value)
     {
-        juce::ValueTree model ("PARAM");
-        model.setProperty ("id", ParamIDs::driveModel, nullptr);
-        model.setProperty ("value", (int) effects::Drive::Model::classic, nullptr);
-        state.appendChild (model, nullptr);
-    }
+        if (state.getChildWithProperty ("id", id).isValid())
+            return;
+        juce::ValueTree parameter ("PARAM");
+        parameter.setProperty ("id", id, nullptr);
+        parameter.setProperty ("value", value, nullptr);
+        state.appendChild (parameter, nullptr);
+    };
+    addIfMissing (ParamIDs::driveModel, (int) effects::Drive::Model::classic);    // before the drive had a MODEL
+    addIfMissing (ParamIDs::reverbType, (int) effects::Reverb::Type::classic);    // before the reverb had a TYPE
     parameters.replaceState (state);
 
     const auto restore = [] (const juce::var& path, auto load, auto clear)

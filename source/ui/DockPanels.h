@@ -7,7 +7,7 @@
 
 // The panels along the bottom of the PROCESSOR page, as in the mockup:
 //
-//   RIG BROWSER | SELECTED RIG | TAGS + RIG SUMMARY | EXPRESSION ASSIGN
+//   RIG BROWSER | SELECTED RIG | (the selected block's knobs) | EXPRESSION ASSIGN
 //
 // plus the SETTINGS page.
 
@@ -76,56 +76,6 @@ private:
     juce::Rectangle<int> nameBox, starArea, bankLabel, numberLabel;
     juce::String name;
     bool hasEntry = false, favourite = false, canRefile = false, refreshing = false;
-};
-
-//==============================================================================
-// TAGS and RIG SUMMARY: the rig's tags as chips (+ adds one, click a chip
-// to remove it), and a card for each block of the chain showing what it's
-// set to. Click a card to edit that block.
-class RigSummary final : public juce::Component,
-                         public juce::SettableTooltipClient,
-                         private juce::Timer
-{
-public:
-    explicit RigSummary (ParagonX1AudioProcessor&);
-
-    std::function<void (int block)> onSelectBlock;
-
-    void refresh();
-
-    void paint (juce::Graphics&) override;
-    void resized() override;
-    void mouseMove (const juce::MouseEvent&) override;
-    void mouseExit (const juce::MouseEvent&) override;
-    void mouseUp (const juce::MouseEvent&) override;
-
-private:
-    struct Card
-    {
-        juce::String title, line1, line2;
-        Icons::Type icon;
-        juce::Colour colour;
-        bool on = false;
-        juce::Rectangle<float> area;
-    };
-
-    void timerCallback() override { refresh(); }
-    void addTag();
-    void removeTag (const juce::String& tag);
-    void setTags (const juce::StringArray& tags);
-    juce::String text (const char* parameterId) const;
-    float value (const char* parameterId) const;
-    juce::String eqSummary() const;
-
-    ParagonX1AudioProcessor& processor;
-    std::vector<Card> cards;
-    juce::StringArray tags;
-    std::vector<juce::Rectangle<float>> tagAreas;
-    juce::Rectangle<float> plusArea;
-    juce::Rectangle<int> tagsTitle, summaryTitle;
-    bool canEditTags = false;
-    int hoveredCard = -1;
-    std::unique_ptr<juce::AlertWindow> dialog;
 };
 
 //==============================================================================

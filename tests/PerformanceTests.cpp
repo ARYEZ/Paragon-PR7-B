@@ -269,6 +269,7 @@ TEST_CASE ("Expression pedal as WAH and MORPH FX", "[expression]")
     // MORPH at the heel: the time effects are dry, so the output is the clean tone.
     rig.turn (ParamIDs::expressionTarget, (float) ExpressionTargets::morph);
     rig.turn (ParamIDs::reverbOn, 1.0f);
+    rig.turn (ParamIDs::reverbType, 4.0f);   // plate: dense from the first moment, so its effect shows within the half second
     rig.turn (ParamIDs::reverbMix, 1.0f);
     rig.turn (ParamIDs::expression, 0.0f);
     CHECK_THAT (rig.play (0.5), WithinAbs (clean, 0.005));

@@ -1,4 +1,4 @@
-# Paragon PR7
+# Paragon PR7-G
 
 [![Build](https://github.com/ARYEZ/Paragon-X1/actions/workflows/build.yml/badge.svg)](https://github.com/ARYEZ/Paragon-X1/actions/workflows/build.yml)
 [![Latest release](https://img.shields.io/github/v/release/ARYEZ/Paragon-X1)](https://github.com/ARYEZ/Paragon-X1/releases/latest)
@@ -6,7 +6,7 @@
 A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://github.com/sdatkinson/NeuralAmpModelerCore)
 (`.nam`) amp captures, with a cabinet IR loader and built-in effects. Built with [JUCE](https://juce.com).
 
-![Paragon PR7 mockup (from when it was called Paragon X1)](Paragon%20x1.png)
+![Paragon PR7-G mockup (from when it was called Paragon X1)](Paragon%20x1.png)
 
 *The design mockup. Version 0.7 matches it closely, feature for feature.*
 
@@ -49,14 +49,18 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
     (Leslie), vibrato, harmonic tremolo, auto-pan and doubler. SYNC locks the rate to the tapped or DAW tempo.
   - **4 Reverb / Delay:** switches both; each also has its own ON switch. The delay syncs to your
     DAW's tempo (or set SYNC to Off for milliseconds), has a tone control for darker repeats, and
-    optional ping-pong. Both let their tails ring out when switched off.
+    optional ping-pong; it comes in eight types: Digital (the original), Analog, Tape, Mod, Reverse,
+    Multi-Tap, Shimmer and Ducking. The reverb comes in eight types: Room, Hall, Cathedral, Plate, Spring,
+    Digital, Reverse and Classic (the original), with SIZE, PRE-DELAY, TONE and MIX. Both have a DUCK knob that tucks
+    the repeats or reverb under your playing and lets them swell back in the gaps. Both let their
+    tails ring out when switched off.
 - **Graphic EQ:** 9 bands (63 Hz to 16 kHz, ±12 dB) and a level, after the cabinet. Open it from the
   **EQ** block in the signal chain; the curve shows the EQ's actual response. FLAT resets it.
 - All effects start switched off, so projects made with earlier versions sound the same.
 - **Rigs:** SAVE in the header saves the current sound as a rig; **<** and **>** step through rigs; a
   `*` after the name means it's changed since loading. The **PRESETS** tab browses, searches, files
   (banks A-D), tags and favourites rigs. Factory rigs set the effects and keep your amp and cab.
-  INPUT and OUTPUT stay put when you switch rigs; each rig has its own **OUTPUT LEVEL**.
+  INPUT and OUTPUT stay put when you switch rigs; each rig has its own **RIG LEVEL** (on the unit), which adds to OUTPUT.
 - **TAP** (header or pedal) sets the delay's tempo from your taps; the BPM turns orange. Click the
   BPM to follow your DAW's tempo again. The TAP light flashes in time.
 - **Tuner:** hold TAP, or press TUNER on the pedal. The screen shows the note, how many cents off it
@@ -65,14 +69,15 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
   (Cmd on a Mac). Each knob move, switch, file or rig load is one step. INPUT, OUTPUT and the
   pedal's position aren't undone.
 - **Expression pedal** (right of the unit): drag it, use the mouse wheel, or send MIDI CC 11 (or the CC chosen in SETTINGS) from a
-  real expression pedal (route your MIDI track to the plugin). Assign it with EXPRESSION ASSIGN to
+  real expression pedal (route your MIDI track to the plugin). Assign it on the small EXPRESSION screen beside it (click a line, or scroll; it also shows the
+  pedal's position) or with EXPRESSION ASSIGN in the dock, to
   **VOLUME**, **WAH / FILTER** (a wah before the drive), **MORPH / FX** (fades modulation, delay and
   reverb in from the heel), **PITCH / WHAMMY** (bends the pitch shifter from no shift at the heel to its
   INTERVAL at the toe) or **LO-FI** (fades the lo-fi effect in: full band at the heel, lo-fi at the toe). MIN and MAX set where the heel and toe land. The assignment and range
   are saved with each rig.
 - **Bottom panels:** RIG BROWSER jumps to the PRESETS page filtered; SELECTED RIG files and saves the
-  current rig; TAGS and RIG SUMMARY show the rig at a glance. Click a summary card (or a footswitch name,
-  or a signal-chain block) to edit that block's knobs; **RIG SUMMARY** goes back.
+  current rig; the middle shows the graphic EQ, or the knobs of whichever block you pick (click a
+  signal-chain block or a footswitch name); **GRAPHIC EQ** goes back to the EQ.
 - **SETTINGS:** the tuner's reference pitch, mute while tuning, and the expression pedal's MIDI CC.
 - The paths of the loaded files are saved in your DAW project. If a file is missing when the project
   opens, the slot says so and keeps the path, so moving the file back fixes it.
@@ -82,7 +87,7 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 Get the latest version from the **[Releases](https://github.com/ARYEZ/Paragon-X1/releases/latest)** page: download the zip for your
 computer. (Builds of every push also appear under **Actions** → a run → **Artifacts**.)
 
-Unzip it and copy `Paragon PR7.vst3` to your VST3 folder:
+Unzip it and copy `Paragon PR7-G.vst3` to your VST3 folder:
 
 | OS | VST3 folder |
 |---|---|
@@ -91,7 +96,7 @@ Unzip it and copy `Paragon PR7.vst3` to your VST3 folder:
 | Linux | `~/.vst3` |
 
 **macOS:** the build isn't code-signed yet, so macOS will block it. After copying, run
-`xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/"Paragon PR7.vst3"` once.
+`xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/"Paragon PR7-G.vst3"` once.
 
 ## Making a release
 
@@ -128,7 +133,7 @@ PARAGON_SNAPSHOT=editor.png ./build/tests/ParagonX1Tests "[snapshot]"
 The Inter typeface (in `resources/fonts`) is by Rasmus Andersson, under the SIL Open Font License.
 
 
-Paragon PR7 is free software under the [GNU Affero General Public License v3](LICENSE.md),
+Paragon PR7-G is free software under the [GNU Affero General Public License v3](LICENSE.md),
 which is required by JUCE's open-source licence.
 
 It uses:
@@ -137,5 +142,5 @@ It uses:
 - [Eigen](https://eigen.tuxfamily.org): MPL 2.0
 - [AudioDSPTools](https://github.com/sdatkinson/AudioDSPTools) (resampler): MIT, with parts from iPlug2 under the zlib-style iPlug2 licence
 
-"Neural Amp Modeler" is Steven Atkinson's project. Paragon PR7 is an independent player for `.nam`
+"Neural Amp Modeler" is Steven Atkinson's project. Paragon PR7-G is an independent player for `.nam`
 files and isn't affiliated with or endorsed by it.

@@ -2,12 +2,15 @@
 
 #include "Parameters.h"
 #include "ui/ParagonLookAndFeel.h"
+#include "ui/LedDisplay.h"
 #include "ui/SlotWindow.h"
 
 
 namespace
 {
     const Icons::Type targetIcons[] = { Icons::Type::volume, Icons::Type::wah, Icons::Type::rig, Icons::Type::filterPitch, Icons::Type::loFi };
+    constexpr float screenSize = 7.0f / 11.0f;   // the assign screen's frame and bezel, relative to the main screen's
+
     const char* pedalNames[] = { "VOLUME", "WAH / FILTER", "MORPH / FX", "PITCH / WHAMMY", "LO-FI" };
 
     juce::RangedAudioParameter& parameter (juce::AudioProcessorValueTreeState& state, const char* id)
@@ -78,31 +81,28 @@ ExpressionAssign::ExpressionAssign (juce::AudioProcessorValueTreeState& stateToU
           repaint();
       })
 {
-    for (int target = ExpressionTargets::volume; target <= ExpressionTargets::loFi; ++target)
+    if (style == Style::pedal)
     {
-        const auto index = (size_t) (target - 1);
-        std::unique_ptr<juce::Button> button;
-
-        if (style == Style::list)
+        // The screen draws its own menu; it has no buttons.
+        setTooltip ("Expression pedal assign. Click a line (or scroll) to choose what the pedal controls; "
+                    "click the highlighted line again to unassign it.");
+        setMouseCursor (juce::MouseCursor::PointingHandCursor);
+        startTimerHz (30);   // follows the pedal's position
+    }
+    else
+    {
+        for (int target = ExpressionTargets::volume; target <= ExpressionTargets::loFi; ++target)
         {
-            auto iconButton = std::make_unique<IconButton> (ExpressionTargets::names[target], targetIcons[index],
-                                                            pedalNames[index],
-                                                            juce::Justification::centredLeft);
-            iconButton->setOutlined (true);
-            button = std::move (iconButton);
+            const auto index = (size_t) (target - 1);
+            auto button = std::make_unique<IconButton> (ExpressionTargets::names[target], targetIcons[index],
+                                                        pedalNames[index], juce::Justification::centredLeft);
+            button->setOutlined (true);
+            button->setTooltip ("Assign the expression pedal to " + ExpressionTargets::names[target]
+                                + ". Click again to unassign it.");
+            button->onClick = [this, target] { select (target); };
+            addAndMakeVisible (*button);
+            buttons.push_back (std::move (button));
         }
-        else
-        {
-            auto textButton = std::make_unique<juce::TextButton> (pedalNames[index]);
-            textButton->getProperties().set (ParagonLookAndFeel::outlinedButtonProperty, true);
-            button = std::move (textButton);
-        }
-
-        button->setTooltip ("Assign the expression pedal to " + ExpressionTargets::names[target]
-                            + ". Click again to unassign it.");
-        button->onClick = [this, target] { select (target); };
-        addAndMakeVisible (*button);
-        buttons.push_back (std::move (button));
     }
 
     attachment.sendInitialUpdate();
@@ -136,43 +136,129 @@ void ExpressionAssign::select (int target)
     attachment.setValueAsCompleteGesture ((float) newTarget);
 }
 
+void ExpressionAssign::timerCallback()
+{
+    // Repaint only when the position on the screen would change.
+    if (juce::roundToInt (state.getRawParameterValue (ParamIDs::expression)->load() * 100.0f) != shownPercent)
+        repaint();
+}
+
+juce::Rectangle<float> ExpressionAssign::screenGlass() const
+{
+    return getLocalBounds().toFloat().reduced (11.0f * screenSize);   // where LedDisplay::paintScreen puts the glass
+}
+
+std::array<juce::Rectangle<float>, 5> ExpressionAssign::screenRows() const
+{
+    // Inside the glass: the EXPRESSION heading and a rule, the five lines,
+    // then the position bar along the bottom.
+    auto content = screenGlass().reduced (5.0f, 4.0f);
+    content.removeFromTop (17.0f);
+    content.removeFromBottom (12.0f);
+    std::array<juce::Rectangle<float>, 5> rows;
+    const auto rowHeight = content.getHeight() / (float) rows.size();
+    for (auto& row : rows)
+        row = content.removeFromTop (rowHeight).reduced (0.0f, 1.0f);
+    return rows;
+}
+
 void ExpressionAssign::paint (juce::Graphics& g)
 {
     if (style != Style::pedal)
         return;
 
-    // "EXPRESSION / ASSIGN" printed on the metal, with a ring LED that
-    // lights while the pedal is assigned to something.
-    auto title = getLocalBounds().removeFromTop (30).toFloat();
-    g.setColour (ParagonColours::ink);
-    g.setFont (juce::FontOptions (11.5f, juce::Font::bold));
-    g.drawText ("EXPRESSION", title.removeFromTop (15.0f), juce::Justification::centred, false);
-    g.setColour (ParagonColours::ink.withAlpha (0.3f));
-    g.drawHorizontalLine ((int) title.getY(), title.getX() + 8.0f, title.getRight() - 8.0f);
+    // A small version of the main screen: the same chrome frame, bezel and
+    // orange-lit glass, showing a menu of what the pedal can control.
+    const auto glass = LedDisplay::paintScreen (g, getLocalBounds().toFloat(), screenSize);
+    const auto orange = LedDisplay::ledOrange;
+    const auto assigned = currentTarget != ExpressionTargets::off;
+    shownPercent = juce::roundToInt (state.getRawParameterValue (ParamIDs::expression)->load() * 100.0f);
+    const auto position = shownPercent;
 
-    g.setColour (ParagonColours::inkDim);
-    g.setFont (juce::FontOptions (9.5f, juce::Font::bold));
-    g.drawText ("ASSIGN", title, juce::Justification::centred, false);
-    SlotWindow::drawRingLed (g, { title.getCentreX() + 30.0f, title.getCentreY() }, currentTarget != ExpressionTargets::off);
+    auto content = glass.reduced (5.0f, 4.0f);
+    auto header = content.removeFromTop (13.0f);
+    g.setColour (orange);
+    g.setFont (juce::FontOptions (10.0f, juce::Font::bold));
+    g.drawFittedText ("EXPRESSION", header.toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
+    g.setColour (orange.withAlpha (0.35f));
+    g.fillRect (content.removeFromTop (1.0f));
+
+    // The menu: the chosen line inverted (a solid orange bar, dark text),
+    // the others dimmed so the choice stands out. With nothing chosen, all
+    // of them show normally.
+    const auto rows = screenRows();
+    g.setFont (juce::FontOptions (9.0f, juce::Font::bold));
+    for (size_t i = 0; i < rows.size(); ++i)
+    {
+        const auto selected = currentTarget == (int) i + 1;
+        if (selected)
+        {
+            g.setColour (orange);
+            g.fillRoundedRectangle (rows[i], 2.0f);
+            g.setColour (juce::Colour (0xff1c0b06));
+        }
+        else
+        {
+            g.setColour (orange.withAlpha (assigned ? 0.5f : 0.85f));
+        }
+        g.drawFittedText (pedalNames[i], rows[i].reduced (4.0f, 0.0f).toNearestInt(), juce::Justification::centredLeft, 1, 0.7f);
+    }
+
+    // The pedal's position: a segmented bar like a level meter, and the
+    // percentage beside it. Dark while the pedal isn't assigned, so it's
+    // clear at a glance whether the pedal is doing anything.
+    auto bar = content.removeFromBottom (8.0f);
+    g.setColour (orange.withAlpha (assigned ? 0.85f : 0.3f));
+    g.setFont (juce::FontOptions (8.5f, juce::Font::bold));
+    g.drawText (juce::String (position) + "%", bar.removeFromRight (24.0f), juce::Justification::centredRight, false);
+    bar.removeFromRight (3.0f);
+    constexpr int segments = 10;
+    const auto segmentWidth = bar.getWidth() / (float) segments;
+    for (int i = 0; i < segments; ++i)
+    {
+        const auto lit = assigned && (float) i < (float) position / 100.0f * (float) segments - 0.001f;
+        g.setColour (orange.withAlpha (lit ? 1.0f : 0.14f));
+        g.fillRect (juce::Rectangle<float> (bar.getX() + (float) i * segmentWidth + 0.6f, bar.getY() + 1.0f, segmentWidth - 1.2f, bar.getHeight() - 2.0f));
+    }
+
+    LedDisplay::paintGlassOverlay (g, glass, screenSize);
 }
 
 void ExpressionAssign::resized()
 {
     auto area = getLocalBounds();
-    if (style == Style::pedal)
-    {
-        area.removeFromTop (36);
-        const auto rowHeight = area.getHeight() / (int) buttons.size();
-        for (auto& button : buttons)
-            button->setBounds (area.removeFromTop (rowHeight).withSizeKeepingCentre (juce::jmin (82, area.getWidth()),
-                                                                                     juce::jmin (20, rowHeight - 3)));
-    }
-    else
-    {
-        const auto rowHeight = area.getHeight() / (int) buttons.size();
-        for (auto& button : buttons)
-            button->setBounds (area.removeFromTop (rowHeight).reduced (0, 2));
-    }
+    const auto rowHeight = area.getHeight() / juce::jmax (1, (int) buttons.size());
+    for (auto& button : buttons)
+        button->setBounds (area.removeFromTop (rowHeight).reduced (0, 2));
+}
+
+void ExpressionAssign::mouseUp (const juce::MouseEvent& event)
+{
+    if (style != Style::pedal || ! event.mouseWasClicked())
+        return;
+
+    const auto rows = screenRows();
+    for (size_t i = 0; i < rows.size(); ++i)
+        if (rows[i].withX (screenGlass().getX()).withWidth (screenGlass().getWidth()).contains (event.position))
+            select ((int) i + 1);
+}
+
+void ExpressionAssign::mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails& wheel)
+{
+    // Scroll to step through the menu: down moves down the list.
+    if (style != Style::pedal)
+        return;
+
+    wheelTravel -= wheel.isReversed ? -wheel.deltaY : wheel.deltaY;
+    if (std::abs (wheelTravel) < 0.15f)
+        return;
+
+    const auto step = wheelTravel > 0.0f ? 1 : -1;
+    wheelTravel = 0.0f;
+    const auto next = juce::jlimit ((int) ExpressionTargets::volume, (int) ExpressionTargets::loFi,
+                                    currentTarget == ExpressionTargets::off ? (int) ExpressionTargets::volume : currentTarget + step);
+    if (next != currentTarget)
+        select (next);
 }
 
 namespace
@@ -186,10 +272,9 @@ namespace
     constexpr float baseCorner = 16.0f, treadleCorner = 13.0f;
     constexpr int treadleOversample = 2;   // the treadle's face is drawn at twice its size, so it stays sharp when rocked
 
-    // The treadle's face, drawn once: a brushed chrome plate in the unit's
-    // own rose-tinted chrome, two black rubber pads split by a diagonal
-    // chrome band (the mockup's design), ribbed across like the DigiTech
-    // RP6's, and the PR7 mark engraved at the heel. Drawn square and true,
+    // The treadle's face, drawn once: a plate in the unit's own pearl white
+    // satin finish, and two black rubber pads split by a diagonal band
+    // (the mockup's design), ribbed across like the DigiTech RP6's. Drawn square and true,
     // so it rocks without any lean or warp.
     juce::Image makeTreadleFace (int w, int h)
     {
@@ -202,36 +287,52 @@ namespace
         juce::Path plate;
         plate.addRoundedRectangle (bounds.reduced (1.0f), corner);
         {
-            juce::ColourGradient metal (ParagonColours::metalDark, 0.0f, 0.0f, ParagonColours::metalDark, fw, 0.0f, false);
-            metal.addColour (0.14, ParagonColours::metalLight);
-            metal.addColour (0.5, ParagonColours::metalMid);
-            metal.addColour (0.86, ParagonColours::metalLight);
-            g.setGradientFill (metal);
+            // Pearl white, its long edges curving away into a soft rose shade.
+            juce::ColourGradient pearl (juce::Colour (0xffe6d6de), 0.0f, 0.0f, juce::Colour (0xffdccbd4), fw, 0.0f, false);
+            pearl.addColour (0.14, juce::Colour (0xfffffdfe));
+            pearl.addColour (0.5, juce::Colour (0xfff4ebf0));
+            pearl.addColour (0.86, juce::Colour (0xfffbf6f8));
+            g.setGradientFill (pearl);
             g.fillPath (plate);
 
-            // Brushed along its length: fine streaks of light and shade.
+            // The same pearlescent shift as the chassis: rose to peach to lilac.
+            juce::ColourGradient iridescence (juce::Colour (0xffffc8dc).withAlpha (0.16f), 0.0f, 0.0f,
+                                              juce::Colour (0xffe2d0ff).withAlpha (0.14f), fw, fh, false);
+            iridescence.addColour (0.5, juce::Colour (0xffffe0c8).withAlpha (0.12f));
+            g.setGradientFill (iridescence);
+            g.fillPath (plate);
+
+            // The same satin grain as the chassis: a fine speckle with no
+            // direction to it, and the odd brighter mica fleck.
+            juce::Image grain (juce::Image::ARGB, w, h, true);
+            {
+                juce::Image::BitmapData pixels (grain, juce::Image::BitmapData::writeOnly);
+                juce::Random random (7);
+                for (int y = 0; y < h; ++y)
+                    for (int x = 0; x < w; ++x)
+                    {
+                        if (random.nextInt (500) == 0)
+                        {
+                            pixels.setPixelColour (x, y, (random.nextBool() ? juce::Colours::white : juce::Colour (0xffffd8e6)).withAlpha ((juce::uint8) (60 + random.nextInt (60))));
+                            continue;
+                        }
+                        const auto shade = random.nextFloat() * 2.0f - 1.0f;
+                        pixels.setPixelColour (x, y, (shade > 0.0f ? juce::Colours::white : juce::Colour (0xff5a3a4a))
+                                                         .withAlpha ((juce::uint8) juce::roundToInt (std::abs (shade) * 9.0f)));
+                    }
+            }
             juce::Graphics::ScopedSaveState clip (g);
             g.reduceClipRegion (plate);
-            juce::Random random (7);
-            for (int x = 0; x < w; ++x)
-            {
-                const auto shade = random.nextFloat();
-                g.setColour ((shade > 0.5f ? juce::Colours::white : juce::Colours::black).withAlpha (0.05f * std::abs (shade - 0.5f) * 2.0f));
-                g.fillRect ((float) x, 0.0f, 1.0f, fh);
-            }
+            g.drawImageAt (grain, 0, 0);
         }
-
-        // The unit's rose tint, so it reads as the same chrome.
-        g.setColour (ParagonColours::glow.withAlpha (0.07f));
-        g.fillPath (plate);
 
         // Its bevelled edge: lit along the top and left, darker at the bottom right.
         g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.9f), bounds.getTopLeft(),
-                                                 juce::Colour (0xff5d4c55), bounds.getBottomRight(), false));
+                                                 juce::Colour (0xffa88896), bounds.getBottomRight(), false));
         g.strokePath (plate, juce::PathStrokeType (fw * 0.012f));
         juce::Path seam;
         seam.addRoundedRectangle (bounds.reduced (fw * 0.03f), corner * 0.8f);
-        g.setColour (juce::Colours::black.withAlpha (0.25f));
+        g.setColour (juce::Colour (0xff4a2034).withAlpha (0.18f));
         g.strokePath (seam, juce::PathStrokeType (1.5f));
 
         // The two rubber pads, with the diagonal chrome band between them.
@@ -441,14 +542,14 @@ void ExpressionPedal::paint (juce::Graphics& g)
             juce::DropShadow (juce::Colours::black, 14, {}).drawForPath (g, shadow);
         }
 
-        // The treadle's body under its face (its thickness): chrome, dark at
-        // the bottom and lit towards the top, built up in layers so its sides
+        // The treadle's body under its face (its thickness): pearl, shaded
+        // rose at the bottom and lit towards the top, built up in layers so its sides
         // follow the face's rounded corners.
         constexpr int layers = 8;
         for (int layer = 0; layer < layers; ++layer)
         {
             const auto t = (float) layer / (float) (layers - 1);
-            g.setColour (juce::Colour (0xff3e3037).interpolatedWith (juce::Colour (0xffcdb6c1), t));
+            g.setColour (juce::Colour (0xff7a5c6a).interpolatedWith (juce::Colour (0xffeee3e9), t));
             g.fillPath (roundedOutline (topZ - thickness * (1.0f - t)));
         }
 
@@ -477,7 +578,7 @@ void ExpressionPedal::paint (juce::Graphics& g)
             const auto amount = tilt / maxTilt;   // +1 toe down (heel up), -1 heel down (toe up)
             const auto toeEnd = corner (0.5f, 0.0f, topZ), heelEnd = corner (0.5f, 1.0f, topZ);
             const auto lit = juce::Colours::white.withAlpha (0.10f * std::abs (amount));
-            const auto shaded = juce::Colours::black.withAlpha (0.35f * std::abs (amount));
+            const auto shaded = juce::Colour (0xff4a2034).withAlpha (0.28f * std::abs (amount));   // rose, not black, so the pearl doesn't go grey
             g.setGradientFill (juce::ColourGradient (amount < 0.0f ? lit : shaded, toeEnd,
                                                      amount < 0.0f ? shaded : lit, heelEnd, false));
             g.fillPath (face);

@@ -24,6 +24,12 @@ namespace SlotWindow
                 else
                     triangle.addTriangle (area.getX(), area.getY(), area.getX(), area.getBottom(), area.getRight(), area.getCentreY());
 
+                // Stamped into the metal, like the lettering.
+                if (isEnabled())
+                {
+                    g.setColour (juce::Colours::white.withAlpha (0.7f));
+                    g.fillPath (triangle, juce::AffineTransform::translation (0.0f, 1.0f));
+                }
                 g.setColour (! isEnabled() ? ParagonColours::inkDim.withAlpha (0.4f)
                                            : highlighted ? ParagonColours::glow : ParagonColours::ink);
                 g.fillPath (triangle);
@@ -51,14 +57,21 @@ namespace SlotWindow
 
     void drawTitle (juce::Graphics& g, const Layout& l, const juce::String& title)
     {
-        g.setColour (ParagonColours::ink);
         g.setFont (juce::FontOptions (14.0f, juce::Font::bold));
-        g.drawText (title, l.title, juce::Justification::centred, false);
+        ParagonLookAndFeel::drawStampedText (g, title, l.title.toFloat(), juce::Justification::centred, ParagonColours::ink);
     }
 
     void drawRingLed (juce::Graphics& g, juce::Point<float> centre, bool lit)
     {
         const auto ring = juce::Rectangle<float> (9.0f, 9.0f).withCentre (centre);
+
+        // The LED sits in a small chrome-rimmed lens set into the metal.
+        const auto lens = ring.expanded (3.0f);
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff5a4a52), 0.0f, lens.getY(),
+                                                 juce::Colour (0xfff3e9ee), 0.0f, lens.getBottom(), false));
+        g.fillEllipse (lens);
+        g.setColour (juce::Colour (0xff1a1014));
+        g.fillEllipse (lens.reduced (1.2f));
         if (lit)
         {
             g.setColour (ParagonColours::glow.withAlpha (0.3f));
@@ -68,23 +81,26 @@ namespace SlotWindow
         }
         g.setColour (lit ? ParagonColours::glow : ParagonColours::glow.withAlpha (0.45f));
         g.drawEllipse (ring, 1.6f);
+        g.setColour (juce::Colours::white.withAlpha (0.18f));   // the lens's reflection
+        g.fillEllipse (lens.reduced (2.5f).withHeight (lens.getHeight() * 0.3f));
     }
 
-    void drawButton (juce::Graphics& g, juce::Rectangle<int> areaInt, Icons::Type icon, juce::Colour iconColour,
-                     bool hover, bool highlight)
+    void drawButton (juce::Graphics& g, juce::Rectangle<int> areaInt, bool hover, bool highlight)
     {
-        // A piano-black key like the footswitches, its icon glowing on top.
-        const auto area = areaInt.toFloat();
-        ParagonLookAndFeel::drawPianoBlackKey (g, area, 8.0f, 6.0f, false, hover || highlight);
-        const auto top = area.reduced (6.0f, 0.0f).withTrimmedTop (4.0f).withTrimmedBottom (9.6f);
-        const auto iconSize = top.getHeight() * 0.62f;
-        Icons::draw (g, icon, top.withSizeKeepingCentre (iconSize * 1.3f, iconSize), iconColour, 1.8f, true);
+        // A plain piano-black key in a chrome bezel, exactly like the
+        // footswitches: no icon, the title above and caption below say what it is.
+        const auto bezel = areaInt.toFloat();
+        ParagonLookAndFeel::drawChromeBezel (g, bezel, 11.0f);
+        const auto area = bezel.reduced (7.0f, 6.0f).withTrimmedBottom (1.0f);
+        ParagonLookAndFeel::drawPianoBlackKey (g, area, 7.0f, 5.5f, false, hover || highlight);
     }
 
     void drawCaption (juce::Graphics& g, juce::Rectangle<int> area, const juce::String& text, bool isError)
     {
-        g.setColour (isError ? juce::Colour (0xffc8231a) : ParagonColours::ink);
         g.setFont (juce::FontOptions (12.5f, isError ? juce::Font::bold : juce::Font::plain));
+        g.setColour (juce::Colours::white.withAlpha (0.6f));   // stamped: a light edge under the letters
+        g.drawFittedText (text, area.translated (0, 1), juce::Justification::centred, 1, 0.7f);
+        g.setColour (isError ? juce::Colour (0xffc8231a) : ParagonColours::ink);
         g.drawFittedText (text, area, juce::Justification::centred, 1, 0.7f);
     }
 

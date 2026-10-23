@@ -2,11 +2,11 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
-// The floor unit from the mockup, drawn as one piece of rose-tinted chrome:
+// The floor unit from the mockup, drawn as one piece of bright pearl white:
 // a thick bevelled rim with the red-orange light spilling round it, the
-// brushed face plate with screws in its corners, recessed section panels
+// satin face plate with screws in its corners, recessed section panels
 // (the slot row and the footswitch row), the panels behind the slot windows, the
-// PARAGON PR7 badge, and the bay on the right that the expression pedal sits
+// PARAGON PR7-G badge, and the bay on the right that the expression pedal sits
 // in. Purely visual: the controls on it are separate components on top.
 class PedalBody final : public juce::Component
 {
@@ -20,7 +20,7 @@ public:
         juce::Rectangle<float> pedalBay;                   // the expression pedal's housing
         std::vector<juce::Rectangle<float>> sections;      // raised panels (slot row, footswitch row)
         std::vector<juce::Rectangle<float>> insets;        // recessed panels (behind each slot window)
-        juce::Rectangle<float> badge;                      // PARAGON over the PR7 mark
+        juce::Rectangle<float> badge;                      // PARAGON over the PR7-G mark
         juce::Path printedRed, printedInk;                 // lines printed on the face (the tuner bracket, SAVE—SAVE AS)
     };
     void setGeometry (Geometry);
@@ -29,12 +29,12 @@ public:
     void resized() override;
 
 private:
-    void makeBrushedTexture();
+    void makeSatinTexture();
     void paintBadge (juce::Graphics&) const;
-    void drawBrushed (juce::Graphics&) const;   // the brushed grain over the whole component (clip first)
+    void drawSatin (juce::Graphics&) const;   // the pearl satin grain over the whole component (clip first)
     static void strokeTopHighlight (juce::Graphics&, juce::Rectangle<float> area, float radius, float thickness, float alpha);
     static void paintScrew (juce::Graphics&, juce::Point<float> centre, float radius);
 
-    juce::Image brushed;
+    juce::Image satin;
     Geometry geometry;
 };

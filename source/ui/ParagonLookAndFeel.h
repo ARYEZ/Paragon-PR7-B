@@ -42,7 +42,7 @@ public:
     ParagonLookAndFeel();
 
     // Set this property on a slider to draw it as one of the big black
-    // knobs on the pedal face (OUTPUT LEVEL, PRESENCE) instead of the
+    // knobs on the pedal face (RIG LEVEL, PRESENCE) instead of the
     // small ringed knob.
     static constexpr const char* pedalKnobProperty = "pedalKnob";
 
@@ -77,6 +77,9 @@ public:
     // EQ faders: travel inset by half the cap's height, so the cap's centre
     // reaches exactly the top and bottom of the scale.
     int getSliderThumbRadius (juce::Slider&) override;
+    // Drop-down lists: a long choice ("Multi-Tap", "1/8 triplet") squeezes to
+    // fit a narrow box rather than being cut off with "...".
+    void positionComboBoxText (juce::ComboBox&, juce::Label&) override;
 
     // The two-thumb MIN / MAX slider: a thin track with round glowing thumbs.
     void drawLinearSlider (juce::Graphics&, int x, int y, int width, int height,
@@ -106,6 +109,13 @@ public:
     // The mockup's LED bars: when lit, a neon tube (white-hot core inside a
     // red-orange outline, with a soft glow); when off, a dimmer solid red.
     static void drawNeonBar (juce::Graphics&, juce::Rectangle<float> bar, bool lit);
+    // A raised chrome bezel on the metal with a dark well inside it, the way a
+    // real unit's footswitches and big keys are mounted. Returns the well,
+    // for the key to be drawn in.
+    static juce::Rectangle<float> drawChromeBezel (juce::Graphics&, juce::Rectangle<float> bezel, float radius);
+    // Text stamped into the metal: ink, with a fine light edge underneath.
+    static void drawStampedText (juce::Graphics&, const juce::String& text, juce::Rectangle<float> area,
+                                 juce::Justification, juce::Colour colour);
 };
 
 // JUCE finds fonts through the *default* look-and-feel, so while any plugin

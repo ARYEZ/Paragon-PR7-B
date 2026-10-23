@@ -2,6 +2,114 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.19.0
+
+- **New name: Paragon PR7-G**, the guitar processor, ready for more processors in the Paragon line. The logo on the unit and in the header now reads PR7-G, in the same slanted, speed-cut lettering.
+  - **When you update:** delete the old `Paragon PR7.vst3` from your VST3 folder and copy in `Paragon PR7-G.vst3`. It's still the same plugin to your DAW, so your projects open with it as before. Keep only one, though: two copies of the same plugin can confuse the DAW.
+  - Your rigs come along: the first time it runs, Paragon PR7-G copies them from the Paragon PR7 folder (or from Paragon X1, if that's where they are) into its own folder. The originals are left where they were.
+- **AMP, CABINET and RIG keys** no longer have icons on them, so they match the four footswitches below them. The title and LED above each key and the caption below still say what it is and whether something is loaded.
+
+## 0.18.0
+
+- **EXPRESSION screen.** The expression pedal's assign buttons on the unit are now a small LCD screen: a little sibling of the main display, with the same chrome frame, black bezel and orange-lit glass.
+  - "EXPRESSION" is shown on the screen itself, above a menu of the five targets: VOLUME, WAH / FILTER, MORPH / FX, PITCH / WHAMMY and LO-FI.
+  - The chosen target is highlighted as a solid orange bar and the others dim. With nothing assigned, all five show normally.
+  - Along the bottom, a segmented bar and a percentage show where the pedal is, live as you rock it. It stays dark while the pedal isn't assigned.
+  - Click a line to assign the pedal, and click the highlighted line again to unassign it. Or scroll over the screen to step through the list.
+  - It's the same height as the AMP, CABINET and RIG windows and lines up with them as a fourth window in the row.
+  - EXPRESSION ASSIGN in the dock works as before.
+
+## 0.17.2
+
+- **Pearl white expression pedal.** The treadle now matches the chassis: the same bright pearl white satin finish with its fine speckle, mica flecks and rose-peach-lilac shimmer, in place of brushed chrome.
+  - Its edges and visible thickness are pearl too, shaded rose rather than grey.
+  - As the pedal rocks, the end tipping away darkens to a warm rose instead of grey.
+  - The two ribbed rubber pads stay black, as in the mockup.
+
+## 0.17.1
+
+- **Pearl white chassis.** The unit's body is now a bright pearl white instead of grey, to go with the neon red, orange and pink.
+  - The brushed-aluminium lines are gone. The finish is smooth satin, like the original mockup, with a very fine speckle and a few mica-like flecks so it still looks like a real painted surface up close.
+  - A faint pearlescent shift runs across the face plate: rose at the left, peach in the middle, lilac at the right.
+  - The bevelled rim, recessed panels, edge highlights, screws and shadows are all as sharp as before. Shading is rose-tinted rather than grey, so the corners stay white.
+  - This changes the chassis only (rim, face plate, panels and the expression pedal's housing). The display, buttons, footswitches, knobs and expression pedal are unchanged.
+
+## 0.17.0
+
+- **DUCK knob on DELAY and REVERB.** It turns the repeats or the reverb down while you play and lets them swell back in the gaps, so big delays and spaces don't blur your notes.
+  - At 0% (the default) it's off, so nothing you've saved changes.
+  - At 100% the effect drops by up to 24 dB under your playing and comes back within about a fifth of a second after you stop.
+  - It works with every type: a ducked Tape delay, a ducked Cathedral, and so on.
+- The **Ducking** delay type is now simply Digital with DUCK set high, so rigs that used it sound the same. Turning DUCK past its preset ducks it further still.
+- **Digital is the default reverb for new rigs:** the bright, lush 80s arena-rock reverb. Digital is also the default delay. Projects and rigs saved before reverb types existed still load with Classic.
+- On the delay's crowded panel, the drop-down lists give up a little width so the knobs stay a good size, and long choices like "1/8 triplet" squeeze to fit instead of being cut off.
+
+## 0.16.0
+
+**Eight delay types.** The DELAY block has a TYPE setting. Every type keeps tempo SYNC, FEEDBACK, TONE, MIX, PING-PONG and trails (repeats ring out when you switch the delay off).
+
+- **Digital:** clean, exact repeats; the original Paragon delay. It's the default, so your existing projects and rigs sound exactly the same.
+- **Analog:** a bucket-brigade pedal, like a Boss DM-2 or MXR Carbon Copy. Warm, dark repeats that soften and blur each time round, with a slight wobble. Turn FEEDBACK right up and they build and sing rather than just fade. TONE sweeps across the chip's narrower range.
+- **Tape:** an Echoplex or Space Echo. Wow, flutter and a slow random drift in the pitch, tape saturation that squashes loud repeats, a little hiss, and repeats that warm as they fade.
+- **Mod:** clean repeats with chorus on them, wider in stereo. The lush lead delay.
+- **Reverse:** each repeat plays backwards, the psychedelic classic. Each backwards chunk is one delay time long.
+- **Multi-Tap:** four repeats spread through each delay time: at a quarter, a half, three quarters and the full time, the last the loudest. They dance between the speakers, for galloping, rhythmic patterns.
+- **Shimmer:** each repeat is pitched an octave higher than the last, rising into a glowing wash. Great for ambient pads with a long reverb.
+- **Ducking:** repeats drop by up to 18 dB while you play and swell back in the gaps, so you can run big delays on leads without clutter.
+
+**Pitch shifter:** Shimmer uses the same in-phase, correlation-spliced pitch shifter as the FILTER / PITCH block, now shared between the two.
+
+**Factory rigs:** they get fitting delays:
+- Tape on Slapback and Cassette Dreams.
+- Analog on Lead Boost.
+- Shimmer on Ambient Swells.
+- Ducking on Octave Lead.
+- Mod on Dimension Clean.
+- Multi-Tap on Wide Pan.
+
+There are also two new rigs: **Shimmer Pad** (bank D) and **Backwards Echo** (bank C).
+
+**Panel labels:** long control names like PING-PONG now squeeze to fit their card instead of being cut off.
+
+## 0.15.0
+
+**Eight reverb types, and PRE-DELAY.**
+
+The REVERB block has a TYPE setting and a new **PRE-DELAY** knob (0 to 250 ms: the gap before the reverb starts, which keeps your notes clear in front of a big space).
+
+- **Room:** a small room. Strong early reflections (the first echoes off nearby walls) and a short tail: space without wash.
+- **Hall:** a concert hall. A smooth, long, warm tail.
+- **Cathedral:** a huge stone space. A very long, darker tail.
+- **Plate:** the classic studio plate. No early reflections; dense and bright from the first moment.
+- **Spring:** an amp's spring tank. Each echo arrives as a falling "drip", band-limited like a real tank, with the boing when you hit it hard.
+- **Digital:** an 80s rack reverb. Clean and bright, with a lush, chorused tail.
+- **Reverse:** the reverb played backwards, so it swells up into each note. SIZE sets how long each swell is.
+- **Classic:** the original Paragon reverb.
+
+**How it's built:** Room, Hall, Cathedral, Plate, Digital and Reverse use a new engine, a feedback delay network: eight delay lines feeding back into each other through a mixing matrix, the design behind most good studio reverbs. It builds a dense, smooth tail without the metallic ringing of the original. Each type has its own room size, early reflections, diffusion, damping and gentle tail modulation. SIZE sets how long the tail lasts, from about a third of a second (a small room) to 12 seconds (a cathedral).
+
+**Your existing sounds:** projects and rigs saved before this version load with **Classic**, so they sound exactly as they did. New rigs start on Hall.
+
+**Factory rigs:** the factory rigs now use fitting types:
+- Spring on Surf Tremolo, Slapback, Brownface Trem, Old Radio and Warble Vibrato.
+- Plate on the studio cleans and Lead Boost.
+- Cathedral on Ambient Swells and Wide Pan.
+- Room on Edge of Breakup and others.
+
+There's also a new **Reverse Swell** rig (bank C).
+
+## 0.14.1
+
+- The knob on the unit that was labelled **OUTPUT LEVEL** is now **RIG LEVEL**, so it isn't confused with the master **OUTPUT** knob on the right. It works as before: it's each rig's own volume, saved with the rig for balancing rigs against each other, and it adds to OUTPUT, the overall volume that stays put when you switch rigs. Hover over it for a reminder.
+
+## 0.14.0
+
+- **The graphic EQ is now the dock's main view.** The TAGS / RIG SUMMARY panel is gone: the middle of the dock shows the graphic EQ until you pick another block in the signal chain or click a footswitch's name. A **GRAPHIC EQ** button on the other blocks' panels takes you back. You can still edit tags on the PRESETS page.
+- **AMP / CABINET / RIG polished to match the footswitches:**
+  - Each key stands in a raised chrome bezel with a dark well round it.
+  - Their status LEDs (and EXPRESSION ASSIGN's and MIN's) sit in chrome-rimmed lenses.
+  - The titles, captions and ◀ ▶ arrows look stamped into the metal.
+
 ## 0.13.2
 
 - **Footswitches polished to match the unit:**
