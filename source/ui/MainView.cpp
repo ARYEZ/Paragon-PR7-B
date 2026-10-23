@@ -104,7 +104,6 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
       heelIndicator (processorToShow),
       tunerReader (processorToShow),
       selectedRig (processorToShow),
-      rigSummary (processorToShow),
       expressionPanel (processorToShow.getParameters()),
       eqPanel (processorToShow.getParameters()),
       signalChain (processorToShow.getParameters(), {
@@ -269,7 +268,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                       &undoLabel, &redoLabel, &bypassLabel, &tunerLabel, &muteLabel, &tapLabel, &holdLabel,
                       &rigLevelKnob, &presenceKnob, &rigLevelLabel, &presenceLabel,
                       &ampSlot, &cabSlot, &rigSlot, &pedalAssign, &expressionPedal, &heelIndicator,
-                      &rigNavigator, &selectedRig, &rigSummary, &expressionPanel };
+                      &rigNavigator, &selectedRig, &expressionPanel };
     for (auto& footswitch : footswitches)
         processorPage.push_back (footswitch.get());
     for (auto* component : processorPage)
@@ -335,9 +334,9 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     }
     addChildComponent (eqPanel);
 
-    closePanel.setTooltip ("Back to the rig summary");
+    closePanel.setTooltip ("Back to the graphic EQ");
     closePanel.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff151217));
-    closePanel.onClick = [this] { selectBlock (noBlock); };
+    closePanel.onClick = [this] { selectBlock (eqBlock); };
     addChildComponent (closePanel);
 
     rigNavigator.onShow = [this] (int filter, int bank)
@@ -347,14 +346,13 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     };
     selectedRig.onSave = [this] { saveRig(); };
     selectedRig.onSaveAs = [this] { rigBrowser.promptSaveAs(); };
-    rigSummary.onSelectBlock = [this] (int block) { selectBlock (block); };
 
     signalChain.onSelect = [this] (int block) { selectBlock (block); };
     addAndMakeVisible (signalChain);
     addChildComponent (rigBrowser);
     addChildComponent (settingsPage);
 
-    selectBlock (noBlock);
+    selectBlock (eqBlock);   // the dock shows the graphic EQ until another block is picked
 
     audioProcessor.rigBroadcaster.addChangeListener (this);
     audioProcessor.statusBroadcaster.addChangeListener (this);
@@ -386,16 +384,15 @@ float MainView::rawValue (const char* parameterId) const
 
 void MainView::selectBlock (int block)
 {
-    // A block's knobs replace the TAGS / RIG SUMMARY panel; noBlock shows the summary again.
+    // The selected block's knobs fill the middle of the dock; the graphic EQ is the default.
     selectedBlock = block;
     const auto onProcessorPage = page == Page::processor;
     for (size_t i = 0; i < panels.size(); ++i)
         if (panels[i] != nullptr)
             panels[i]->setVisible ((int) i == block && onProcessorPage);
     eqPanel.setVisible (block == eqBlock && onProcessorPage);
-    closePanel.setVisible (block != noBlock && onProcessorPage);
-    rigSummary.setVisible (block == noBlock && onProcessorPage);
-    if (block != noBlock)
+    closePanel.setVisible (block != eqBlock && onProcessorPage);
+    if (block != eqBlock)
         closePanel.toFront (false);
 
     const int footswitchBlocks[] = { compBlock, driveBlock, modBlock, delayBlock };
@@ -536,7 +533,6 @@ void MainView::changeListenerCallback (juce::ChangeBroadcaster*)
     refreshRig();
     ampSlot.setStatus (audioProcessor.getAmpStatus());
     cabSlot.setStatus (audioProcessor.getCabStatus());
-    rigSummary.refresh();
 }
 
 void MainView::paint (juce::Graphics& g)
@@ -671,7 +667,6 @@ void MainView::resized()
     rigNavigator.setBounds (mock (12, 568, 246, 822));
     selectedRig.setBounds (mock (256, 568, 652, 822));
     const auto summaryArea = mock (662, 568, 1334, 822);
-    rigSummary.setBounds (summaryArea);
     for (auto& panel : panels)
         if (panel != nullptr)
             panel->setBounds (summaryArea);

@@ -76,7 +76,7 @@ TEST_CASE ("The window lays out cleanly at every size", "[ui]")
     }
 }
 
-TEST_CASE ("The chain, footswitches and summary cards pick which block's knobs show", "[ui]")
+TEST_CASE ("The chain and footswitches pick which block's knobs show; the graphic EQ is the default", "[ui]")
 {
     ParagonX1AudioProcessor processor;
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
@@ -105,9 +105,8 @@ TEST_CASE ("The chain, footswitches and summary cards pick which block's knobs s
         return index;
     };
 
-    // To start with the dock shows the rig summary, as in the mockup: no knobs.
-    const auto numVisible = [&] { return std::count_if (panels.begin(), panels.end(), [] (auto* p) { return p->isVisible(); }); };
-    CHECK (numVisible() == 0);
+    // To start with the dock shows the graphic EQ.
+    CHECK (visiblePanel() == 5);
 
     std::vector<SignalChain*> chains;
     findAll (*editor, chains);
@@ -127,14 +126,15 @@ TEST_CASE ("The chain, footswitches and summary cards pick which block's knobs s
     footswitches[3]->onSelect();
     CHECK (visiblePanel() == 7);
 
-    // Each summary card opens its block too, the EQ's included.
-    std::vector<RigSummary*> summaries;
-    findAll (*editor, summaries);
-    REQUIRE (summaries.size() == 1);
-    summaries[0]->onSelectBlock (2);
-    CHECK (visiblePanel() == 2);
-    summaries[0]->onSelectBlock (5);
+    // The GRAPHIC EQ button on any other block's panel goes back to the EQ.
+    std::vector<juce::TextButton*> buttons;
+    findAll (*editor, buttons);
+    const auto back = std::find_if (buttons.begin(), buttons.end(), [] (auto* b) { return b->getButtonText() == "GRAPHIC EQ"; });
+    REQUIRE (back != buttons.end());
+    CHECK ((*back)->isVisible());
+    (*back)->onClick();
     CHECK (visiblePanel() == 5);
+    CHECK_FALSE ((*back)->isVisible());
 }
 
 TEST_CASE ("BYPASS passes the clean guitar, on both channels", "[ui][bypass]")

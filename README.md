@@ -71,8 +71,8 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
   INTERVAL at the toe) or **LO-FI** (fades the lo-fi effect in: full band at the heel, lo-fi at the toe). MIN and MAX set where the heel and toe land. The assignment and range
   are saved with each rig.
 - **Bottom panels:** RIG BROWSER jumps to the PRESETS page filtered; SELECTED RIG files and saves the
-  current rig; TAGS and RIG SUMMARY show the rig at a glance. Click a summary card (or a footswitch name,
-  or a signal-chain block) to edit that block's knobs; **RIG SUMMARY** goes back.
+  current rig; the middle shows the graphic EQ, or the knobs of whichever block you pick (click a
+  signal-chain block or a footswitch name); **GRAPHIC EQ** goes back to the EQ.
 - **SETTINGS:** the tuner's reference pitch, mute while tuning, and the expression pedal's MIDI CC.
 - The paths of the loaded files are saved in your DAW project. If a file is missing when the project
   opens, the slot says so and keeps the path, so moving the file back fixes it.

@@ -2,6 +2,14 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.14.0
+
+- **The graphic EQ is now the dock's main view.** The TAGS / RIG SUMMARY panel is gone: the middle of the dock shows the graphic EQ until you pick another block in the signal chain or click a footswitch's name. A **GRAPHIC EQ** button on the other blocks' panels takes you back. You can still edit tags on the PRESETS page.
+- **AMP / CABINET / RIG polished to match the footswitches:**
+  - Each key stands in a raised chrome bezel with a dark well round it.
+  - Their status LEDs (and EXPRESSION ASSIGN's and MIN's) sit in chrome-rimmed lenses.
+  - The titles, captions and ◀ ▶ arrows look stamped into the metal.
+
 ## 0.13.2
 
 - **Footswitches polished to match the unit:**

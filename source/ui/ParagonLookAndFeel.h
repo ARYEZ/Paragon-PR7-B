@@ -106,6 +106,13 @@ public:
     // The mockup's LED bars: when lit, a neon tube (white-hot core inside a
     // red-orange outline, with a soft glow); when off, a dimmer solid red.
     static void drawNeonBar (juce::Graphics&, juce::Rectangle<float> bar, bool lit);
+    // A raised chrome bezel on the metal with a dark well inside it, the way a
+    // real unit's footswitches and big keys are mounted. Returns the well,
+    // for the key to be drawn in.
+    static juce::Rectangle<float> drawChromeBezel (juce::Graphics&, juce::Rectangle<float> bezel, float radius);
+    // Text stamped into the metal: ink, with a fine light edge underneath.
+    static void drawStampedText (juce::Graphics&, const juce::String& text, juce::Rectangle<float> area,
+                                 juce::Justification, juce::Colour colour);
 };
 
 // JUCE finds fonts through the *default* look-and-feel, so while any plugin

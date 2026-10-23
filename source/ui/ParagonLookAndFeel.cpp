@@ -554,6 +554,50 @@ void ParagonLookAndFeel::drawNeonBar (juce::Graphics& g, juce::Rectangle<float> 
     g.fillRoundedRectangle (bar.reduced (bar.getHeight() * 0.18f, bar.getHeight() * 0.22f), radius * 0.6f);
 }
 
+juce::Rectangle<float> ParagonLookAndFeel::drawChromeBezel (juce::Graphics& g, juce::Rectangle<float> bezel, float radius)
+{
+    juce::Path outline;
+    outline.addRoundedRectangle (bezel, radius);
+    juce::DropShadow (juce::Colours::black.withAlpha (0.45f), 10, { 0, 4 }).drawForPath (g, outline);
+
+    // Chrome: lit along the top, darker towards the front, with the bright
+    // and dark bands of its curved sides.
+    juce::ColourGradient chrome (juce::Colour (0xfffbf5f8), 0.0f, bezel.getY(), juce::Colour (0xff4a3c43), 0.0f, bezel.getBottom(), false);
+    chrome.addColour (0.1, juce::Colour (0xffd6c6ce));
+    chrome.addColour (0.55, juce::Colour (0xff998792));
+    chrome.addColour (0.82, juce::Colour (0xffc2b0b9));
+    g.setGradientFill (chrome);
+    g.fillPath (outline);
+    juce::ColourGradient sides (juce::Colours::white.withAlpha (0.35f), bezel.getX(), 0.0f,
+                                juce::Colours::white.withAlpha (0.35f), bezel.getRight(), 0.0f, false);
+    sides.addColour (0.04, juce::Colours::black.withAlpha (0.12f));
+    sides.addColour (0.5, juce::Colours::white.withAlpha (0.0f));
+    sides.addColour (0.96, juce::Colours::black.withAlpha (0.12f));
+    g.setGradientFill (sides);
+    g.fillPath (outline);
+    g.setColour (juce::Colours::black.withAlpha (0.6f));
+    g.strokePath (outline, juce::PathStrokeType (1.0f));
+
+    // The well the key sits down in, its lower edge catching a little light.
+    const auto well = bezel.reduced (4.5f);
+    const auto wellRadius = juce::jmax (1.0f, radius - 3.5f);
+    g.setColour (juce::Colour (0xff120b0e));
+    g.fillRoundedRectangle (well, wellRadius);
+    g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.0f), 0.0f, well.getCentreY(),
+                                             juce::Colours::white.withAlpha (0.25f), 0.0f, well.getBottom(), false));
+    g.drawRoundedRectangle (well, wellRadius, 1.0f);
+    return well;
+}
+
+void ParagonLookAndFeel::drawStampedText (juce::Graphics& g, const juce::String& text, juce::Rectangle<float> area,
+                                          juce::Justification justification, juce::Colour colour)
+{
+    g.setColour (juce::Colours::white.withAlpha (0.7f));
+    g.drawText (text, area.translated (0.0f, 1.0f), justification, false);
+    g.setColour (colour);
+    g.drawText (text, area, justification, false);
+}
+
 int ParagonLookAndFeel::getSliderThumbRadius (juce::Slider& slider)
 {
     if (slider.getProperties()[eqFaderProperty])
