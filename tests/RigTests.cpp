@@ -211,7 +211,7 @@ TEST_CASE ("Rigs are sorted by bank and number, and < > wrap round", "[rigs]")
 
     Rig late;
     late.name = "Late";
-    late.bank = 3;
+    late.bank = Rig::numBanks - 1;   // the last bank, after every factory rig
     late.number = 50;
     library.saveAsNew (late);
 

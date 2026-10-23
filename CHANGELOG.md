@@ -2,6 +2,15 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.25.0
+
+- **Bank E: song-inspired rigs.** A fifth bank for rigs built around particular songs' sounds. These are our settings for the sound, not the artists' own rigs. The first two:
+  - **E1 Killing Solo (RATM):** the "Killing in the Name" solo squeal. A Whammy an octave up on the expression pedal (rock to the toe), into a cranked crunch with no reverb. For an even higher squeal, set PROGRAM to 14 Up 2 Octaves.
+  - **E2 Bulls Scratch (RATM):** the "Bulls on Parade" scratch. A wah on the pedal (rock it as you rub muted strings over the pickup), and GLITCH's new Killswitch chopping in 1/16s, on the song's grid when the DAW plays.
+- **GLITCH: new Killswitch mode.** A guitar's toggle switch flicked in time, as Tom Morello and Buckethead do. Each step plays, then cuts to silence for its last part. DENSITY sets how much is cut (a tenth to nine tenths of the step), and CHAOS leaves some steps uncut. With SYNC on and the DAW playing, it locks to the song's grid like Sequence and Interfere.
+- **Sharper GLITCH edges.** The fade into and out of a stutter, dropout or cut is now a straight 1.5 ms ramp, so cuts are completely silent and stutter edges are crisp. Before, it eased out over about 15 ms.
+- **Banks as keys.** The dock's rig browser shows the banks as a row of letter keys (A B C D E), so they all fit. Before, bank D was cut off.
+
 ## 0.24.1
 
 - **GLITCH locks to the song's grid.** With SYNC on and your DAW playing, **Sequence** and **Interfere** start each step exactly on the song's grid lines: every 1/16 on a 16th note, every 1-bar step on the downbeat.

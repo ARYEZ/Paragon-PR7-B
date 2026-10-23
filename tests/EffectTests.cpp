@@ -359,6 +359,20 @@ TEST_CASE ("GLITCH: each mode chops, repeats or smears the guitar as it says", "
         CHECK_FALSE (matchesGrid (run (false)));   // stopped: steps count from switch-on (0, 6000, 12000...)
     }
 
+    SECTION ("Killswitch: each step plays, then cuts to silence for its last part")
+    {
+        // DENSITY 5: the last half of each 100 ms step (4800 samples) is cut.
+        EffectRig rig;
+        glitchRig (rig, effects::Glitch::Mode::killswitch, 5.0f, 0.0f);
+        const auto output = rig.runMono (noise);
+        for (int step = 2; step < 8; ++step)
+        {
+            const auto at = [&] (int sample) { return (double) (step * 4800 + sample) / sampleRate; };
+            CHECK (rms (output, at (2600), at (4700)) < 1.0e-3f);                            // cut
+            CHECK (rms (output, at (300), at (2200)) > 0.8f * rms (noise, at (300), at (2200)));   // playing
+        }
+    }
+
     SECTION ("PRE and POST both glitch the guitar")
     {
         for (const auto position : { effects::Glitch::Position::post, effects::Glitch::Position::pre })

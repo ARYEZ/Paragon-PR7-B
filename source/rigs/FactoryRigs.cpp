@@ -30,6 +30,9 @@ namespace
     constexpr float daybreakComp = 1;   // COMP / GATE's TYPE
     constexpr float glitchSequence = 1, glitchTexturizer = 3, glitchSixteenth = 3;   // GLITCH's MODE and LENGTH
     constexpr float pedalGlitch = 7;   // the expression pedal's GLITCH setting
+    constexpr float pedalWah = 2;      // the expression pedal's WAH / FILTER setting
+    constexpr float glitchKillswitch = 4;
+    constexpr int E = 4;               // bank E: rigs inspired by particular songs
     constexpr float xpCryWah = 1, xpUpOctave = 12, xpOctDownOctUp = 20, xpUp4thUp5th = 23;   // Whammy-Wah programs 02, 13, 21 and 24
     constexpr float pedalWhammyWah = 6;   // the expression pedal's WHAMMY-WAH setting
     // Delay types (index into effects::Delay::typeNames).
@@ -196,6 +199,30 @@ std::vector<Rig> makeFactoryRigs()
             { glitchDensity, 4 }, { glitchChaos, 5 }, { glitchMix, 0.45f },
             { delayOn, 1 }, { delaySync, quarter }, { delayFeedback, 0.4f }, { delayMix, 0.25f },
             { reverbOn, 1 }, { reverbType, hall }, { reverbSize, 0.8f }, { reverbMix, 0.35f } }),
+
+        //======================================================================
+        // Bank E: inspired by particular songs. Our settings for the sound,
+        // not the artists' own (which are their own gear, played their way).
+
+        // Rage Against the Machine, "Killing in the Name" solo: a Whammy an
+        // octave up, rocked to the toe for the squeal, into a cranked crunch
+        // with no reverb. (For a higher squeal, PROGRAM 14 Up 2 Octaves.)
+        make ("Killing Solo (RATM)", E, 1, "Song,Lead,Pitch,Expression", {
+            { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpUpOctave }, { fpMix, 1 },
+            { expressionTarget, pedalWhammyWah },
+            { driveOn, 1 }, { driveGain, 3 }, { driveTone, 6 }, { driveLevel, 6 },
+            { presence, 1 } }),
+
+        // Rage Against the Machine, "Bulls on Parade" scratch: a wah on the
+        // pedal, rocked as you rub the muted strings over the pickup, and
+        // the toggle-switch chop (GLITCH Killswitch, 1/16, on the song's
+        // grid when the DAW plays).
+        make ("Bulls Scratch (RATM)", E, 2, "Song,Wah,Glitch,Expression", {
+            { expressionTarget, pedalWah },
+            { glitchOn, 1 }, { glitchMode, glitchKillswitch }, { glitchSync, 1 }, { glitchDivision, glitchSixteenth },
+            { glitchDensity, 5 }, { glitchChaos, 0 }, { glitchMix, 1 },
+            { driveOn, 1 }, { driveGain, 4 }, { driveTone, 6 }, { driveLevel, 5 },
+            { presence, 1 } }),
 
         make ("Phone Intro", B, 5, "Lo-Fi,Clean", {
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 },

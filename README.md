@@ -44,7 +44,8 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
     gain-reduction meter.
   - **Lo-Fi** (last in the chain; no footswitch): telephone, AM radio, megaphone, cassette (wow, flutter, hiss)
     or bitcrusher, for intros and breakdowns. AMOUNT, NOISE, MIX and LEVEL.
-  - **Glitch** (in the signal chain; no footswitch): granular glitch effects in four MODEs: **Pitch Delay** (echoes that each
+  - **Glitch** (in the signal chain; no footswitch): granular glitch effects in five MODEs (the fifth, **Killswitch**,
+    cuts the end of each step to silence, like flicking a guitar's toggle switch in time): **Pitch Delay** (echoes that each
     step in PITCH), **Sequence** (tempo-locked stutters that repeat the slice just played), **Interfere** (dropouts, backwards
     slivers and buzzing loops) and **Texturizer** (a cloud of grains). LENGTH (in note values with SYNC), DENSITY, PITCH, CHAOS
     (randomises everything together: low is rhythmic, high is unpredictable) and MIX. With SYNC on and the DAW playing,

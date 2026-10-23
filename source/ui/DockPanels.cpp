@@ -58,14 +58,21 @@ void RigNavigator::layoutRows()
 {
     auto area = getLocalBounds().reduced (12, 10);
     area.removeFromTop (22);
-    for (size_t i = 0; i < rows.size(); ++i)
-    {
-        if (i == 4)
-        {
-            area.removeFromTop (6);
-            banksTitle = area.removeFromTop (20);
-        }
+    for (size_t i = 0; i < 4; ++i)
         rows[i].area = area.removeFromTop (23);
+
+    // The banks: one row of letter keys (A B C D E), like a floor unit's bank
+    // buttons, so adding a bank doesn't need another line.
+    area.removeFromTop (6);
+    banksTitle = area.removeFromTop (20);
+    auto keys = area.removeFromTop (26);
+    const auto numKeys = (int) rows.size() - 4;
+    constexpr int keyGap = 6;
+    const auto keyWidth = (keys.getWidth() - keyGap * (numKeys - 1)) / juce::jmax (1, numKeys);
+    for (size_t i = 4; i < rows.size(); ++i)
+    {
+        rows[i].area = keys.removeFromLeft (keyWidth);
+        keys.removeFromLeft (keyGap);
     }
 }
 
@@ -89,6 +96,20 @@ void RigNavigator::paint (juce::Graphics& g)
         const auto& row = rows[i];
         const auto area = row.area.toFloat();
         const auto isSelected = (int) i == selected;
+
+        if (row.bank >= 0)
+        {
+            // A bank key: its letter in a small rounded key, lit when chosen.
+            g.setColour (isSelected ? ParagonColours::accentDim.withAlpha (0.45f)
+                                    : (int) i == hovered ? juce::Colours::white.withAlpha (0.08f) : juce::Colour (0xff151217));
+            g.fillRoundedRectangle (area, 4.0f);
+            g.setColour (isSelected ? ParagonColours::accent.withAlpha (0.7f) : ParagonColours::panelEdge);
+            g.drawRoundedRectangle (area.reduced (0.5f), 4.0f, 1.0f);
+            g.setColour (isSelected ? ParagonColours::accent : ParagonColours::text.withAlpha (0.8f));
+            g.setFont (juce::FontOptions (12.5f, juce::Font::bold));
+            g.drawText (row.letter, area, juce::Justification::centred, false);
+            continue;
+        }
 
         if (isSelected)
         {
