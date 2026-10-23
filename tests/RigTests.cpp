@@ -4,6 +4,7 @@
 #include "Parameters.h"
 #include "PluginProcessor.h"
 #include "rigs/FactoryRigs.h"
+#include "ui/EqPresets.h"
 
 using Catch::Matchers::WithinAbs;
 
@@ -108,6 +109,38 @@ TEST_CASE ("Every factory rig is valid", "[rigs]")
 
     CHECK (names.size() == (int) makeFactoryRigs().size());   // unique names
     CHECK (slots.size() == (int) makeFactoryRigs().size());   // no two in the same slot
+}
+
+TEST_CASE ("The Whammy-Wah factory rigs use the XP-100 programs they're named for", "[rigs]")
+{
+    const auto rigs = makeFactoryRigs();
+    const auto find = [&] (const juce::String& name) -> const Rig&
+    {
+        const auto found = std::find_if (rigs.begin(), rigs.end(), [&] (const Rig& rig) { return rig.name == name; });
+        REQUIRE (found != rigs.end());
+        return *found;
+    };
+    const auto programOf = [] (const Rig& rig)
+    {
+        return effects::FilterPitch::xpProgramNames()[juce::roundToInt (rig.parameters.at (ParamIDs::fpXpProgram))];
+    };
+
+    CHECK (programOf (find ("Nu-Metal Screech")) == "21 Down Oct / Up Oct");
+    CHECK (programOf (find ("Whammy Lead")) == "13 Up 1 Octave");
+    CHECK (programOf (find ("XP Wah Crunch")) == "02 Original Cry Wah");
+    CHECK (programOf (find ("Harmony Bends")) == "24 Up 4th / Up 5th");
+
+    // The screech's EQ is the Tight Low End preset (bands it leaves out are at 0 dB).
+    const auto& screech = find ("Nu-Metal Screech");
+    CHECK (juce::roundToInt (screech.parameters.at (ParamIDs::expressionTarget)) == ExpressionTargets::whammyWah);
+    const auto& tight = *std::find_if (EqPresets::all.begin(), EqPresets::all.end(),
+                                       [] (const auto& preset) { return juce::String (preset.name) == "Tight Low End"; });
+    for (int band = 0; band < ParamIDs::eqBands.size(); ++band)
+    {
+        const auto found = screech.parameters.find (ParamIDs::eqBands[band]);
+        CHECK_THAT (found != screech.parameters.end() ? found->second : 0.0f, Catch::Matchers::WithinAbs (tight.gainsDb[(size_t) band], 0.01));
+    }
+    CHECK_THAT (screech.parameters.at (ParamIDs::eqLevel), Catch::Matchers::WithinAbs (tight.levelDb, 0.01));
 }
 
 TEST_CASE ("The rig library saves, finds, renames and deletes rigs", "[rigs]")

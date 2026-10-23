@@ -27,7 +27,7 @@ namespace
                     harmonicTremolo = 8, autoPan = 9, doubler = 10;
     // FILTER / PITCH types.
     constexpr float autoWah = 0, pitchShifter = 1, whammyWah = 2;
-    constexpr float xpCryWah = 1, xpUpOctave = 12, xpUp4thUp5th = 23;   // Whammy-Wah programs 02, 13 and 24
+    constexpr float xpCryWah = 1, xpUpOctave = 12, xpOctDownOctUp = 20, xpUp4thUp5th = 23;   // Whammy-Wah programs 02, 13, 21 and 24
     constexpr float pedalWhammyWah = 6;   // the expression pedal's WHAMMY-WAH setting
     // Delay types (index into effects::Delay::typeNames).
     constexpr float analogDelay = 1, tapeDelay = 2, modDelay = 3, reverseDelay = 4, multiTap = 5, shimmer = 6, ducking = 7;
@@ -154,6 +154,21 @@ std::vector<Rig> makeFactoryRigs()
             { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 },
             { delayOn, 1 }, { delaySync, quarter }, { delayFeedback, 0.3f }, { delayMix, 0.2f },
             { reverbOn, 1 }, { reverbSize, 0.6f }, { reverbMix, 0.25f } }),
+
+        // The late-'90s nu-metal screech: the XP-100's program 21 (an octave
+        // down and an octave up, blended with the guitar), rocked while a
+        // high note rings, into a tight Screamer boost and a high-gain amp
+        // (load a Rectifier-style capture). The EQ is the Tight Low End
+        // preset, so the octave-down voice doesn't turn to mud.
+        make ("Nu-Metal Screech", B, 10, "High Gain,Pitch,Expression", {
+            { compOn, 1 }, { compThreshold, 0 }, { gateThreshold, -55 },
+            { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpOctDownOctUp }, { fpMix, 0.85f },
+            { expressionTarget, pedalWhammyWah },
+            { driveOn, 1 }, { driveGain, 1 }, { driveTone, 6 }, { driveLevel, 8 },
+            { presence, 2 },
+            { eqOn, 1 }, { "eq63", -6 }, { "eq125", -4 }, { "eq250", -1 }, { "eq1k", 1 }, { "eq2k", 2 }, { "eq4k", 2 }, { "eq8k", 1 },
+            { eqLevel, -0.5f },
+            { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.25f }, { reverbMix, 0.1f } }),
 
         make ("Phone Intro", B, 5, "Lo-Fi,Clean", {
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 },

@@ -2,6 +2,13 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.22.1
+
+- **New factory rig: Nu-Metal Screech (B10).** The late-'90s octave screech.
+  - **The sound:** the Whammy-Wah on **21 Down Oct / Up Oct** (an octave below and an octave above, blended with your guitar at 85%), already on the expression pedal.
+  - **Into:** a tight Screamer boost (low gain, high level) with the noise gate on, the graphic EQ's **Tight Low End** curve so the octave-down voice stays clear under high gain, and a touch of room reverb.
+  - **How to play it:** load a Rectifier-style high-gain amp capture, hold a high note or a pinch harmonic, and rock the pedal back and forth. Fast rocking warbles and screeches; a slow sweep gives the eerie rise.
+
 ## 0.22.0
 
 - **Whammy-Wah now follows the real XP-100's program list.** MODE is now **PROGRAM**, numbered 01–28 as on the pedal, with what the pedal does in each:
