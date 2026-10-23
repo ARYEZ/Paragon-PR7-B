@@ -63,7 +63,7 @@ private:
 };
 
 //==============================================================================
-// VOLUME / WAH-FILTER / MORPH-FX / PITCH-WHAMMY / LO-FI / WHAMMY-WAH / GLITCH: what the expression
+// VOLUME / WAH-FILTER / MORPH-FX / PITCH-WHAMMY / LO-FI / WHAMMY-WAH / GLITCH / TALK BOX: what the expression
 // pedal controls. Click one to assign the pedal to it, or click the lit one
 // again to switch the pedal off. Comes in two looks: a small LCD screen on
 // the unit's face (a menu with the choice highlighted, the pedal's position
@@ -74,7 +74,8 @@ class ExpressionAssign final : public juce::Component,
 {
 public:
     enum class Style { pedal, list };
-    static constexpr int numTargets = 7;   // what the pedal can control: everything but "Off"
+    static constexpr int numTargets = 8;    // what the pedal can control: everything but "Off"
+    static constexpr int visibleRows = 6;   // the screen's lines; the list scrolls
 
     ExpressionAssign (juce::AudioProcessorValueTreeState&, Style);
 
@@ -87,13 +88,15 @@ private:
     void select (int target);
     void timerCallback() override;
     juce::Rectangle<float> screenGlass() const;
-    std::array<juce::Rectangle<float>, numTargets> screenRows() const;   // the menu's lines, one per target
+    std::array<juce::Rectangle<float>, visibleRows> screenRows() const;   // the menu's lines showing
+    juce::Rectangle<float> scrollArrows() const;                           // the up and down arrows in the heading
 
     Style style;
     juce::AudioProcessorValueTreeState& state;
     std::vector<std::unique_ptr<juce::Button>> buttons;   // the list's buttons, one per target, in order (not "Off")
     juce::ParameterAttachment attachment;
     int currentTarget = 0;
+    int firstRow = 0;        // the first target the screen shows (it scrolls)
     int shownPercent = -1;   // the pedal position last drawn on the screen, so it repaints only when that changes
     float wheelTravel = 0.0f;
 };

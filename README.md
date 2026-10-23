@@ -59,7 +59,9 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
     (two octaves down to two up, blended with the dry guitar for harmonies and octaves), or a **Whammy-Wah**: the
     DigiTech XP-100's factory programs 01–28, numbered as on the pedal and played with the expression pedal (WHAMMY-WAH):
     a volume pedal, five wahs, six auto-wahs (the pedal sets sensitivity or attack), eight whammy bends (heel: no shift,
-    toe: the interval, as far as six octaves down) and eight harmonies (your note plus a voice the pedal moves between two intervals).
+    toe: the interval, as far as six octaves down) and eight harmonies (your note plus a voice the pedal moves between two intervals);
+    or a **Talk Box**: the amp's sound, after the cab, shaped into vowels (oo to ee) by the expression pedal (TALK BOX),
+    with RESONANCE and MIX.
   - **2 OD / Distortion:** four models: **Screamer**, modelled on the Ibanez TS808 Tube Screamer's circuit;
     **Classic**, Paragon's original overdrive; **Muff Fuzz**, following the Big Muff's two clipping stages and
     mid-scooping tone stack (long, violin-like sustain); and **Face Fuzz**, following the silicon Fuzz Face's uneven

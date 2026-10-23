@@ -8,6 +8,7 @@
 #include "dsp/effects/Delay.h"
 #include "dsp/effects/Reverb.h"
 #include "dsp/effects/Glitch.h"
+#include "dsp/effects/TalkBox.h"
 #include "ui/EqPresets.h"
 
 using Catch::Matchers::WithinAbs;
@@ -886,6 +887,33 @@ TEST_CASE ("PITCH: TUNING retunes the guitar, the OCTAVER stacks octaves, FREEZE
         const auto released = rig.runMono (silence (0.6));
         CHECK (rms (released, 0.4) < 1.0e-3f);         // gone after its release
     }
+}
+
+TEST_CASE ("Talk Box: the pedal shapes the amp's sound from oo to ee", "[effects][wah]")
+{
+    // The vowels' formants: oo low, ee with its second formant up high.
+    CHECK (effects::TalkBox::formantsFor (0.0f)[1] < 1000.0f);
+    CHECK (effects::TalkBox::formantsFor (1.0f)[1] > 2000.0f);
+
+    // A bright, harmonic-rich note (like a driven amp): at the toe the energy
+    // near 2.3 kHz (ee's second formant) is far stronger than at the heel.
+    std::vector<float> bright ((size_t) sampleRate);
+    for (size_t i = 0; i < bright.size(); ++i)
+        for (int harmonic = 1; harmonic <= 30; ++harmonic)
+            bright[i] += 0.05f * (float) std::sin (juce::MathConstants<double>::twoPi * 110.0 * harmonic * (double) i / sampleRate) / std::sqrt ((float) harmonic);
+    const auto ee = [&] (float pedal)
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::fpOn, 1.0f);
+        rig.set (ParamIDs::fpType, (float) effects::FilterPitch::Type::talkBox);
+        rig.set (ParamIDs::fpMix, 1.0f);
+        rig.set (ParamIDs::expressionTarget, (float) ExpressionTargets::talkBox);
+        rig.set (ParamIDs::expression, pedal);
+        const auto output = rig.runMono (bright);
+        REQUIRE (allFinite (output));
+        return dB (levelAt (output, 110.0 * 21, 0.2) / levelAt (output, 110.0 * 3, 0.2));   // 2.3 kHz against 330 Hz
+    };
+    CHECK (ee (1.0f) - ee (0.0f) > 9.0f);   // measured about 12 dB: as big a change as between the two vowels in speech
 }
 
 TEST_CASE ("The auto-wah opens up as you play harder", "[effects][wah]")

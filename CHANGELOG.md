@@ -2,6 +2,18 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.28.0
+
+- **Talk Box.** A new FILTER / PITCH type. A real talk box sends the amp's sound up a tube into your mouth, which shapes it into vowels. This does the same with three resonant formants, the peaks a voice makes for each vowel.
+  - The expression pedal (its new **TALK BOX** setting) glides the "mouth" through **oo, oh, ah, eh, ee**, heel to toe.
+  - Like the real thing, it works on the amp's sound: it runs after the amp and cab, where the drive gives it plenty of harmonics to shape.
+  - **RESONANCE** sets how sharp and vocal it is, and **MIX** sets the blend with the plain guitar.
+  - Choosing TALK BOX on the EXPRESSION screen switches FILTER / PITCH on as a Talk Box. If the pedal isn't assigned to it, it rests at "oo".
+- **The EXPRESSION screen scrolls.** With eight pedal settings, it shows six lines at the readable size, with arrows in its heading: lit when there's more that way, and clickable to scroll. Choosing a setting, by clicking or with the mouse wheel, keeps it on screen.
+- **New song rigs in bank E:**
+  - **E7 Jambi Talk Box (Tool):** the talk box on a tight, heavy tone. Load a high-gain amp capture.
+  - **E8 Show Me the Way (Frampton):** the talk box on a warm, lightly driven tone.
+
 ## 0.27.0
 
 - **New PITCH block**, first in the signal chain, before anything else shapes the guitar:

@@ -216,9 +216,9 @@ TEST_CASE ("The expression screen: click a line to assign the pedal, again to un
     const auto rowCentre = [&] (int line)
     {
         // The glass's content: the heading at the top, the position bar at
-        // the bottom, the five lines evenly between (as the screen lays them out).
+        // the bottom, the lines showing evenly between (as the screen lays them out).
         const auto glass = screen.getLocalBounds().toFloat().reduced (7.0f).reduced (5.0f, 4.0f);
-        const auto top = glass.getY() + 15.0f, height = (glass.getHeight() - 25.0f) / (float) ExpressionAssign::numTargets;
+        const auto top = glass.getY() + 15.0f, height = (glass.getHeight() - 25.0f) / (float) ExpressionAssign::visibleRows;
         return juce::Point<float> (glass.getCentreX(), top + height * ((float) line + 0.5f));
     };
     const auto click = [&] (int line)
@@ -262,6 +262,24 @@ TEST_CASE ("The expression screen: click a line to assign the pedal, again to un
     scroll (1.0f);
     scroll (1.0f);
     CHECK (target() == ExpressionTargets::volume);
+    click (0);
+    CHECK (target() == ExpressionTargets::off);
+
+    // The list is longer than the screen: the down arrow (the heading's
+    // right end) scrolls it, and the last line becomes TALK BOX, which also
+    // switches FILTER / PITCH on as a Talk Box.
+    const auto glass = screen.getLocalBounds().toFloat().reduced (7.0f).reduced (5.0f, 4.0f);
+    const auto downArrow = juce::Point<float> (glass.getRight() - 5.0f, glass.getY() + 6.5f);
+    for (int i = 0; i < 2; ++i)
+    {
+        const auto now = juce::Time::getCurrentTime();
+        screen.mouseUp (juce::MouseEvent (juce::Desktop::getInstance().getMainMouseSource(), downArrow, {}, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                          &screen, &screen, now, downArrow, now, 1, false));
+    }
+    CHECK (target() == ExpressionTargets::off);   // scrolling doesn't choose anything
+    click (ExpressionAssign::visibleRows - 1);
+    CHECK (target() == ExpressionTargets::talkBox);
+    CHECK (juce::roundToInt (state.getRawParameterValue (ParamIDs::fpType)->load()) == (int) effects::FilterPitch::Type::talkBox);
 }
 
 TEST_CASE ("EQ PRESETS: choosing one sets the faders and switches the EQ on; moving a fader lets go of the name", "[ui]")

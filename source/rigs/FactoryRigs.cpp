@@ -26,7 +26,8 @@ namespace
     constexpr float chorus = 0, flanger = 1, tremolo = 3, dimension = 4, uniVibe = 5, rotary = 6, vibrato = 7,
                     harmonicTremolo = 8, autoPan = 9, doubler = 10;
     // FILTER / PITCH types.
-    constexpr float autoWah = 0, pitchShifter = 1, whammyWah = 2;
+    constexpr float autoWah = 0, pitchShifter = 1, whammyWah = 2, talkBoxType = 3;
+    constexpr float pedalTalkBox = 8;   // the expression pedal's TALK BOX setting
     constexpr float daybreakComp = 1;   // COMP / GATE's TYPE
     constexpr float glitchSequence = 1, glitchTexturizer = 3, glitchSixteenth = 3;   // GLITCH's MODE and LENGTH
     constexpr float pedalGlitch = 7;   // the expression pedal's GLITCH setting
@@ -263,6 +264,23 @@ std::vector<Rig> makeFactoryRigs()
             { driveOn, 1 }, { driveModel, faceFuzz }, { driveGain, 7 }, { driveTone, 7 }, { driveLevel, 1 },
             { delayOn, 1 }, { delayType, multiTap }, { delaySync, syncOff }, { delayTime, 330 }, { delayFeedback, 0.3f }, { delayMix, 0.22f },
             { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.15f } }),
+
+        // Tool, "Jambi" solo: a talk box on a tight, heavy tone. Load a
+        // high-gain amp capture; the pedal opens the "mouth" from oo to ee.
+        make ("Jambi Talk Box (Tool)", E, 7, "Song,Lead,Talk Box,Expression", {
+            { fpOn, 1 }, { fpType, talkBoxType }, { fpResonance, 6 }, { fpMix, 1 },
+            { expressionTarget, pedalTalkBox },
+            { driveOn, 1 }, { driveGain, 3 }, { driveTone, 6 }, { driveLevel, 6 },
+            { delayOn, 1 }, { delayType, digitalDelay }, { delaySync, eighth }, { delayFeedback, 0.2f }, { delayMix, 0.12f },
+            { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.1f } }),
+
+        // Peter Frampton, "Show Me the Way": the talk box on a warm, lightly
+        // driven tone, the most famous talk box sound there is.
+        make ("Show Me the Way (Frampton)", E, 8, "Song,Lead,Talk Box,Expression", {
+            { fpOn, 1 }, { fpType, talkBoxType }, { fpResonance, 5 }, { fpMix, 1 },
+            { expressionTarget, pedalTalkBox },
+            { driveOn, 1 }, { driveModel, 0 }, { driveGain, 3 }, { driveTone, 5 }, { driveLevel, 2 },
+            { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.2f } }),
 
         make ("Phone Intro", B, 5, "Lo-Fi,Clean", {
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 },

@@ -52,8 +52,9 @@ namespace effects
     {
     public:
         // Saved by number in rigs and projects: only ever add to the end.
-        enum class Type { autoWah, pitchShifter, whammyWah };
-        static inline const juce::StringArray typeNames { "Auto-Wah", "Pitch Shifter", "Whammy-Wah" };
+        // (talkBox is processed after the amp by the TalkBox class; here it passes the guitar through.)
+        enum class Type { autoWah, pitchShifter, whammyWah, talkBox };
+        static inline const juce::StringArray typeNames { "Auto-Wah", "Pitch Shifter", "Whammy-Wah", "Talk Box" };
 
         // The XP-100's factory programs 01 to 28, in its order (program n is
         // index n - 1), with what its pedal does in each. Saved by number:

@@ -106,6 +106,7 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     loFi.prepare (sampleRate, preparedBlockSize);
     glitch.prepare (sampleRate, preparedBlockSize);
     pitchBlock.prepare (sampleRate, preparedBlockSize);
+    talkBox.prepare (sampleRate, preparedBlockSize);
     wah.prepare (sampleRate, preparedBlockSize);
     inputTap.setSampleRate (sampleRate);
 
@@ -268,7 +269,10 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     // the heel to its INTERVAL at the toe, like a DigiTech Whammy.
     // WHAMMY-WAH: the pedal plays the Whammy-Wah type. Unassigned, it rests at the heel.
     const auto whammy = expressionTarget == ExpressionTargets::pitch ? pedal : 1.0f;
-    filterPitch.process (monoBlock, { isOn (ParamIDs::fpOn), (effects::FilterPitch::Type) (int) param (ParamIDs::fpType),
+    // The Talk Box type runs after the cab (below); here FILTER / PITCH stands aside for it.
+    const auto fpType = (effects::FilterPitch::Type) (int) param (ParamIDs::fpType);
+    const auto talkBoxOn = isOn (ParamIDs::fpOn) && fpType == effects::FilterPitch::Type::talkBox;
+    filterPitch.process (monoBlock, { isOn (ParamIDs::fpOn) && ! talkBoxOn, fpType,
                                       param (ParamIDs::fpSensitivity), param (ParamIDs::fpResonance),
                                       param (ParamIDs::fpInterval) * whammy, param (ParamIDs::fpMix),
                                       (int) param (ParamIDs::fpXpProgram),
@@ -295,6 +299,11 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     amp.process (mono, numSamples, ampOn->load() > 0.5f, ampNormalise->load() > 0.5f);
     cab.process (mono, numSamples, cabOn->load() > 0.5f);
     presence.process (monoBlock, param (ParamIDs::presence));
+
+    // TALK BOX: the amp's sound shaped into vowels by the pedal (its TALK BOX
+    // setting; unassigned, it rests at the heel: "oo").
+    talkBox.process (monoBlock, talkBoxOn, expressionTarget == ExpressionTargets::talkBox ? pedal : 0.0f,
+                     param (ParamIDs::fpResonance), param (ParamIDs::fpMix));
 
     effects::GraphicEq::Settings eq;
     eq.on = isOn (ParamIDs::eqOn);
