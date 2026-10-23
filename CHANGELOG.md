@@ -2,6 +2,14 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.13.2
+
+- **Footswitches polished to match the unit:**
+  - Each pad now stands in a raised chrome bezel, with a dark well round the key and a shadow on the panel, the way a real floor unit's footswitches are mounted.
+  - The status LEDs sit behind recessed lenses with chrome rims.
+  - The numbers and names look stamped into the metal.
+- **The expression pedal starts heel down (0%),** where a real pedal rests, in new projects and new instances of the plugin. Each target starts at its "off" end: MORPH is dry, WAH is at the heel, PITCH is unshifted and LO-FI is full band. Assigned to **VOLUME**, it's silent until you rock it forward, just like a real volume pedal. The pedal's position is saved with your projects as before, so existing projects open where you left it.
+
 ## 0.13.1
 
 **Knobs, display and buttons polished to match the chassis**, and a fix to the unit's left edge.

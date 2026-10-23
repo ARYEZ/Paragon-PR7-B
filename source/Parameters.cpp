@@ -129,8 +129,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     constexpr int v6 = 6;
     layout.add (makeSwitch (ParamIDs::tunerOn, "Tuner", v6, false));
     layout.add (makeSwitch (ParamIDs::tunerMute, "Tuner Mutes Output", v6, true));
-    // Toe down by default, so assigning the pedal to VOLUME doesn't silence the rig.
-    layout.add (makeFloat (ParamIDs::expression, "Expression", { 0.0f, 1.0f, 0.001f }, 1.0f, v6, asPercent));
+    // Heel down (0%) by default, where a real pedal rests: every target starts
+    // at its "off" end (MORPH dry, WAH at the heel, PITCH unshifted, LO-FI full
+    // band). Assigned to VOLUME it's silent until rocked forward, as a real
+    // volume pedal is.
+    layout.add (makeFloat (ParamIDs::expression, "Expression", { 0.0f, 1.0f, 0.001f }, 0.0f, v6, asPercent));
     layout.add (makeChoice (ParamIDs::expressionTarget, "Expression Target", v6, ExpressionTargets::names, ExpressionTargets::off));
     layout.add (makeFloat (ParamIDs::expressionMin, "Expression Min", { 0.0f, 1.0f, 0.01f }, 0.0f, v6, asPercent));
     layout.add (makeFloat (ParamIDs::expressionMax, "Expression Max", { 0.0f, 1.0f, 0.01f }, 1.0f, v6, asPercent));
