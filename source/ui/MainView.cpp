@@ -631,9 +631,11 @@ void MainView::resized()
     const auto local = [origin] (juce::Rectangle<float> r) { return r - origin; };
 
     PedalBody::Geometry geometry;
-    geometry.face = local (mockF (164, 94, 1338, 540));
+    // The face plate sits inside the rim with about as much rim showing
+    // below it as above (the rim's top ends level with the pedal bay's bottom, 547).
+    geometry.face = local (mockF (164, 94, 1338, 534));
     geometry.pedalBay = local (mockF (1347, 86, 1535, 547));
-    geometry.sections = { local (mockF (174, 240, 1325, 388)), local (mockF (174, 396, 1325, 530)) };
+    geometry.sections = { local (mockF (174, 240, 1325, 388)), local (mockF (174, 396, 1325, 524)) };
     geometry.insets = { local (mockF (253, 250, 512, 382)), local (mockF (578, 250, 820, 382)), local (mockF (870, 250, 1148, 382)) };
     geometry.badge = local (mockF (212, 117, 410, 207));
 
@@ -682,7 +684,7 @@ void MainView::resized()
     heelIndicator.setBounds (mock (1262, 407, 1314, 423));
 
     for (size_t i = 0; i < footswitches.size(); ++i)
-        footswitches[i]->setBounds (mock (footswitchX[i] - 48, 400, footswitchX[i] + 164, 524));
+        footswitches[i]->setBounds (mock (footswitchX[i] - 48, 400, footswitchX[i] + 164, 520));
 
     // Exactly where the artwork was cut from the mockup, plus headroom above
     // for the toe to rise into.

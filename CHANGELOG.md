@@ -2,6 +2,14 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.26.1
+
+- **Chassis bottom edge fixed.** The face plate came down past the rim's polished top and overhung its front edge, so the inner border didn't line up along the bottom. Now:
+  - The rim shows below the face plate about as much as above it.
+  - The rim's edge lines up with the bottom of the expression pedal's housing.
+  - The unit's front edge is a little slimmer.
+  - The footswitches are about 3 pixels shorter to make room, too little to notice.
+
 ## 0.26.0
 
 - **Two fuzz models** in OD / DISTORTION:
