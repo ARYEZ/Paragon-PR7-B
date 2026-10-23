@@ -20,6 +20,8 @@ struct EffectPanel::Control
         label.setJustificationType (juce::Justification::centred);
         label.setFont (juce::FontOptions (10.5f, juce::Font::bold));
         label.setColour (juce::Label::textColourId, ParagonColours::textDim);
+        label.setMinimumHorizontalScale (0.6f);   // squeeze a long name (PING-PONG) into a narrow card rather than cut it off
+        label.setBorderSize ({});
 
         if (auto* choice = dynamic_cast<juce::AudioParameterChoice*> (parameter))
         {

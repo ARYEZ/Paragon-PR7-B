@@ -253,7 +253,8 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     footswitches[3]->describe = [this]
     {
         const auto synced = audioProcessor.getParameters().getRawParameterValue (ParamIDs::delaySync)->load() > 0.5f;
-        return "Delay " + valueText (synced ? ParamIDs::delaySync : ParamIDs::delayTime) + "  " + valueText (ParamIDs::reverbType) + " " + valueText (ParamIDs::reverbMix);
+        return valueText (ParamIDs::delayType) + " " + valueText (synced ? ParamIDs::delaySync : ParamIDs::delayTime)
+             + "  " + valueText (ParamIDs::reverbType) + " " + valueText (ParamIDs::reverbMix);
     };
     const int footswitchBlocks[] = { compBlock, driveBlock, modBlock, delayBlock };
     for (size_t i = 0; i < footswitches.size(); ++i)
@@ -307,7 +308,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                           { ParamIDs::modMix, "MIX", [this] {
                               return effects::Modulation::usesMix ((effects::Modulation::Type) juce::roundToInt (rawValue (ParamIDs::modType))); } } } } });
     panels[delayBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
-        { "DELAY", { { ParamIDs::delayOn, "ON" }, { ParamIDs::delaySync, "SYNC" },
+        { "DELAY", { { ParamIDs::delayOn, "ON" }, { ParamIDs::delayType, "TYPE" }, { ParamIDs::delaySync, "SYNC" },
                      { ParamIDs::delayTime, "TIME", [this] { return rawValue (ParamIDs::delaySync) < 0.5f; } },
                      { ParamIDs::delayFeedback, "FEEDBACK" }, { ParamIDs::delayTone, "TONE" }, { ParamIDs::delayMix, "MIX" },
                      { ParamIDs::delayPingPong, "PING-PONG" } } } });

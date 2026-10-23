@@ -90,6 +90,9 @@ namespace ParamIDs
     inline constexpr auto reverbType     = "reverbType";
     inline constexpr auto reverbPreDelay = "reverbPreDelay";
 
+    // Version 16: the delay's TYPE.
+    inline constexpr auto delayType = "delayType";
+
     // Global settings: kept when switching rigs. Everything else is part of a rig.
     // The expression pedal's position is global for the same reason a real
     // pedal's is: it's where your foot is, not part of the sound. What the

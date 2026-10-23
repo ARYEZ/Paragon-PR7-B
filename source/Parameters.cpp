@@ -182,5 +182,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     constexpr int v15 = 15;
     layout.add (makeChoice (ParamIDs::reverbType, "Reverb Type", v15, effects::Reverb::typeNames, (int) effects::Reverb::Type::hall));
     layout.add (makeFloat (ParamIDs::reverbPreDelay, "Reverb Pre-Delay", { 0.0f, effects::Reverb::maxPreDelayMs, 1.0f }, 20.0f, v15, asMs));
+
+    // Added in plugin version 16: delay types. DIGITAL, the default, is the
+    // original delay, so earlier projects and rigs sound the same.
+    layout.add (makeChoice (ParamIDs::delayType, "Delay Type", 16, effects::Delay::typeNames, (int) effects::Delay::Type::digital));
     return layout;
 }

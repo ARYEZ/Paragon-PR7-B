@@ -2,6 +2,33 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.16.0
+
+**Eight delay types.** The DELAY block has a TYPE setting. Every type keeps tempo SYNC, FEEDBACK, TONE, MIX, PING-PONG and trails (repeats ring out when you switch the delay off).
+
+- **Digital:** clean, exact repeats; the original Paragon delay. It's the default, so your existing projects and rigs sound exactly the same.
+- **Analog:** a bucket-brigade pedal, like a Boss DM-2 or MXR Carbon Copy. Warm, dark repeats that soften and blur each time round, with a slight wobble. Turn FEEDBACK right up and they build and sing rather than just fade. TONE sweeps across the chip's narrower range.
+- **Tape:** an Echoplex or Space Echo. Wow, flutter and a slow random drift in the pitch, tape saturation that squashes loud repeats, a little hiss, and repeats that warm as they fade.
+- **Mod:** clean repeats with chorus on them, wider in stereo. The lush lead delay.
+- **Reverse:** each repeat plays backwards, the psychedelic classic. Each backwards chunk is one delay time long.
+- **Multi-Tap:** four repeats spread through each delay time: at a quarter, a half, three quarters and the full time, the last the loudest. They dance between the speakers, for galloping, rhythmic patterns.
+- **Shimmer:** each repeat is pitched an octave higher than the last, rising into a glowing wash. Great for ambient pads with a long reverb.
+- **Ducking:** repeats drop by up to 18 dB while you play and swell back in the gaps, so you can run big delays on leads without clutter.
+
+**Pitch shifter:** Shimmer uses the same in-phase, correlation-spliced pitch shifter as the FILTER / PITCH block, now shared between the two.
+
+**Factory rigs:** they get fitting delays:
+- Tape on Slapback and Cassette Dreams.
+- Analog on Lead Boost.
+- Shimmer on Ambient Swells.
+- Ducking on Octave Lead.
+- Mod on Dimension Clean.
+- Multi-Tap on Wide Pan.
+
+There are also two new rigs: **Shimmer Pad** (bank D) and **Backwards Echo** (bank C).
+
+**Panel labels:** long control names like PING-PONG now squeeze to fit their card instead of being cut off.
+
 ## 0.15.0
 
 **Eight reverb types, and PRE-DELAY.**

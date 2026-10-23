@@ -27,6 +27,8 @@ namespace
                     harmonicTremolo = 8, autoPan = 9, doubler = 10;
     // FILTER / PITCH types.
     constexpr float autoWah = 0, pitchShifter = 1;
+    // Delay types (index into effects::Delay::typeNames).
+    constexpr float analogDelay = 1, tapeDelay = 2, modDelay = 3, reverseDelay = 4, multiTap = 5, shimmer = 6, ducking = 7;
     // Reverb types (index into effects::Reverb::typeNames).
     constexpr float room = 1, hall = 2, cathedral = 3, plate = 4, spring = 5, digital = 6, reverse = 7;
     // LO-FI types.
@@ -57,7 +59,7 @@ std::vector<Rig> makeFactoryRigs()
         make ("Lead Boost", B, 1, "Lead,Drive", {
             { compThreshold, -20 }, { gateThreshold, -60 }, { compOn, 1 }, { compRatio, 2 },
             { driveOn, 1 }, { driveGain, 4 }, { driveTone, 6 }, { driveLevel, 6 },
-            { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.3f }, { delayMix, 0.2f },
+            { delayOn, 1 }, { delayType, analogDelay }, { delaySync, dottedEighth }, { delayFeedback, 0.3f }, { delayMix, 0.2f },
             { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.25f }, { rigLevel, 2 } }),
 
         // A low-gain overdrive in front of a high-gain amp tightens the bass
@@ -70,12 +72,12 @@ std::vector<Rig> makeFactoryRigs()
         make ("Ambient Swells", C, 1, "Ambient,Clean", {
             { compOn, 1 }, { compThreshold, -26 }, { compRatio, 4 }, { compLevel, 4 },
             { modOn, 1 }, { modType, chorus }, { modRate, 0.25f }, { modDepth, 0.6f }, { modMix, 0.35f },
-            { delayOn, 1 }, { delaySync, quarter }, { delayFeedback, 0.6f }, { delayMix, 0.35f },
+            { delayOn, 1 }, { delayType, shimmer }, { delaySync, quarter }, { delayFeedback, 0.6f }, { delayMix, 0.35f },
             { delayTone, 5 }, { delayPingPong, 1 },
             { reverbOn, 1 }, { reverbType, cathedral }, { reverbSize, 0.9f }, { reverbTone, 5 }, { reverbMix, 0.45f } }),
 
         make ("Slapback", C, 2, "Rockabilly,Delay", {
-            { delayOn, 1 }, { delaySync, syncOff }, { delayTime, 110 }, { delayFeedback, 0.1f },
+            { delayOn, 1 }, { delayType, tapeDelay }, { delaySync, syncOff }, { delayTime, 110 }, { delayFeedback, 0.1f },
             { delayMix, 0.3f }, { delayTone, 5 },
             { reverbOn, 1 }, { reverbType, spring }, { reverbSize, 0.25f }, { reverbMix, 0.15f } }),
 
@@ -100,7 +102,7 @@ std::vector<Rig> makeFactoryRigs()
         make ("Dimension Clean", D, 4, "Clean,Modulation", {
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 }, { compLevel, 2 },
             { modOn, 1 }, { modType, dimension }, { modRate, 0.4f }, { modDepth, 0.5f }, { modMix, 0.5f },
-            { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.25f }, { delayMix, 0.15f },
+            { delayOn, 1 }, { delayType, modDelay }, { delaySync, dottedEighth }, { delayFeedback, 0.25f }, { delayMix, 0.15f },
             { reverbOn, 1 }, { reverbSize, 0.6f }, { reverbMix, 0.25f } }),
 
         make ("Warble Vibrato", D, 5, "Modulation,Lo-Fi", {
@@ -111,7 +113,7 @@ std::vector<Rig> makeFactoryRigs()
             { compOn, 1 }, { compThreshold, -20 }, { compRatio, 3 },
             { fpOn, 1 }, { fpType, pitchShifter }, { fpInterval, 12 }, { fpMix, 0.45f },
             { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 }, { driveLevel, 2 },
-            { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.3f }, { delayMix, 0.2f },
+            { delayOn, 1 }, { delayType, ducking }, { delaySync, dottedEighth }, { delayFeedback, 0.3f }, { delayMix, 0.2f },
             { reverbOn, 1 }, { reverbMix, 0.2f } }),
 
         make ("Harmony Fifths", B, 4, "Lead,Pitch", {
@@ -148,7 +150,7 @@ std::vector<Rig> makeFactoryRigs()
         make ("Cassette Dreams", D, 7, "Lo-Fi,Ambient", {
             { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 },
             { modOn, 1 }, { modType, chorus }, { modRate, 0.4f }, { modDepth, 0.4f }, { modMix, 0.35f },
-            { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.35f }, { delayMix, 0.25f },
+            { delayOn, 1 }, { delayType, tapeDelay }, { delaySync, dottedEighth }, { delayFeedback, 0.35f }, { delayMix, 0.25f },
             { reverbOn, 1 }, { reverbType, digital }, { reverbSize, 0.8f }, { reverbMix, 0.35f },
             { lofiOn, 1 }, { lofiType, cassette }, { lofiAmount, 5 }, { lofiNoise, 4 } }),
 
@@ -162,6 +164,18 @@ std::vector<Rig> makeFactoryRigs()
             { delayOn, 1 }, { delaySync, quarter }, { delayFeedback, 0.3f }, { delayMix, 0.15f },
             { reverbOn, 1 }, { reverbType, reverse }, { reverbSize, 0.5f }, { reverbMix, 0.55f }, { reverbPreDelay, 0 } }),
 
+        // Delays to try: a rising shimmer pad, and reverse echoes.
+        make ("Shimmer Pad", D, 9, "Ambient,Delay,Clean", {
+            { compOn, 1 }, { compThreshold, -26 }, { compRatio, 4 }, { compLevel, 3 },
+            { delayOn, 1 }, { delayType, shimmer }, { delaySync, quarter }, { delayFeedback, 0.65f }, { delayMix, 0.4f },
+            { delayTone, 6 }, { delayPingPong, 1 },
+            { reverbOn, 1 }, { reverbType, cathedral }, { reverbSize, 0.7f }, { reverbMix, 0.4f } }),
+
+        make ("Backwards Echo", C, 9, "Psychedelic,Delay", {
+            { driveOn, 1 }, { driveGain, 3 },
+            { delayOn, 1 }, { delayType, reverseDelay }, { delaySync, eighth }, { delayFeedback, 0.4f }, { delayMix, 0.5f },
+            { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.2f } }),
+
         // These two follow the tempo (tapped, or the DAW's).
         make ("Brownface Trem", C, 4, "Modulation,Clean,Vintage", {
             { modOn, 1 }, { modType, harmonicTremolo }, { modSync, eighth }, { modDepth, 0.7f },
@@ -170,7 +184,7 @@ std::vector<Rig> makeFactoryRigs()
         make ("Wide Pan", C, 5, "Modulation,Ambient", {
             { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 },
             { modOn, 1 }, { modType, autoPan }, { modSync, quarter }, { modDepth, 0.8f },
-            { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.35f }, { delayMix, 0.2f },
+            { delayOn, 1 }, { delayType, multiTap }, { delaySync, dottedEighth }, { delayFeedback, 0.35f }, { delayMix, 0.2f },
             { reverbOn, 1 }, { reverbType, cathedral }, { reverbSize, 0.8f }, { reverbMix, 0.35f } }),
     };
 }

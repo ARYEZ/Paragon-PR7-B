@@ -5,6 +5,7 @@
 #include "Parameters.h"
 #include "PluginProcessor.h"
 #include "dsp/effects/Modulation.h"
+#include "dsp/effects/Delay.h"
 #include "dsp/effects/Reverb.h"
 
 using Catch::Matchers::WithinAbs;
@@ -710,6 +711,141 @@ TEST_CASE ("Switching delay off lets the echoes ring out but stops new ones", "[
     CHECK (std::abs (later[9600]) < 1.0e-4f);
 }
 
+TEST_CASE ("Delay types each do what they say", "[effects][delay]")
+{
+    using DelayType = effects::Delay::Type;
+    const auto makeRig = [] (DelayType type, float timeMs, float feedback)
+    {
+        auto rig = std::make_unique<EffectRig>();
+        rig->set (ParamIDs::delayOn, 1.0f);
+        rig->set (ParamIDs::delayType, (float) type);
+        rig->set (ParamIDs::delaySync, 0.0f);
+        rig->set (ParamIDs::delayTime, timeMs);
+        rig->set (ParamIDs::delayFeedback, feedback);
+        rig->set (ParamIDs::delayMix, 1.0f);
+        return rig;
+    };
+    const auto minus = [] (const std::vector<float>& a, const std::vector<float>& b)
+    {
+        std::vector<float> difference (a.size());
+        for (size_t i = 0; i < a.size(); ++i)
+            difference[i] = a[i] - b[i];
+        return difference;
+    };
+
+    SECTION ("Every type stays stable with FEEDBACK all the way up, and its echoes stop when switched off")
+    {
+        for (int type = 0; type < effects::Delay::typeNames.size(); ++type)
+        {
+            INFO (effects::Delay::typeNames[type]);
+            auto rig = makeRig ((DelayType) type, 300.0f, 0.95f);
+            auto burst = sine (220.0, 0.5f, 0.25);   // a played phrase, then letting it ring
+            burst.resize ((size_t) (4.0 * sampleRate), 0.0f);
+            const auto output = rig->run (burst);
+            REQUIRE (allFinite (output[0]));
+            REQUIRE (allFinite (output[1]));
+            float peak = 0.0f;
+            for (auto sample : output[0])
+                peak = std::max (peak, std::abs (sample));
+            CHECK (peak < 2.0f);   // it can build, but it never runs away
+        }
+    }
+
+    SECTION ("Analog's repeats are darker than digital's")
+    {
+        juce::Random random (3);
+        std::vector<float> noise ((size_t) (0.05 * sampleRate));
+        for (auto& sample : noise)
+            sample = random.nextFloat() * 0.6f - 0.3f;
+        noise.resize ((size_t) (0.6 * sampleRate), 0.0f);
+        const auto highsInEcho = [&] (DelayType type)
+        {
+            auto output = makeRig (type, 250.0f, 0.0f)->runMono (noise);
+            juce::dsp::IIR::Filter<float> highPass;
+            highPass.coefficients = juce::dsp::IIR::Coefficients<float>::makeHighPass (sampleRate, 5000.0f);
+            for (auto& sample : output)
+                sample = highPass.processSample (sample);
+            return rms (output, 0.25, 0.32);
+        };
+        CHECK (highsInEcho (DelayType::analog) < 0.3f * highsInEcho (DelayType::digital));
+    }
+
+    SECTION ("Tape's wow and flutter smear a steady note's pitch")
+    {
+        const auto input = sine (1000.0, 0.3f, 2.0);
+        const auto echoAt1k = [&] (DelayType type)
+        {
+            auto rig = makeRig (type, 300.0f, 0.0f);
+            const auto output = rig->runMono (input);
+            return levelAt (minus (output, input), 1000.0, 0.4);
+        };
+        CHECK (echoAt1k (DelayType::tape) < 0.8f * echoAt1k (DelayType::digital));
+    }
+
+    SECTION ("Mod's chorused repeats differ left and right")
+    {
+        const auto input = sine (440.0, 0.3f, 1.5);
+        const auto output = makeRig (DelayType::mod, 300.0f, 0.3f)->run (input);
+        CHECK (rms (minus (output[0], output[1]), 0.4) > 0.1f * rms (minus (output[0], input), 0.4));
+    }
+
+    SECTION ("Multi-tap repeats at a quarter, half, three quarters and the full time")
+    {
+        const auto output = makeRig (DelayType::multiTap, 400.0f, 0.0f)->runMono (impulse (0.6, 0.5f));
+        for (const auto ms : { 100, 200, 300, 400 })
+        {
+            INFO (ms << " ms");
+            float peak = 0.0f;
+            for (int i = -8; i <= 8; ++i)
+                peak = std::max (peak, std::abs (output[(size_t) (ms * 48 + i)]));
+            CHECK (peak > 0.1f);
+        }
+        CHECK (rms (output, 0.12, 0.18) < 1.0e-4f);   // and nothing in between
+    }
+
+    SECTION ("Reverse plays each repeat backwards: a note's echo swells up instead of dying away")
+    {
+        // A plucked note: sharp attack, then a fade.
+        std::vector<float> note ((size_t) (1.5 * sampleRate));
+        for (size_t i = 0; i < (size_t) (0.4 * sampleRate); ++i)
+            note[i] = 0.4f * (float) (std::sin (juce::MathConstants<double>::twoPi * 330.0 * (double) i / sampleRate)
+                                      * std::exp (-(double) i / (0.08 * sampleRate)));
+        const auto reversed = minus (makeRig (DelayType::reverse, 400.0f, 0.0f)->runMono (note), note);
+        const auto forwards = minus (makeRig (DelayType::digital, 400.0f, 0.0f)->runMono (note), note);
+        // In the second chunk (0.4-0.8 s): digital's echo is loud at the
+        // start and fades; reverse's is quiet at the start and loudest late.
+        CHECK (rms (forwards, 0.40, 0.48) > 3.0f * rms (forwards, 0.62, 0.7));
+        CHECK (rms (reversed, 0.62, 0.78) > 3.0f * rms (reversed, 0.40, 0.48));
+    }
+
+    SECTION ("Shimmer's repeats climb an octave")
+    {
+        const auto input = [&]
+        {
+            auto burst = sine (330.0, 0.4f, 0.2);
+            burst.resize ((size_t) (2.0 * sampleRate), 0.0f);
+            return burst;
+        }();
+        const auto octaveUp = [&] (DelayType type)
+        {
+            const auto output = makeRig (type, 250.0f, 0.6f)->runMono (input);
+            return levelAt (output, 660.0, 0.5) / (levelAt (output, 330.0, 0.5) + 1.0e-9f);
+        };
+        CHECK (octaveUp (DelayType::shimmer) > 0.3f);
+        CHECK (octaveUp (DelayType::digital) < 0.05f);
+    }
+
+    SECTION ("Ducking keeps the repeats down while you play and lets them back in when you stop")
+    {
+        auto input = sine (220.0, 0.3f, 1.0);
+        input.resize ((size_t) (2.0 * sampleRate), 0.0f);
+        const auto ducked = minus (makeRig (DelayType::ducking, 250.0f, 0.5f)->runMono (input), input);
+        const auto plain = minus (makeRig (DelayType::digital, 250.0f, 0.5f)->runMono (input), input);
+        CHECK (rms (ducked, 0.5, 0.95) < 0.25f * rms (plain, 0.5, 0.95));    // at least 12 dB down while playing
+        CHECK (rms (ducked, 1.5, 1.8) > 0.5f * rms (plain, 1.5, 1.8));      // and back once you stop
+    }
+}
+
 TEST_CASE ("Reverb adds a stereo tail that fades out", "[effects][reverb]")
 {
     EffectRig rig;
@@ -986,3 +1122,4 @@ TEST_CASE ("Projects and rigs saved before reverb types keep the original reverb
     CHECK (juce::roundToInt (fresh.processor.getParameters().getRawParameterValue (ParamIDs::reverbType)->load())
            == (int) effects::Reverb::Type::hall);
 }
+
