@@ -4,6 +4,8 @@
 #include "Parameters.h"
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
+#include "ui/GraphicEqPanel.h"
+#include "ui/EqPresets.h"
 #include "ui/PerformanceControls.h"
 
 using Catch::Matchers::WithinAbs;
@@ -82,11 +84,11 @@ TEST_CASE ("The chain and footswitches pick which block's knobs show; the graphi
     ParagonX1AudioProcessor processor;
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
 
-    // The knob panels in signal-chain order: nine EffectPanels, with the
+    // The knob panels in signal-chain order: ten EffectPanels, with the
     // graphic EQ's own panel as block 5 (after the cabinet).
     std::vector<EffectPanel*> effectPanels;
     findAll (*editor, effectPanels);
-    REQUIRE (effectPanels.size() == 9);
+    REQUIRE (effectPanels.size() == 10);
     std::vector<GraphicEqPanel*> eqPanels;
     findAll (*editor, eqPanels);
     REQUIRE (eqPanels.size() == 1);
@@ -112,20 +114,20 @@ TEST_CASE ("The chain and footswitches pick which block's knobs show; the graphi
     std::vector<SignalChain*> chains;
     findAll (*editor, chains);
     REQUIRE (chains.size() == 1);
-    for (int block = 0; block < 10; ++block)
+    for (int block = 0; block < 11; ++block)
     {
         chains[0]->onSelect (block);
         CHECK (visiblePanel() == block);
     }
 
-    // Footswitch 3's name shows modulation (block 6); footswitch 4's shows delay (block 7).
+    // Footswitch 3's name shows modulation (block 7); footswitch 4's shows delay (block 8).
     std::vector<Footswitch*> footswitches;
     findAll (*editor, footswitches);
     REQUIRE (footswitches.size() == 4);
     footswitches[2]->onSelect();
-    CHECK (visiblePanel() == 6);
-    footswitches[3]->onSelect();
     CHECK (visiblePanel() == 7);
+    footswitches[3]->onSelect();
+    CHECK (visiblePanel() == 8);
 
     // The GRAPHIC EQ button on any other block's panel goes back to the EQ.
     std::vector<juce::TextButton*> buttons;
@@ -216,7 +218,7 @@ TEST_CASE ("The expression screen: click a line to assign the pedal, again to un
         // The glass's content: the heading at the top, the position bar at
         // the bottom, the five lines evenly between (as the screen lays them out).
         const auto glass = screen.getLocalBounds().toFloat().reduced (7.0f).reduced (5.0f, 4.0f);
-        const auto top = glass.getY() + 17.0f, height = (glass.getHeight() - 29.0f) / 5.0f;
+        const auto top = glass.getY() + 15.0f, height = (glass.getHeight() - 25.0f) / (float) ExpressionAssign::numTargets;
         return juce::Point<float> (glass.getCentreX(), top + height * ((float) line + 0.5f));
     };
     const auto click = [&] (int line)
@@ -244,6 +246,14 @@ TEST_CASE ("The expression screen: click a line to assign the pedal, again to un
     click (4);
     CHECK (target() == ExpressionTargets::off);
 
+    // WHAMMY-WAH also switches the FILTER / PITCH block on as a Whammy-Wah.
+    click (5);
+    CHECK (target() == ExpressionTargets::whammyWah);
+    CHECK (state.getRawParameterValue (ParamIDs::fpOn)->load() > 0.5f);
+    CHECK (juce::roundToInt (state.getRawParameterValue (ParamIDs::fpType)->load()) == (int) effects::FilterPitch::Type::whammyWah);
+    click (5);
+    CHECK (target() == ExpressionTargets::off);
+
     // Scrolling down from unassigned starts at the top, then steps down; it stops at the ends.
     scroll (-1.0f);
     CHECK (target() == ExpressionTargets::volume);
@@ -252,4 +262,34 @@ TEST_CASE ("The expression screen: click a line to assign the pedal, again to un
     scroll (1.0f);
     scroll (1.0f);
     CHECK (target() == ExpressionTargets::volume);
+}
+
+TEST_CASE ("EQ PRESETS: choosing one sets the faders and switches the EQ on; moving a fader lets go of the name", "[ui]")
+{
+    ParagonX1AudioProcessor processor;
+    auto& state = processor.getParameters();
+    GraphicEqPanel panel (state);
+    panel.setBounds (0, 0, 520, 220);
+
+    juce::ComboBox* menu = nullptr;
+    for (auto* child : panel.getChildren())
+        if (auto* box = dynamic_cast<juce::ComboBox*> (child))
+            menu = box;
+    REQUIRE (menu != nullptr);
+    CHECK (menu->getSelectedItemIndex() == -1);   // a flat EQ isn't one of the presets
+
+    const auto value = [&] (const juce::String& id) { return state.getRawParameterValue (id)->load(); };
+    const auto& scoop = EqPresets::all[0];
+    menu->setSelectedItemIndex (0, juce::sendNotificationSync);
+
+    for (int band = 0; band < effects::GraphicEq::numBands; ++band)
+        CHECK_THAT (value (ParamIDs::eqBands[band]), WithinAbs (scoop.gainsDb[(size_t) band], 0.05));
+    CHECK_THAT (value (ParamIDs::eqLevel), WithinAbs (scoop.levelDb, 0.05));
+    CHECK (value (ParamIDs::eqOn) > 0.5f);
+    CHECK (menu->getText() == juce::String (scoop.name));
+
+    // Nudge 1 kHz: it's no longer the preset, so the menu says PRESETS again.
+    auto* band = state.getParameter (ParamIDs::eqBands[4]);
+    band->setValueNotifyingHost (band->convertTo0to1 (0.0f));
+    CHECK (menu->getSelectedItemIndex() == -1);
 }

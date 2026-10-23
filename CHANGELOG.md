@@ -2,6 +2,89 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.24.0
+
+- **GLITCH**, a new block for granular glitch, stutter and texture effects. It keeps the last few seconds of your playing and plays pieces of it back. Four MODEs:
+  - **Pitch Delay:** echoes where each repeat is shifted by PITCH from the last, so they climb (or fall) away.
+  - **Sequence:** tempo-locked stutters. At each step it may grab the slice you just played and repeat it instead, like a beat-repeat edit.
+  - **Interfere:** a failing signal. Your playing is cut into segments, some dropped out, played backwards, or caught in a short buzzing loop.
+  - **Texturizer:** a cloud of overlapping grains from the last moments of playing, smeared into a pad. Lovely on cleans.
+- **Controls:**
+  - **LENGTH:** the size of the pieces. With SYNC on it's a note value from 1/64 to a bar, at the tapped or host tempo; otherwise milliseconds.
+  - **DENSITY:** how many repeats, stutters, breaks or grains.
+  - **PITCH:** ±12 semitones.
+  - **CHAOS:** the macro. At 0 everything is regular and rhythmic. Turn it up and lengths, pitches (including octave jumps), directions and positions are randomised together.
+  - **MIX.**
+- **POSITION:** **Post** (the default) puts it after the amp and cab, before modulation, so the chops are exact. **Pre** puts it before the amp, so the chops hit the drive for a wilder, sputtering sound.
+- **New expression setting: GLITCH.** The pedal fades GLITCH in: dry at the heel, its MIX at the toe. Choosing it switches GLITCH on. The EXPRESSION screen now has seven lines.
+- **New factory rigs:** **Stutter Edit** (C10: 1/16 stutters on a crunch, on the pedal) and **Grain Cloud** (D10: a Texturizer pad on a clean tone).
+- The signal chain has eleven blocks now. GLITCH sits after EQ, where it runs in Post.
+- This is our own design, built from Neural DSP's description of the Glitch pedal in *Archetype: Misha*. It isn't a copy of their processing.
+
+## 0.23.0
+
+- **Daybreak compressor.** COMP / GATE has a TYPE: **Classic** (the original, still the default, so your rigs sound the same) or **Daybreak**, a modern pedal compressor laid out like the boutique ones metal players use:
+  - **COMP:** how much it squeezes, in one knob. Its make-up gain turns up with it, so more COMP means more squeeze rather than just quieter.
+  - **DETAIL:** how much pick attack gets through before it clamps. Low: the pick is flattened for a smooth, even sound. High: every pick snaps through.
+  - **MIX:** parallel compression. Blend the squeezed sound with your dry guitar for sustain and evenness with a natural attack.
+  - **INTENSITY:** off is smooth and gentle, for cleans and leads. On grabs earlier and harder and lets go faster, for tight modern rhythm.
+  - **LEVEL:** the volume after it.
+  - Its detector ignores the lowest bass, so low palm mutes don't make it pump.
+- **Gain-reduction meter.** The COMP / GATE panel's header has a row of LEDs and a dB readout showing how hard the compressor is working. It works for both types.
+- The panel shows only the knobs for the chosen TYPE. The others hide and the cards close up.
+- **New factory rig: Daybreak Clean (A5).** Daybreak at half mix into a light chorus and plate reverb.
+
+## 0.22.1
+
+- **New factory rig: Nu-Metal Screech (B10).** The late-'90s octave screech.
+  - **The sound:** the Whammy-Wah on **21 Down Oct / Up Oct** (an octave below and an octave above, blended with your guitar at 85%), already on the expression pedal.
+  - **Into:** a tight Screamer boost (low gain, high level) with the noise gate on, the graphic EQ's **Tight Low End** curve so the octave-down voice stays clear under high gain, and a touch of room reverb.
+  - **How to play it:** load a Rectifier-style high-gain amp capture, hold a high note or a pinch harmonic, and rock the pedal back and forth. Fast rocking warbles and screeches; a slow sweep gives the eerie rise.
+
+## 0.22.0
+
+- **Whammy-Wah now follows the real XP-100's program list.** MODE is now **PROGRAM**, numbered 01–28 as on the pedal, with what the pedal does in each:
+  - **01 Volume Pedal:** the pedal is a volume pedal.
+  - **02–06 Wah:** Original Cry Wah, Cry Wah 2, Dark & Deep, Sweet Spot 1, Sweet Spot 2. The pedal sweeps the wah. The Sweet Spots cover just the middle of a wah's travel, finely, for a "parked" wah you can nudge.
+  - **07–12 Auto Wah** (new): Original Cry Auto, Envelope Filter and Brass Attack, each twice:
+    - In 07–09 the pedal sets the sensitivity: heel barely opens, toe opens on the lightest touch.
+    - In 10–12 it sets the attack: heel snaps open, toe swells in like a brass note.
+  - **13–20 Whammy:** Up 1 Octave, Up 2 Octaves, Up 2nd, Down 2nd, Down 4th, Down 1 Octave, Down 2 Octaves and Down 6 Octaves. Heel is no shift, toe is the full interval. **Down 6 Octaves** really does dive six octaves, down to a rumble.
+  - **21–28 Harmony:** Down Oct/Up Oct, Down 4th/Down 3rd, Up 5th/Up 6th, Up 4th/Up 5th, Up minor 3rd/Up major 3rd, Up 2nd/Up 3rd, Down 4th/Up 5th, Up 5th/Up Oct. Your note plus a voice the pedal moves from the first interval at the heel to the second at the toe.
+  - The list and what the pedal controls come from the XP-100's program chart. The wah ranges and auto-wah speeds are ours, since DigiTech didn't publish theirs.
+- A rig saved with 0.21.0's Whammy-Wah loads with program 02 (Original Cry Wah). The old modes didn't match the real list, so they aren't carried over. The factory rigs are updated: **Whammy Lead** uses 13 Up 1 Octave, **XP Wah Crunch** uses 02 Original Cry Wah, and **Harmony Bends** uses 24 Up 4th/Up 5th.
+- Drop-down lists with long entries get a wider card, so names like "22 Down 4th / Down 3rd" read in full.
+
+## 0.21.0
+
+- **Whammy-Wah.** A new FILTER / PITCH type in the style of the DigiTech XP-100 Whammy-Wah, played with the expression pedal. Its MODE picks one of the XP-100's three kinds of effect:
+  - **Wah (5):** Classic, Vocal (narrow and talky), Wide (a long sweep), Deep (dark and low) and Bright. The pedal sweeps the wah from heel to toe.
+  - **Whammy (8):** 2 Oct Up, Oct Up, 5th Down, 4th Down, Oct Down, 2 Oct Down, Dive Bomb and Drop Tune (a whole step down). The pedal bends the pitch from none at the heel to the full interval at the toe, and only the bent note is heard. Dive Bomb hangs on and then plunges, like a whammy bar. It goes down two octaves, the pitch shifter's limit.
+  - **Harmony (9):** 2nd/3rd Up, b3rd/3rd Up, 3rd/4th Up, 4th/5th Up, 5th/6th Up, 5th/Oct Up, 3rd/4th Down, 4th/5th Down and Oct Down/Up. Your note plus a second voice, which the pedal moves from the first interval at the heel to the second at the toe. MIX sets how loud the harmony is.
+  - These follow the XP-100's layout and the classic Whammy settings. They're not a copy of DigiTech's processing.
+- **New expression setting: WHAMMY-WAH**, on the EXPRESSION screen and in EXPRESSION ASSIGN. Choosing it switches the FILTER / PITCH block on as a Whammy-Wah. If the pedal isn't assigned to it, the Whammy-Wah rests at the heel.
+- **New factory rigs:** **Whammy Lead** (B7, octave-up whammy), **XP Wah Crunch** (B8, the Classic wah into a crunch drive) and **Harmony Bends** (B9, a third rising to a fourth).
+- The EXPRESSION screen fits six lines now.
+
+## 0.20.0
+
+- **EQ presets.** The graphic EQ has a **PRESETS** menu next to FLAT with twelve starting curves. These are the shapes guitarists most often dial into an octave-band graphic EQ, like an MXR 10-band or the graphic EQ in an amp sim, after the amp and cab:
+  - **Metal Scoop:** the classic V, big lows and highs, mids pulled down.
+  - **Tight Low End:** cuts the boom under high gain so palm mutes stay tight.
+  - **Mud Cut:** clears the boxy low mids around 250–500 Hz.
+  - **Fizz Tamer:** rolls off the harsh top that high-gain captures can have.
+  - **Lead Mid Boost:** pushes 500 Hz–2 kHz so solos sit on top.
+  - **Cut Through the Mix:** less low end, more upper mids, to be heard in a dense band.
+  - **Fat Rhythm:** thick lows and low mids for big rhythm parts.
+  - **British Crunch:** a forward upper-mid bark.
+  - **Bright Clean:** sparkle and air for cleans and chorus.
+  - **Funk Scoop:** scooped low mids with a crisp top.
+  - **Warm Jazz:** round and dark, the highs rolled off.
+  - **Radio:** a narrow mid band, like an old AM radio.
+- Choosing one sets all nine faders and LEVEL and switches the EQ on, so you hear it straight away. Then tweak to taste.
+- Each preset's LEVEL is set to cancel the volume change of its curve (measured across a guitar's range), so switching between them compares tone, not loudness.
+- The menu shows the preset's name while the faders match it. Move a fader and it goes back to PRESETS, because it's now your own curve. Presets are saved with rigs like any other EQ setting.
+
 ## 0.19.0
 
 - **New name: Paragon PR7-G**, the guitar processor, ready for more processors in the Paragon line. The logo on the unit and in the header now reads PR7-G, in the same slanted, speed-cut lettering.

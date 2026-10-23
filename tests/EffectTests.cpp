@@ -7,6 +7,8 @@
 #include "dsp/effects/Modulation.h"
 #include "dsp/effects/Delay.h"
 #include "dsp/effects/Reverb.h"
+#include "dsp/effects/Glitch.h"
+#include "ui/EqPresets.h"
 
 using Catch::Matchers::WithinAbs;
 
@@ -152,6 +154,188 @@ TEST_CASE ("Compressor turns loud playing down and leaves quiet playing alone", 
 
     const auto quiet = sine (220.0, juce::Decibels::decibelsToGain (-30.0f), 1.0);
     CHECK_THAT (dB (rms (rig.runMono (quiet), 0.5) / rms (quiet, 0.5)), WithinAbs (0.0, 0.3));
+}
+
+TEST_CASE ("Daybreak compressor: COMP, DETAIL, MIX and INTENSITY do what they say", "[effects][comp]")
+{
+    const auto daybreak = [] (EffectRig& rig, float amount, float detail = 5.0f, float mixAmount = 1.0f, bool intensity = false)
+    {
+        rig.set (ParamIDs::compOn, 1.0f);
+        rig.set (ParamIDs::compType, (float) effects::CompGate::Type::daybreak);
+        rig.set (ParamIDs::compAmount, amount);
+        rig.set (ParamIDs::compDetail, detail);
+        rig.set (ParamIDs::compMix, mixAmount);
+        rig.set (ParamIDs::compIntensity, intensity ? 1.0f : 0.0f);
+    };
+
+    SECTION ("Its curve: nothing below the threshold, more squeeze with more COMP, harder with INTENSITY")
+    {
+        CHECK (effects::CompGate::daybreakCurveDb (-50.0f, 5.0f, false) == 0.0f);
+        CHECK (effects::CompGate::daybreakCurveDb (-6.0f, 8.0f, false) < effects::CompGate::daybreakCurveDb (-6.0f, 2.0f, false) - 6.0f);
+        CHECK (effects::CompGate::daybreakCurveDb (-6.0f, 5.0f, true) < effects::CompGate::daybreakCurveDb (-6.0f, 5.0f, false) - 6.0f);
+    }
+
+    SECTION ("It evens out loud and soft playing, and the meter shows it working")
+    {
+        const auto levelFor = [&] (float amplitude, float amount)
+        {
+            EffectRig rig;
+            daybreak (rig, amount);
+            return rms (rig.runMono (sine (440.0, amplitude, 1.0)), 0.5);
+        };
+        // 24 dB apart going in; with COMP up, much closer coming out.
+        const auto spreadIn = dB (0.5f / 0.0315f);
+        const auto spreadOut = dB (levelFor (0.5f, 8.0f) / levelFor (0.0315f, 8.0f));
+        CHECK (spreadOut < spreadIn - 10.0f);
+
+        EffectRig rig;
+        daybreak (rig, 8.0f);
+        rig.runMono (sine (440.0, 0.5f, 0.5));
+        CHECK (rig.processor.getCompGainReductionDb() < -6.0f);
+    }
+
+    SECTION ("MIX at 0 leaves the guitar as it was")
+    {
+        EffectRig rig;
+        daybreak (rig, 10.0f, 5.0f, 0.0f, true);
+        const auto input = sine (440.0, 0.5f, 0.5);
+        CHECK (maxAbsDifference (rig.runMono (input), input, (size_t) (0.2 * sampleRate)) < 1.0e-3f);
+    }
+
+    SECTION ("DETAIL lets more of the pick attack through")
+    {
+        // A note that starts loud from silence: the first few milliseconds
+        // against the settled level.
+        auto input = silence (0.3);
+        const auto note = sine (440.0, 0.5f, 0.5);
+        input.insert (input.end(), note.begin(), note.end());
+        const auto attackRatio = [&] (float detail)
+        {
+            EffectRig rig;
+            daybreak (rig, 8.0f, detail);
+            const auto output = rig.runMono (input);
+            return rms (output, 0.3, 0.305) / rms (output, 0.6, 0.8);
+        };
+        CHECK (dB (attackRatio (10.0f) / attackRatio (0.0f)) > 4.0f);
+    }
+
+    SECTION ("Low bass doesn't make it pump")
+    {
+        const auto reductionFor = [&] (double hz)
+        {
+            EffectRig rig;
+            daybreak (rig, 7.0f);
+            rig.runMono (sine (hz, 0.4f, 0.5));
+            return rig.processor.getCompGainReductionDb();
+        };
+        CHECK (reductionFor (40.0) > reductionFor (440.0) + 3.0f);
+    }
+}
+
+TEST_CASE ("GLITCH: each mode chops, repeats or smears the guitar as it says", "[effects][glitch]")
+{
+    const auto glitchRig = [] (EffectRig& rig, effects::Glitch::Mode mode, float density, float chaos, float pitch = 0.0f, float mixAmount = 1.0f)
+    {
+        rig.set (ParamIDs::glitchOn, 1.0f);
+        rig.set (ParamIDs::glitchMode, (float) mode);
+        rig.set (ParamIDs::glitchSync, 0.0f);
+        rig.set (ParamIDs::glitchTime, 100.0f);   // 4800 samples at 48 kHz
+        rig.set (ParamIDs::glitchDensity, density);
+        rig.set (ParamIDs::glitchChaos, chaos);
+        rig.set (ParamIDs::glitchPitch, pitch);
+        rig.set (ParamIDs::glitchMix, mixAmount);
+    };
+    // Noise: every stretch of it different, so a repeat is easy to recognise.
+    std::vector<float> noise ((size_t) sampleRate);
+    juce::Random random (42);
+    for (auto& sample : noise)
+        sample = (random.nextFloat() * 2.0f - 1.0f) * 0.3f;
+
+    SECTION ("MIX at 0 leaves the guitar as it was, in every mode")
+    {
+        for (const auto mode : { effects::Glitch::Mode::pitchDelay, effects::Glitch::Mode::sequence,
+                                 effects::Glitch::Mode::interfere, effects::Glitch::Mode::texturizer })
+        {
+            EffectRig rig;
+            glitchRig (rig, mode, 10.0f, 10.0f, 7.0f, 0.0f);
+            const auto output = rig.runMono (noise);
+            REQUIRE (allFinite (output));
+            CHECK (maxAbsDifference (output, noise, (size_t) (0.05 * sampleRate)) < 1.0e-3f);
+        }
+    }
+
+    SECTION ("Sequence, every step and no chaos: each step repeats the one before it")
+    {
+        EffectRig rig;
+        glitchRig (rig, effects::Glitch::Mode::sequence, 10.0f, 0.0f);
+        const auto output = rig.runMono (noise);
+        constexpr size_t step = 4800;
+        // The middle of the fourth step is the third step's audio (clear of the short fades at the edges).
+        std::vector<float> got (output.begin() + 3 * step + 200, output.begin() + 4 * step - 200);
+        std::vector<float> expected (noise.begin() + 2 * step + 200, noise.begin() + 3 * step - 200);
+        CHECK (maxAbsDifference (got, expected) < 0.01f);
+    }
+
+    SECTION ("Interfere: the signal drops out in places")
+    {
+        EffectRig rig;
+        glitchRig (rig, effects::Glitch::Mode::interfere, 10.0f, 0.0f);
+        const auto output = rig.runMono (noise);
+        REQUIRE (allFinite (output));
+        auto silentStretches = 0;
+        for (double start = 0.1; start < 0.95; start += 0.005)
+            if (rms (output, start, start + 0.005) < 0.01f * rms (noise))
+                ++silentStretches;
+        CHECK (silentStretches >= 3);
+    }
+
+    SECTION ("Pitch Delay: each echo an octave above the last")
+    {
+        EffectRig rig;
+        glitchRig (rig, effects::Glitch::Mode::pitchDelay, 4.0f, 0.0f, 12.0f);
+        auto input = sine (330.0, 0.3f, 0.3);
+        const auto tail = silence (0.7);
+        input.insert (input.end(), tail.begin(), tail.end());
+        const auto output = rig.runMono (input);
+        REQUIRE (allFinite (output));
+        // After the note stops, the echoes are up an octave (and more), not at the note.
+        std::vector<float> echoes (output.begin() + (size_t) (0.35 * sampleRate), output.begin() + (size_t) (0.5 * sampleRate));
+        CHECK (dB (levelAt (echoes, 660.0, 0.0) / (levelAt (echoes, 330.0, 0.0) + 1.0e-9f)) > 10.0f);
+    }
+
+    SECTION ("Texturizer: a cloud of grains that carries on after the note")
+    {
+        EffectRig rig;
+        glitchRig (rig, effects::Glitch::Mode::texturizer, 6.0f, 2.0f);
+        auto input = sine (440.0, 0.3f, 0.6);
+        const auto tail = silence (0.6);
+        input.insert (input.end(), tail.begin(), tail.end());
+        const auto output = rig.runMono (input);
+        REQUIRE (allFinite (output));
+        CHECK (rms (output, 0.65, 0.75) > 0.02f);                     // still sounding after the note
+        CHECK (dB (rms (output, 0.2, 0.55) / 0.212f) > -12.0f);       // about as loud as the guitar while playing
+    }
+
+    SECTION ("The pedal on GLITCH fades it in: dry at the heel")
+    {
+        EffectRig rig;
+        glitchRig (rig, effects::Glitch::Mode::interfere, 10.0f, 5.0f);
+        rig.set (ParamIDs::expressionTarget, (float) ExpressionTargets::glitch);
+        rig.set (ParamIDs::expression, 0.0f);
+        CHECK (maxAbsDifference (rig.runMono (noise), noise, (size_t) (0.1 * sampleRate)) < 1.0e-3f);
+    }
+
+    SECTION ("PRE and POST both glitch the guitar")
+    {
+        for (const auto position : { effects::Glitch::Position::post, effects::Glitch::Position::pre })
+        {
+            EffectRig rig;
+            glitchRig (rig, effects::Glitch::Mode::sequence, 10.0f, 0.0f);
+            rig.set (ParamIDs::glitchPosition, (float) position);
+            const auto output = rig.runMono (noise);
+            CHECK (maxAbsDifference (output, noise, (size_t) (0.2 * sampleRate)) > 0.1f);
+        }
+    }
 }
 
 TEST_CASE ("Noise gate silences signal below its threshold", "[effects][comp]")
@@ -444,6 +628,92 @@ TEST_CASE ("The pitch shifter moves notes by its interval", "[effects][pitch]")
         const auto target = levelAt (output, 330.0 * ratio, 0.2);
         CHECK (dB (target / levelAt (output, 330.0, 0.2)) > 20.0f);   // the original pitch is gone
         CHECK (dB (target / 0.3f) > -6.0f);                           // and the new one is about as loud
+    }
+}
+
+TEST_CASE ("Whammy-Wah: the expression pedal plays the XP-100's programs", "[effects][pitch][wah]")
+{
+    const auto modeIndex = [] (const juce::String& name)
+    {
+        const auto index = effects::FilterPitch::xpProgramNames().indexOf (name);
+        REQUIRE (index >= 0);
+        return (float) index;
+    };
+    const auto play = [&] (const juce::String& mode, float pedal, const std::vector<float>& input, bool assigned = true)
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::fpOn, 1.0f);
+        rig.set (ParamIDs::fpType, (float) effects::FilterPitch::Type::whammyWah);
+        rig.set (ParamIDs::fpXpProgram, modeIndex (mode));
+        rig.set (ParamIDs::fpMix, 1.0f);
+        rig.set (ParamIDs::expressionTarget, (float) (assigned ? ExpressionTargets::whammyWah : ExpressionTargets::off));
+        rig.set (ParamIDs::expression, pedal);
+        const auto output = rig.runMono (input);
+        REQUIRE (allFinite (output));
+        return output;
+    };
+    const auto note = sine (330.0, 0.3f, 1.0);
+
+    SECTION ("Whammy: no shift at the heel, the full interval at the toe, wet only")
+    {
+        const auto heel = play ("13 Up 1 Octave", 0.0f, note);
+        CHECK (dB (levelAt (heel, 330.0, 0.2) / (levelAt (heel, 660.0, 0.2) + 1.0e-9f)) > 20.0f);
+        const auto toe = play ("13 Up 1 Octave", 1.0f, note);
+        CHECK (dB (levelAt (toe, 660.0, 0.2) / levelAt (toe, 330.0, 0.2)) > 20.0f);
+        const auto down = play ("18 Down 1 Octave", 1.0f, note);
+        CHECK (dB (levelAt (down, 165.0, 0.2) / levelAt (down, 330.0, 0.2)) > 20.0f);
+        const auto second = play ("15 Up 2nd", 1.0f, note);
+        CHECK (dB (levelAt (second, 330.0 * 1.1225, 0.2) / levelAt (second, 330.0, 0.2)) > 20.0f);
+
+        // 20, down six octaves: the note is gone, into a rumble, and nothing blows up.
+        const auto dive = play ("20 Down 6 Octaves", 1.0f, note);
+        CHECK (dB (levelAt (dive, 330.0, 0.2) / 0.3f) < -30.0f);
+    }
+
+    SECTION ("Whammy: unassigned, the pedal doesn't move it (it rests at the heel)")
+    {
+        const auto output = play ("13 Up 1 Octave", 1.0f, note, false);
+        CHECK (dB (levelAt (output, 330.0, 0.2) / (levelAt (output, 660.0, 0.2) + 1.0e-9f)) > 20.0f);
+    }
+
+    SECTION ("Harmony: the guitar plus a voice the pedal moves between two intervals")
+    {
+        const auto heel = play ("28 Up 5th / Up Oct", 0.0f, note);
+        CHECK (dB (levelAt (heel, 330.0 * 1.4983, 0.2) / levelAt (heel, 330.0, 0.2)) > -6.0f);   // a 5th up, beside the note
+        CHECK (dB (levelAt (heel, 330.0, 0.2) / 0.3f) > -6.0f);                                   // which is still there
+        const auto toe = play ("28 Up 5th / Up Oct", 1.0f, note);
+        CHECK (dB (levelAt (toe, 660.0, 0.2) / levelAt (toe, 330.0, 0.2)) > -6.0f);              // now an octave up
+        CHECK (dB (levelAt (toe, 330.0 * 1.4983, 0.2) / levelAt (toe, 660.0, 0.2)) < -20.0f);    // and the 5th has gone
+    }
+
+    SECTION ("Wah: rocking to the toe opens it up")
+    {
+        // A bright test note: a 220 Hz tone with its first 15 harmonics.
+        std::vector<float> bright ((size_t) sampleRate);
+        for (size_t i = 0; i < bright.size(); ++i)
+            for (int harmonic = 1; harmonic <= 15; ++harmonic)
+                bright[i] += 0.1f * (float) std::sin (juce::MathConstants<double>::twoPi * 220.0 * harmonic * (double) i / sampleRate) / (float) harmonic;
+        const auto brightness = [&] (float pedal)
+        {
+            const auto output = play ("02 Original Cry Wah", pedal, bright);
+            return dB (levelAt (output, 220.0 * 9) / levelAt (output, 220.0 * 2));   // 2 kHz against 440 Hz
+        };
+        CHECK (brightness (1.0f) - brightness (0.0f) > 15.0f);
+
+        // Auto-wah, pedal on sensitivity: the same playing opens it much
+        // further with the pedal at the toe.
+        const auto autoBrightness = [&] (float pedal)
+        {
+            const auto output = play ("07 Cry Auto Sens", pedal, bright);
+            return dB (levelAt (output, 220.0 * 9) / levelAt (output, 220.0 * 2));
+        };
+        CHECK (autoBrightness (1.0f) - autoBrightness (0.0f) > 10.0f);
+    }
+
+    SECTION ("Volume: silent at the heel, the full guitar at the toe")
+    {
+        CHECK (rms (play ("01 Volume Pedal", 0.0f, note), 0.2) < 1.0e-4f);
+        CHECK_THAT (rms (play ("01 Volume Pedal", 1.0f, note), 0.2), WithinAbs (rms (note, 0.2), 0.01));
     }
 }
 
@@ -1019,6 +1289,29 @@ TEST_CASE ("Graphic EQ's drawn curve matches what it does", "[effects][eq]")
     CHECK (std::abs (effects::GraphicEq::responseDb (gains, 63.0f)) < 0.5f);
     // A band above half a low sample rate is pulled down rather than breaking.
     CHECK (effects::GraphicEq::bandFrequency (8, 22050.0) < 11025.0f);
+}
+
+TEST_CASE ("EQ presets: in range, named once each, and loudness-matched by LEVEL", "[effects][eq]")
+{
+    std::set<std::string> names;
+    for (const auto& preset : EqPresets::all)
+    {
+        INFO (preset.name);
+        CHECK (names.insert (preset.name).second);
+        for (const auto gain : preset.gainsDb)
+            CHECK (std::abs (gain) <= effects::GraphicEq::maxGainDb);
+        CHECK (std::abs (preset.levelDb) <= 12.0f);
+
+        // The curve's average power change over a guitar's range (80 Hz to
+        // 5 kHz, sampled every 1/24 octave), plus LEVEL, is
+        // close to nothing: switching presets changes the tone, not the volume.
+        auto power = 0.0;
+        auto count = 0;
+        for (auto frequency = 80.0f; frequency <= 5000.0f; frequency *= std::pow (2.0f, 1.0f / 24.0f), ++count)
+            power += std::pow (10.0, effects::GraphicEq::responseDb (preset.gainsDb, frequency) / 10.0);
+        const auto changeDb = 10.0 * std::log10 (power / count) + preset.levelDb;
+        CHECK (std::abs (changeDb) <= 0.5);
+    }
 }
 
 TEST_CASE ("Reverb types: each is a stable stereo space of its own", "[effects][reverb]")

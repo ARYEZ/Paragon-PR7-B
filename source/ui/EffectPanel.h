@@ -20,8 +20,11 @@ public:
     {
         juce::String parameterId, label;
         // Optional: the control is greyed out while this returns false
-        // (e.g. delay TIME while the delay is synced to tempo).
+        // (e.g. delay TIME while the delay is synced to tempo)...
         std::function<bool()> isActive = nullptr;
+        // ...or hidden, the other cards closing up, when it belongs to
+        // another type (the Classic compressor's knobs while it's Daybreak).
+        bool hideWhenInactive = false;
     };
 
     struct Group
@@ -35,6 +38,10 @@ public:
 
     // The block's name, icon and colour, shown at the top as in the signal chain.
     void setHeader (Icons::Type icon, juce::Colour colour, const juce::String& title);
+
+    // Optional: a gain-reduction meter in the header (the compressor's), fed
+    // by this. It returns how far the signal is being turned down, in dB (0 or less).
+    void setMeter (std::function<float()> gainReductionDb);
 
     void paint (juce::Graphics&) override;
     void resized() override;
@@ -56,4 +63,7 @@ private:
     Icons::Type headerIcon = Icons::Type::comp;
     juce::Colour headerColour;
     juce::String headerTitle;
+    std::function<float()> meterSource;
+    float meterDb = 0.0f;
+    juce::Rectangle<int> meterArea;
 };

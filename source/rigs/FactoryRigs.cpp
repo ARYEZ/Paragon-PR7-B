@@ -26,7 +26,12 @@ namespace
     constexpr float chorus = 0, flanger = 1, tremolo = 3, dimension = 4, uniVibe = 5, rotary = 6, vibrato = 7,
                     harmonicTremolo = 8, autoPan = 9, doubler = 10;
     // FILTER / PITCH types.
-    constexpr float autoWah = 0, pitchShifter = 1;
+    constexpr float autoWah = 0, pitchShifter = 1, whammyWah = 2;
+    constexpr float daybreakComp = 1;   // COMP / GATE's TYPE
+    constexpr float glitchSequence = 1, glitchTexturizer = 3, glitchSixteenth = 3;   // GLITCH's MODE and LENGTH
+    constexpr float pedalGlitch = 7;   // the expression pedal's GLITCH setting
+    constexpr float xpCryWah = 1, xpUpOctave = 12, xpOctDownOctUp = 20, xpUp4thUp5th = 23;   // Whammy-Wah programs 02, 13, 21 and 24
+    constexpr float pedalWhammyWah = 6;   // the expression pedal's WHAMMY-WAH setting
     // Delay types (index into effects::Delay::typeNames).
     constexpr float analogDelay = 1, tapeDelay = 2, modDelay = 3, reverseDelay = 4, multiTap = 5, shimmer = 6, ducking = 7;
     // Reverb types (index into effects::Reverb::typeNames).
@@ -55,6 +60,13 @@ std::vector<Rig> makeFactoryRigs()
         make ("Edge of Breakup", A, 4, "Crunch,Drive", {
             { driveOn, 1 }, { driveGain, 2 }, { driveTone, 6 }, { driveLevel, 4 },
             { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.2f } }),
+
+        // Daybreak on a clean: smooth, even and sustaining, with half the dry
+        // guitar mixed back in so every pick attack still speaks.
+        make ("Daybreak Clean", A, 5, "Clean,Compressor", {
+            { compOn, 1 }, { compType, daybreakComp }, { compAmount, 6 }, { compDetail, 6 }, { compMix, 0.5f }, { compLevel, 1 },
+            { modOn, 1 }, { modType, chorus }, { modRate, 0.4f }, { modDepth, 0.3f }, { modMix, 0.25f },
+            { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.2f } }),
 
         make ("Lead Boost", B, 1, "Lead,Drive", {
             { compThreshold, -20 }, { gateThreshold, -60 }, { compOn, 1 }, { compRatio, 2 },
@@ -133,6 +145,58 @@ std::vector<Rig> makeFactoryRigs()
 
         // LO-FI: for intros and breakdowns. Assign the expression pedal to
         // LO-FI to sweep from the full band (heel) into the effect (toe).
+        make ("Whammy Lead", B, 7, "Lead,Pitch,Drive,Expression", {
+            { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpUpOctave }, { fpMix, 1 },
+            { expressionTarget, pedalWhammyWah },
+            { driveOn, 1 }, { driveGain, 6 }, { driveTone, 6 }, { driveLevel, 3 },
+            { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.25f }, { delayMix, 0.18f },
+            { reverbOn, 1 }, { reverbMix, 0.2f } }),
+
+        make ("XP Wah Crunch", B, 8, "Wah,Drive,Expression", {
+            { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpCryWah }, { fpMix, 1 },
+            { expressionTarget, pedalWhammyWah },
+            { driveOn, 1 }, { driveGain, 4 }, { driveTone, 5 }, { driveLevel, 4 },
+            { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.3f }, { reverbMix, 0.15f } }),
+
+        make ("Harmony Bends", B, 9, "Lead,Pitch,Expression", {
+            { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpUp4thUp5th }, { fpMix, 0.8f },
+            { expressionTarget, pedalWhammyWah },
+            { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 },
+            { delayOn, 1 }, { delaySync, quarter }, { delayFeedback, 0.3f }, { delayMix, 0.2f },
+            { reverbOn, 1 }, { reverbSize, 0.6f }, { reverbMix, 0.25f } }),
+
+        // The late-'90s nu-metal screech: the XP-100's program 21 (an octave
+        // down and an octave up, blended with the guitar), rocked while a
+        // high note rings, into a tight Screamer boost and a high-gain amp
+        // (load a Rectifier-style capture). The EQ is the Tight Low End
+        // preset, so the octave-down voice doesn't turn to mud.
+        make ("Nu-Metal Screech", B, 10, "High Gain,Pitch,Expression", {
+            { compOn, 1 }, { compThreshold, 0 }, { gateThreshold, -55 },
+            { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpOctDownOctUp }, { fpMix, 0.85f },
+            { expressionTarget, pedalWhammyWah },
+            { driveOn, 1 }, { driveGain, 1 }, { driveTone, 6 }, { driveLevel, 8 },
+            { presence, 2 },
+            { eqOn, 1 }, { "eq63", -6 }, { "eq125", -4 }, { "eq250", -1 }, { "eq1k", 1 }, { "eq2k", 2 }, { "eq4k", 2 }, { "eq8k", 1 },
+            { eqLevel, -0.5f },
+            { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.25f }, { reverbMix, 0.1f } }),
+
+        // Tempo-locked stutters on a crunch, faded in with the pedal: rock
+        // forward on a transition or the end of a riff.
+        make ("Stutter Edit", C, 10, "Glitch,Drive,Expression", {
+            { glitchOn, 1 }, { glitchMode, glitchSequence }, { glitchSync, 1 }, { glitchDivision, glitchSixteenth },
+            { glitchDensity, 6 }, { glitchChaos, 2 }, { glitchMix, 1 },
+            { expressionTarget, pedalGlitch },
+            { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 }, { driveLevel, 4 },
+            { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.12f } }),
+
+        // A slow cloud of grains under a clean tone: chords smear into a pad.
+        make ("Grain Cloud", D, 10, "Glitch,Ambient,Clean", {
+            { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 },
+            { glitchOn, 1 }, { glitchMode, glitchTexturizer }, { glitchSync, 0 }, { glitchTime, 250 },
+            { glitchDensity, 4 }, { glitchChaos, 5 }, { glitchMix, 0.45f },
+            { delayOn, 1 }, { delaySync, quarter }, { delayFeedback, 0.4f }, { delayMix, 0.25f },
+            { reverbOn, 1 }, { reverbType, hall }, { reverbSize, 0.8f }, { reverbMix, 0.35f } }),
+
         make ("Phone Intro", B, 5, "Lo-Fi,Clean", {
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 },
             { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.35f }, { reverbMix, 0.2f },

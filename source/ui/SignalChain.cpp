@@ -121,8 +121,10 @@ void SignalChain::paint (juce::Graphics& g)
                      on ? block.colour : block.colour.withAlpha (0.35f), 1.6f, on);
         content.removeFromLeft (6.0f);
         g.setColour (on ? ParagonColours::text : ParagonColours::textDim);
-        g.setFont (juce::FontOptions (11.5f, juce::Font::bold));
-        g.drawFittedText (block.name, content.toNearestInt(), juce::Justification::centredLeft, 2, 0.65f);
+        // Eleven blocks share the strip: names a touch smaller, and the
+        // longest (MODULATION) squeezed a little rather than cut off.
+        g.setFont (juce::FontOptions (10.5f, juce::Font::bold));
+        g.drawFittedText (block.name, content.toNearestInt(), juce::Justification::centredLeft, 2, 0.55f);
     }
 
     drawConnector (previousRight, outputArea.getX(), midY, ParagonColours::glow.withAlpha (0.55f));

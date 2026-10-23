@@ -27,6 +27,8 @@ struct EffectPanel::Control
         {
             auto box = std::make_unique<juce::ComboBox>();
             box->addItemList (choice->choices, 1);
+            for (const auto& item : choice->choices)
+                longestChoice = juce::jmax (longestChoice, item.length());
             box->setColour (juce::ComboBox::backgroundColourId, juce::Colour (0xff151217));
             box->setColour (juce::ComboBox::outlineColourId, ParagonColours::panelEdge);
             box->setColour (juce::ComboBox::textColourId, ParagonColours::accent);
@@ -67,19 +69,32 @@ struct EffectPanel::Control
             widget->setBounds (area.withSizeKeepingCentre (area.getWidth() - 4, 28));
     }
 
-    void updateActive()
+    // Returns true if the control appeared or disappeared, so the panel lays out again.
+    bool updateActive()
     {
         const auto active = ! isActive || isActive();
+        if (hideWhenInactive)
+        {
+            const auto changed = shown != active;
+            shown = active;
+            label.setVisible (active);
+            widget->setVisible (active);
+            return changed;
+        }
         widget->setEnabled (active);
         widget->setAlpha (active ? 1.0f : 0.35f);
         label.setAlpha (active ? 1.0f : 0.35f);
+        return false;
     }
 
     std::function<bool()> isActive;
+    bool hideWhenInactive = false;
+    bool shown = true;
 
     juce::Label label;
     std::unique_ptr<juce::Component> widget;
     bool isKnob = false;
+    int longestChoice = 0;   // a list's longest entry, in characters
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> sliderAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> comboAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> buttonAttachment;
@@ -95,9 +110,10 @@ EffectPanel::EffectPanel (juce::AudioProcessorValueTreeState& parameters, std::v
             controls.push_back (std::make_unique<Control> (parameters, item.parameterId, item.label));
             auto* control = controls.back().get();
             control->isActive = item.isActive;
-            control->updateActive();
+            control->hideWhenInactive = item.hideWhenInactive;
             addAndMakeVisible (control->label);
             addAndMakeVisible (*control->widget);
+            control->updateActive();
             layout.controls.push_back (control);
         }
         groups.push_back (std::move (layout));
@@ -110,9 +126,31 @@ EffectPanel::~EffectPanel() = default;
 
 void EffectPanel::timerCallback()
 {
+    auto relayout = false;
     for (auto& control : controls)
         if (control->isActive)
-            control->updateActive();
+            relayout = control->updateActive() || relayout;
+    if (relayout)
+    {
+        resized();
+        repaint();
+    }
+
+    if (meterSource != nullptr)
+    {
+        // Falls back gently, as a meter's needle would, so short dips stay readable.
+        const auto target = juce::jmin (0.0f, meterSource());
+        const auto next = target < meterDb ? target : meterDb + (target - meterDb) * 0.25f;
+        if (std::abs (next - meterDb) > 0.05f)
+            repaint (meterArea);
+        meterDb = next;
+    }
+}
+
+void EffectPanel::setMeter (std::function<float()> gainReductionDb)
+{
+    meterSource = std::move (gainReductionDb);
+    startTimerHz (30);   // a meter needs to move smoothly
 }
 
 void EffectPanel::setHeader (Icons::Type icon, juce::Colour colour, const juce::String& title)
@@ -144,6 +182,35 @@ void EffectPanel::paint (juce::Graphics& g)
         g.drawText (headerTitle, header, juce::Justification::centredLeft, false);
     }
 
+    // The gain-reduction meter: a row of LEDs, like a compressor pedal's,
+    // lighting from the right as it turns the guitar down further.
+    if (meterSource != nullptr && ! meterArea.isEmpty())
+    {
+        auto area = meterArea.toFloat();
+        g.setFont (juce::FontOptions (9.5f, juce::Font::bold));
+        g.setColour (ParagonColours::textDim);
+        g.drawText ("GAIN REDUCTION", area.removeFromLeft (92.0f), juce::Justification::centredLeft, false);
+        auto readout = area.removeFromRight (46.0f);
+        g.setColour (meterDb < -0.1f ? headerColour : ParagonColours::textDim);
+        g.drawText (juce::String (meterDb, 1) + " dB", readout, juce::Justification::centredRight, false);
+
+        constexpr float steps[] = { -20.0f, -15.0f, -12.0f, -10.0f, -8.0f, -7.0f, -6.0f, -5.0f, -4.0f, -3.0f, -2.0f, -1.0f };
+        const auto ledWidth = area.getWidth() / (float) std::size (steps);
+        for (size_t i = 0; i < std::size (steps); ++i)
+        {
+            const auto led = juce::Rectangle<float> (area.getX() + (float) i * ledWidth, area.getY(), ledWidth, area.getHeight())
+                                 .withSizeKeepingCentre (7.0f, 7.0f);
+            const auto lit = meterDb <= steps[i];
+            if (lit)
+            {
+                g.setColour (headerColour.withAlpha (0.35f));
+                g.fillEllipse (led.expanded (2.5f));
+            }
+            g.setColour (lit ? headerColour : juce::Colour (0xff2a2430));
+            g.fillEllipse (led);
+        }
+    }
+
     // Group names, when a block has more than one part.
     if (groups.size() > 1)
     {
@@ -171,6 +238,25 @@ void EffectPanel::paint (juce::Graphics& g)
 void EffectPanel::resized()
 {
     auto area = getLocalBounds().reduced (16, 10);
+
+    // The meter sits in the header, just after the block's name.
+    meterArea = {};
+    if (meterSource != nullptr)
+    {
+        const auto titleWidth = juce::GlyphArrangement::getStringWidthInt (juce::FontOptions (14.0f, juce::Font::bold), headerTitle);
+        meterArea = area.withHeight (24).withTrimmedLeft (26 + 8 + titleWidth + 28).withWidth (92 + 12 * 14 + 46);
+    }
+
+    // Only the controls showing: a hidden one's neighbours close up.
+    std::vector<std::vector<Control*>> shown;
+    for (const auto& group : groups)
+    {
+        shown.emplace_back();
+        for (auto* control : group.controls)
+            if (control->shown)
+                shown.back().push_back (control);
+    }
+
     area.removeFromTop (34);   // header
     if (groups.size() > 1)
         area.removeFromTop (20);   // group names
@@ -180,37 +266,49 @@ void EffectPanel::resized()
     // needs little room and a drop-down list a lot, so cards are sized by
     // what they hold rather than all alike.
     int numControls = 0;
-    for (const auto& group : groups)
-        numControls += (int) group.controls.size();
+    for (const auto& groupControls : shown)
+        numControls += (int) groupControls.size();
     // On a crowded panel (the delay's nine controls) the lists give up a
     // little width so the knobs stay a good size.
     const auto listWeight = numControls >= 9 ? 1.75f : 1.9f;
-    const auto weight = [listWeight] (const Control& control) { return control.isKnob ? 1.0f : control.buttonAttachment != nullptr ? 0.75f : listWeight; };
+    // A list whose entries run long (the Whammy-Wah's "22 Down 4th / Down 3rd")
+    // gets a wider card, in step with its longest entry, so they read in full.
+    const auto weight = [listWeight] (const Control& control)
+    {
+        if (control.isKnob)
+            return 1.0f;
+        if (control.buttonAttachment != nullptr)
+            return 0.75f;
+        if (control.longestChoice <= 6)
+            return 1.5f;   // a short list (GLITCH's Post / Pre) needs less room than a long one
+        return juce::jmax (listWeight, listWeight * (float) control.longestChoice / 16.0f);
+    };
     float totalWeight = 0.0f;
-    for (const auto& group : groups)
-        for (const auto* control : group.controls)
+    for (const auto& groupControls : shown)
+        for (const auto* control : groupControls)
             totalWeight += weight (*control);
     const auto gaps = tileGap * (numControls - (int) groups.size()) + groupGap * ((int) groups.size() - 1);
     const auto unitWidth = juce::jmin ((float) maxTileWidth, (float) (area.getWidth() - gaps) / juce::jmax (1.0f, totalWeight));
     const auto tileWidth = [&] (const Control& control) { return juce::roundToInt (unitWidth * weight (control)); };
 
     auto totalWidth = gaps;
-    for (const auto& group : groups)
-        for (const auto* control : group.controls)
+    for (const auto& groupControls : shown)
+        for (const auto* control : groupControls)
             totalWidth += tileWidth (*control);
     area = area.withSizeKeepingCentre (totalWidth, area.getHeight());
 
     tiles.clear();
-    for (auto& group : groups)
+    for (size_t g = 0; g < groups.size(); ++g)
     {
-        auto groupWidth = tileGap * ((int) group.controls.size() - 1);
-        for (const auto* control : group.controls)
+        auto& group = groups[g];
+        auto groupWidth = tileGap * ((int) shown[g].size() - 1);
+        for (const auto* control : shown[g])
             groupWidth += tileWidth (*control);
         group.area = area.removeFromLeft (groupWidth).withTrimmedTop (-20);
         area.removeFromLeft (groupGap);
 
         auto row = group.area.withTrimmedTop (20);
-        for (auto* control : group.controls)
+        for (auto* control : shown[g])
         {
             const auto tile = row.removeFromLeft (tileWidth (*control));
             row.removeFromLeft (tileGap);

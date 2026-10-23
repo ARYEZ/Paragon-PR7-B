@@ -128,7 +128,7 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
     if (juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_PAGE", {}) == "settings")
         if (auto* tab = dynamic_cast<juce::Button*> (findById (*editor, "settingsTab")))
             tab->onClick();
-    // PARAGON_SNAPSHOT_BLOCK=n opens block n's knobs (0 = comp ... 9 = lo-fi) in place of the graphic EQ.
+    // PARAGON_SNAPSHOT_BLOCK=n opens block n's knobs (0 = comp ... 6 = glitch ... 10 = lo-fi) in place of the graphic EQ.
     if (const auto block = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_BLOCK", {}); block.isNotEmpty())
         if (auto* chain = findType<SignalChain> (*editor))
             chain->onSelect (block.getIntValue());

@@ -1,6 +1,7 @@
 #include "GraphicEqPanel.h"
 
 #include "Parameters.h"
+#include "ui/EqPresets.h"
 #include "ui/Icons.h"
 #include "ui/ParagonLookAndFeel.h"
 
@@ -29,7 +30,7 @@ GraphicEqPanel::GraphicEqPanel (juce::AudioProcessorValueTreeState& state)
         auto& fader = faders[(size_t) band];
         styleFader (fader);
         fader.setTooltip (ParamIDs::eqBandNames[band] + " Hz: drag up to boost, down to cut. Double-click for 0 dB.");
-        fader.onValueChange = [this] { repaint(); };
+        fader.onValueChange = [this] { repaint(); showMatchingPreset(); };
         attachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, ParamIDs::eqBands[band], fader));
         addAndMakeVisible (fader);
     }
@@ -37,7 +38,7 @@ GraphicEqPanel::GraphicEqPanel (juce::AudioProcessorValueTreeState& state)
     styleFader (level);
     level.setColour (juce::Slider::trackColourId, ParagonColours::accent);
     level.setTooltip ("The EQ's output level, to make up for boosts or cuts. Double-click for 0 dB.");
-    level.onValueChange = [this] { repaint(); };
+    level.onValueChange = [this] { repaint(); showMatchingPreset(); };
     levelAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, ParamIDs::eqLevel, level);
     addAndMakeVisible (level);
 
@@ -45,6 +46,21 @@ GraphicEqPanel::GraphicEqPanel (juce::AudioProcessorValueTreeState& state)
     onButton.setTooltip ("Switch the EQ on or off");
     onButton.onStateChange = [this] { repaint(); };
     addAndMakeVisible (onButton);
+
+    for (size_t i = 0; i < EqPresets::all.size(); ++i)
+        presets.addItem (EqPresets::all[i].name, (int) i + 1);
+    presets.setTextWhenNothingSelected ("PRESETS");
+    presets.setColour (juce::ComboBox::backgroundColourId, juce::Colour (0xff151217));
+    presets.setColour (juce::ComboBox::outlineColourId, ParagonColours::panelEdge);
+    presets.setColour (juce::ComboBox::textColourId, ParagonColours::accent);
+    presets.setColour (juce::ComboBox::arrowColourId, ParagonColours::textDim);
+    presets.onChange = [this]
+    {
+        if (const auto index = presets.getSelectedItemIndex(); index >= 0)
+            applyPreset (index);
+    };
+    addAndMakeVisible (presets);
+    showMatchingPreset();
 
     flat.setTooltip ("Set every band back to 0 dB");
     flat.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff151217));
@@ -61,6 +77,47 @@ void GraphicEqPanel::flatten()
         band->setValueNotifyingHost (band->getDefaultValue());
         band->endChangeGesture();
     }
+}
+
+void GraphicEqPanel::applyPreset (int index)
+{
+    const auto& preset = EqPresets::all[(size_t) index];
+    const auto set = [this] (const juce::String& id, float plainValue)
+    {
+        auto* parameter = parameters.getParameter (id);
+        parameter->beginChangeGesture();
+        parameter->setValueNotifyingHost (parameter->convertTo0to1 (plainValue));
+        parameter->endChangeGesture();
+    };
+
+    for (int band = 0; band < effects::GraphicEq::numBands; ++band)
+        set (ParamIDs::eqBands[band], preset.gainsDb[(size_t) band]);
+    set (ParamIDs::eqLevel, preset.levelDb);
+    set (ParamIDs::eqOn, 1.0f);   // so you hear it straight away
+}
+
+void GraphicEqPanel::showMatchingPreset()
+{
+    // The menu names the preset while the faders are still set to it; once
+    // you move one, it's your own curve and the menu goes back to PRESETS.
+    // Read the faders, not the parameters: when a fader reports a change, its
+    // parameter's stored value may not have caught up yet.
+    const auto matches = [&] (const EqPresets::Preset& preset)
+    {
+        for (size_t band = 0; band < faders.size(); ++band)
+            if (std::abs ((float) faders[band].getValue() - preset.gainsDb[band]) > 0.05f)
+                return false;
+        return std::abs ((float) level.getValue() - preset.levelDb) <= 0.05f;
+    };
+
+    auto match = -1;
+    for (size_t i = 0; i < EqPresets::all.size() && match < 0; ++i)
+        if (matches (EqPresets::all[i]))
+            match = (int) i;
+
+    presets.setSelectedItemIndex (match, juce::dontSendNotification);
+    presets.setTooltip (match >= 0 ? juce::String (EqPresets::all[(size_t) match].description)
+                                   : juce::String ("EQ presets: common starting curves. Choose one, then tweak the faders to taste."));
 }
 
 float GraphicEqPanel::xForFrequency (float frequency) const
@@ -84,6 +141,7 @@ void GraphicEqPanel::resized()
     header.removeFromLeft (juce::GlyphArrangement::getStringWidthInt (juce::FontOptions (14.0f, juce::Font::bold), "GRAPHIC EQ") + 18);
     onButton.setBounds (header.removeFromLeft (60));
     flat.setBounds (header.withX (header.getRight() - 130 - 70).withWidth (62).withSizeKeepingCentre (62, 22));
+    presets.setBounds (flat.getBounds().withX (flat.getX() - 10 - 190).withWidth (190));   // just left of FLAT
     area.removeFromTop (10);
 
     // LEVEL on the right, the graph and band faders across the rest.

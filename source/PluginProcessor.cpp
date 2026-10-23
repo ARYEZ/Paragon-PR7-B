@@ -104,6 +104,7 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     delay.prepare (sampleRate, preparedBlockSize);
     reverb.prepare (sampleRate, preparedBlockSize);
     loFi.prepare (sampleRate, preparedBlockSize);
+    glitch.prepare (sampleRate, preparedBlockSize);
     wah.prepare (sampleRate, preparedBlockSize);
     inputTap.setSampleRate (sampleRate);
 
@@ -246,13 +247,29 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     wah.process (monoBlock, expressionTarget == ExpressionTargets::wah, pedal);
 
     compGate.process (monoBlock, { isOn (ParamIDs::compOn), param (ParamIDs::compThreshold), param (ParamIDs::compRatio),
-                                   param (ParamIDs::compLevel), param (ParamIDs::gateThreshold) });
+                                   param (ParamIDs::compLevel), param (ParamIDs::gateThreshold),
+                                   (effects::CompGate::Type) (int) param (ParamIDs::compType), param (ParamIDs::compAmount),
+                                   param (ParamIDs::compDetail), param (ParamIDs::compMix), isOn (ParamIDs::compIntensity) });
     // PITCH / WHAMMY: the pedal bends the pitch shifter from no shift at
     // the heel to its INTERVAL at the toe, like a DigiTech Whammy.
+    // WHAMMY-WAH: the pedal plays the Whammy-Wah type. Unassigned, it rests at the heel.
     const auto whammy = expressionTarget == ExpressionTargets::pitch ? pedal : 1.0f;
     filterPitch.process (monoBlock, { isOn (ParamIDs::fpOn), (effects::FilterPitch::Type) (int) param (ParamIDs::fpType),
                                       param (ParamIDs::fpSensitivity), param (ParamIDs::fpResonance),
-                                      param (ParamIDs::fpInterval) * whammy, param (ParamIDs::fpMix) });
+                                      param (ParamIDs::fpInterval) * whammy, param (ParamIDs::fpMix),
+                                      (int) param (ParamIDs::fpXpProgram),
+                                      expressionTarget == ExpressionTargets::whammyWah ? pedal : 0.0f });
+    // GLITCH: before the amp (PRE) or after the EQ (POST). The pedal, on
+    // GLITCH, fades it in: dry at the heel, its MIX at the toe.
+    const effects::Glitch::Settings glitchSettings { isOn (ParamIDs::glitchOn), (effects::Glitch::Mode) (int) param (ParamIDs::glitchMode),
+                                                     isOn (ParamIDs::glitchSync), param (ParamIDs::glitchTime),
+                                                     (int) param (ParamIDs::glitchDivision), param (ParamIDs::glitchDensity),
+                                                     param (ParamIDs::glitchPitch), param (ParamIDs::glitchChaos),
+                                                     param (ParamIDs::glitchMix) * (expressionTarget == ExpressionTargets::glitch ? pedal : 1.0f) };
+    const auto glitchPre = (int) param (ParamIDs::glitchPosition) == (int) effects::Glitch::Position::pre;
+    if (glitchPre)
+        glitch.process (monoBlock, glitchSettings, getTempoBpm());
+
     drive.process (monoBlock, { isOn (ParamIDs::driveOn), (effects::Drive::Model) (int) param (ParamIDs::driveModel),
                                 param (ParamIDs::driveGain), param (ParamIDs::driveTone), param (ParamIDs::driveLevel) });
 
@@ -266,6 +283,8 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
         eq.gainsDb[band] = eqGainDb[band]->load();
     eq.levelDb = param (ParamIDs::eqLevel);
     graphicEq.process (monoBlock, eq);
+    if (! glitchPre)
+        glitch.process (monoBlock, glitchSettings, getTempoBpm());
 
     // From here on, stereo: modulation, delay and reverb spread the sound
     // across both speakers.

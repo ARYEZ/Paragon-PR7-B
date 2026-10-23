@@ -38,11 +38,22 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
 - **Footswitches 1-4** turn the effect blocks on and off. Click a footswitch's name to show its knobs
   below. Signal chain: comp/gate → filter / pitch → overdrive → amp → cabinet → presence → graphic EQ → modulation
   → delay → reverb → lo-fi.
-  - **1 Comp / Gate:** compressor (threshold, ratio, level) and noise gate (threshold; all the way down is off).
+  - **1 Comp / Gate:** a compressor and a noise gate (threshold; all the way down is off). The compressor has two TYPEs:
+    **Classic** (threshold, ratio, level) and **Daybreak**, a modern pedal compressor: COMP (how much, with automatic make-up),
+    DETAIL (how much pick attack gets through), MIX (parallel compression), INTENSITY (smooth or hard) and LEVEL. The panel shows a
+    gain-reduction meter.
   - **Lo-Fi** (last in the chain; no footswitch): telephone, AM radio, megaphone, cassette (wow, flutter, hiss)
     or bitcrusher, for intros and breakdowns. AMOUNT, NOISE, MIX and LEVEL.
-  - **Filter / Pitch** (in the signal chain; no footswitch): an auto-wah (envelope filter) or a pitch shifter
-    (two octaves down to two up, blended with the dry guitar for harmonies and octaves).
+  - **Glitch** (in the signal chain; no footswitch): granular glitch effects in four MODEs: **Pitch Delay** (echoes that each
+    step in PITCH), **Sequence** (tempo-locked stutters that repeat the slice just played), **Interfere** (dropouts, backwards
+    slivers and buzzing loops) and **Texturizer** (a cloud of grains). LENGTH (in note values with SYNC), DENSITY, PITCH, CHAOS
+    (randomises everything together: low is rhythmic, high is unpredictable) and MIX. POSITION puts it after the amp (POST,
+    the default: exact chops) or before it (PRE: the chops hit the drive). The expression pedal's GLITCH setting fades it in.
+  - **Filter / Pitch** (in the signal chain; no footswitch): an auto-wah (envelope filter), a pitch shifter
+    (two octaves down to two up, blended with the dry guitar for harmonies and octaves), or a **Whammy-Wah**: the
+    DigiTech XP-100's factory programs 01–28, numbered as on the pedal and played with the expression pedal (WHAMMY-WAH):
+    a volume pedal, five wahs, six auto-wahs (the pedal sets sensitivity or attack), eight whammy bends (heel: no shift,
+    toe: the interval, as far as six octaves down) and eight harmonies (your note plus a voice the pedal moves between two intervals).
   - **2 OD / Distortion:** two models: **Screamer**, modelled on the Ibanez TS808 Tube Screamer's circuit, and
     **Classic**, Paragon's original overdrive. Drive, tone, level; 8x oversampled to avoid harsh aliasing.
   - **3 Modulation:** eleven types: chorus, flanger, phaser, tremolo, Dimension chorus, Uni-Vibe, rotary
@@ -55,7 +66,9 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
     the repeats or reverb under your playing and lets them swell back in the gaps. Both let their
     tails ring out when switched off.
 - **Graphic EQ:** 9 bands (63 Hz to 16 kHz, ±12 dB) and a level, after the cabinet. Open it from the
-  **EQ** block in the signal chain; the curve shows the EQ's actual response. FLAT resets it.
+  **EQ** block in the signal chain; the curve shows the EQ's actual response. FLAT resets it. **PRESETS** has twelve
+  common starting curves (Metal Scoop, Tight Low End, Mud Cut, Fizz Tamer, Lead Mid Boost, Cut Through the Mix,
+  Fat Rhythm, British Crunch, Bright Clean, Funk Scoop, Warm Jazz, Radio), each loudness-matched with LEVEL.
 - All effects start switched off, so projects made with earlier versions sound the same.
 - **Rigs:** SAVE in the header saves the current sound as a rig; **<** and **>** step through rigs; a
   `*` after the name means it's changed since loading. The **PRESETS** tab browses, searches, files
@@ -73,7 +86,8 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
   pedal's position) or with EXPRESSION ASSIGN in the dock, to
   **VOLUME**, **WAH / FILTER** (a wah before the drive), **MORPH / FX** (fades modulation, delay and
   reverb in from the heel), **PITCH / WHAMMY** (bends the pitch shifter from no shift at the heel to its
-  INTERVAL at the toe) or **LO-FI** (fades the lo-fi effect in: full band at the heel, lo-fi at the toe). MIN and MAX set where the heel and toe land. The assignment and range
+  INTERVAL at the toe), **LO-FI** (fades the lo-fi effect in: full band at the heel, lo-fi at the toe) or
+  **WHAMMY-WAH** (plays the FILTER / PITCH block's Whammy-Wah). MIN and MAX set where the heel and toe land. The assignment and range
   are saved with each rig.
 - **Bottom panels:** RIG BROWSER jumps to the PRESETS page filtered; SELECTED RIG files and saves the
   current rig; the middle shows the graphic EQ, or the knobs of whichever block you pick (click a
