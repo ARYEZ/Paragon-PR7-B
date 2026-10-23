@@ -448,11 +448,11 @@ TEST_CASE ("The pitch shifter moves notes by its interval", "[effects][pitch]")
     }
 }
 
-TEST_CASE ("Whammy-Wah: the expression pedal plays its wah, whammy and harmony modes", "[effects][pitch][wah]")
+TEST_CASE ("Whammy-Wah: the expression pedal plays the XP-100's programs", "[effects][pitch][wah]")
 {
     const auto modeIndex = [] (const juce::String& name)
     {
-        const auto index = effects::FilterPitch::whammyWahModeNames().indexOf (name);
+        const auto index = effects::FilterPitch::xpProgramNames().indexOf (name);
         REQUIRE (index >= 0);
         return (float) index;
     };
@@ -461,7 +461,7 @@ TEST_CASE ("Whammy-Wah: the expression pedal plays its wah, whammy and harmony m
         EffectRig rig;
         rig.set (ParamIDs::fpOn, 1.0f);
         rig.set (ParamIDs::fpType, (float) effects::FilterPitch::Type::whammyWah);
-        rig.set (ParamIDs::fpWhammyWahMode, modeIndex (mode));
+        rig.set (ParamIDs::fpXpProgram, modeIndex (mode));
         rig.set (ParamIDs::fpMix, 1.0f);
         rig.set (ParamIDs::expressionTarget, (float) (assigned ? ExpressionTargets::whammyWah : ExpressionTargets::off));
         rig.set (ParamIDs::expression, pedal);
@@ -473,26 +473,32 @@ TEST_CASE ("Whammy-Wah: the expression pedal plays its wah, whammy and harmony m
 
     SECTION ("Whammy: no shift at the heel, the full interval at the toe, wet only")
     {
-        const auto heel = play ("Whammy: Oct Up", 0.0f, note);
+        const auto heel = play ("13 Up 1 Octave", 0.0f, note);
         CHECK (dB (levelAt (heel, 330.0, 0.2) / (levelAt (heel, 660.0, 0.2) + 1.0e-9f)) > 20.0f);
-        const auto toe = play ("Whammy: Oct Up", 1.0f, note);
+        const auto toe = play ("13 Up 1 Octave", 1.0f, note);
         CHECK (dB (levelAt (toe, 660.0, 0.2) / levelAt (toe, 330.0, 0.2)) > 20.0f);
-        const auto down = play ("Whammy: Oct Down", 1.0f, note);
+        const auto down = play ("18 Down 1 Octave", 1.0f, note);
         CHECK (dB (levelAt (down, 165.0, 0.2) / levelAt (down, 330.0, 0.2)) > 20.0f);
+        const auto second = play ("15 Up 2nd", 1.0f, note);
+        CHECK (dB (levelAt (second, 330.0 * 1.1225, 0.2) / levelAt (second, 330.0, 0.2)) > 20.0f);
+
+        // 20, down six octaves: the note is gone, into a rumble, and nothing blows up.
+        const auto dive = play ("20 Down 6 Octaves", 1.0f, note);
+        CHECK (dB (levelAt (dive, 330.0, 0.2) / 0.3f) < -30.0f);
     }
 
     SECTION ("Whammy: unassigned, the pedal doesn't move it (it rests at the heel)")
     {
-        const auto output = play ("Whammy: Oct Up", 1.0f, note, false);
+        const auto output = play ("13 Up 1 Octave", 1.0f, note, false);
         CHECK (dB (levelAt (output, 330.0, 0.2) / (levelAt (output, 660.0, 0.2) + 1.0e-9f)) > 20.0f);
     }
 
     SECTION ("Harmony: the guitar plus a voice the pedal moves between two intervals")
     {
-        const auto heel = play ("Harmony: 5th / Oct Up", 0.0f, note);
+        const auto heel = play ("28 Up 5th / Up Oct", 0.0f, note);
         CHECK (dB (levelAt (heel, 330.0 * 1.4983, 0.2) / levelAt (heel, 330.0, 0.2)) > -6.0f);   // a 5th up, beside the note
         CHECK (dB (levelAt (heel, 330.0, 0.2) / 0.3f) > -6.0f);                                   // which is still there
-        const auto toe = play ("Harmony: 5th / Oct Up", 1.0f, note);
+        const auto toe = play ("28 Up 5th / Up Oct", 1.0f, note);
         CHECK (dB (levelAt (toe, 660.0, 0.2) / levelAt (toe, 330.0, 0.2)) > -6.0f);              // now an octave up
         CHECK (dB (levelAt (toe, 330.0 * 1.4983, 0.2) / levelAt (toe, 660.0, 0.2)) < -20.0f);    // and the 5th has gone
     }
@@ -506,10 +512,25 @@ TEST_CASE ("Whammy-Wah: the expression pedal plays its wah, whammy and harmony m
                 bright[i] += 0.1f * (float) std::sin (juce::MathConstants<double>::twoPi * 220.0 * harmonic * (double) i / sampleRate) / (float) harmonic;
         const auto brightness = [&] (float pedal)
         {
-            const auto output = play ("Wah: Classic", pedal, bright);
+            const auto output = play ("02 Original Cry Wah", pedal, bright);
             return dB (levelAt (output, 220.0 * 9) / levelAt (output, 220.0 * 2));   // 2 kHz against 440 Hz
         };
         CHECK (brightness (1.0f) - brightness (0.0f) > 15.0f);
+
+        // Auto-wah, pedal on sensitivity: the same playing opens it much
+        // further with the pedal at the toe.
+        const auto autoBrightness = [&] (float pedal)
+        {
+            const auto output = play ("07 Cry Auto Sens", pedal, bright);
+            return dB (levelAt (output, 220.0 * 9) / levelAt (output, 220.0 * 2));
+        };
+        CHECK (autoBrightness (1.0f) - autoBrightness (0.0f) > 10.0f);
+    }
+
+    SECTION ("Volume: silent at the heel, the full guitar at the toe")
+    {
+        CHECK (rms (play ("01 Volume Pedal", 0.0f, note), 0.2) < 1.0e-4f);
+        CHECK_THAT (rms (play ("01 Volume Pedal", 1.0f, note), 0.2), WithinAbs (rms (note, 0.2), 0.01));
     }
 }
 

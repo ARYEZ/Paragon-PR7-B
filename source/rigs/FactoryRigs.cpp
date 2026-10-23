@@ -27,7 +27,7 @@ namespace
                     harmonicTremolo = 8, autoPan = 9, doubler = 10;
     // FILTER / PITCH types.
     constexpr float autoWah = 0, pitchShifter = 1, whammyWah = 2;
-    constexpr float wahClassic = 0, whammyOctUp = 6, harmony3rd4thUp = 15;   // Whammy-Wah modes
+    constexpr float xpCryWah = 1, xpUpOctave = 12, xpUp4thUp5th = 23;   // Whammy-Wah programs 02, 13 and 24
     constexpr float pedalWhammyWah = 6;   // the expression pedal's WHAMMY-WAH setting
     // Delay types (index into effects::Delay::typeNames).
     constexpr float analogDelay = 1, tapeDelay = 2, modDelay = 3, reverseDelay = 4, multiTap = 5, shimmer = 6, ducking = 7;
@@ -136,20 +136,20 @@ std::vector<Rig> makeFactoryRigs()
         // LO-FI: for intros and breakdowns. Assign the expression pedal to
         // LO-FI to sweep from the full band (heel) into the effect (toe).
         make ("Whammy Lead", B, 7, "Lead,Pitch,Drive,Expression", {
-            { fpOn, 1 }, { fpType, whammyWah }, { fpWhammyWahMode, whammyOctUp }, { fpMix, 1 },
+            { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpUpOctave }, { fpMix, 1 },
             { expressionTarget, pedalWhammyWah },
             { driveOn, 1 }, { driveGain, 6 }, { driveTone, 6 }, { driveLevel, 3 },
             { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.25f }, { delayMix, 0.18f },
             { reverbOn, 1 }, { reverbMix, 0.2f } }),
 
         make ("XP Wah Crunch", B, 8, "Wah,Drive,Expression", {
-            { fpOn, 1 }, { fpType, whammyWah }, { fpWhammyWahMode, wahClassic }, { fpMix, 1 },
+            { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpCryWah }, { fpMix, 1 },
             { expressionTarget, pedalWhammyWah },
             { driveOn, 1 }, { driveGain, 4 }, { driveTone, 5 }, { driveLevel, 4 },
             { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.3f }, { reverbMix, 0.15f } }),
 
         make ("Harmony Bends", B, 9, "Lead,Pitch,Expression", {
-            { fpOn, 1 }, { fpType, whammyWah }, { fpWhammyWahMode, harmony3rd4thUp }, { fpMix, 0.8f },
+            { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpUp4thUp5th }, { fpMix, 0.8f },
             { expressionTarget, pedalWhammyWah },
             { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 },
             { delayOn, 1 }, { delaySync, quarter }, { delayFeedback, 0.3f }, { delayMix, 0.2f },

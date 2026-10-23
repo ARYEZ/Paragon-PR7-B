@@ -15,11 +15,11 @@ namespace effects
 
     FilterPitch::FilterPitch() = default;
 
-    juce::StringArray FilterPitch::whammyWahModeNames()
+    juce::StringArray FilterPitch::xpProgramNames()
     {
         juce::StringArray names;
-        for (const auto& mode : whammyWahModes)
-            names.add (mode.name);
+        for (const auto& program : xpPrograms)
+            names.add (program.name);
         return names;
     }
 
@@ -72,6 +72,7 @@ namespace effects
         // a gain of Q; scale it to a gentle boost so turning up RESONANCE
         // sharpens the sound without making it much louder.
         const auto q = 2.0f + 0.8f * juce::jlimit (0.0f, 10.0f, settings.resonance);
+        wahFilter.setType (juce::dsp::StateVariableTPTFilterType::bandpass);   // the Whammy-Wah may have left it low-pass
         wahFilter.setResonance (q);
         const auto outputScale = 2.0f / q;
 
@@ -116,41 +117,101 @@ namespace effects
 
     void FilterPitch::processWhammyWah (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept
     {
-        const auto& mode = whammyWahModes[(size_t) juce::jlimit (0, (int) whammyWahModes.size() - 1, settings.whammyWahMode)];
+        const auto& program = xpPrograms[(size_t) juce::jlimit (0, (int) xpPrograms.size() - 1, settings.xpProgram)];
         pedal.setTargetValue (juce::jlimit (0.0f, 1.0f, settings.pedal));
         auto* samples = block.getChannelPointer (0);
         const auto numSamples = (int) block.getNumSamples();
 
-        if (mode.kind == WhammyWahMode::Kind::wah)
+        switch (program.kind)
         {
-            // A resonant band-pass swept between the voicing's heel and toe
-            // frequencies (spaced by ear), peaking a few dB above the dry
-            // level as a real wah does.
-            wahFilter.setResonance (mode.q);
-            const auto outputScale = 1.5f / mode.q;
-            for (int start = 0; start < numSamples; start += retuneEvery)
-            {
-                const auto count = juce::jmin (retuneEvery, numSamples - start);
-                wahFilter.setCutoffFrequency (mode.heel * std::pow (mode.toe / mode.heel, pedal.getNextValue()));
-                pedal.skip (count - 1);
-                for (int i = start; i < start + count; ++i)
+            case XpProgram::Kind::volume:
+                // A volume pedal: squared, so the swell feels even (loudness isn't linear).
+                for (int i = 0; i < numSamples; ++i)
                 {
-                    const auto mixNow = mix.getNextValue();
-                    samples[i] = samples[i] * (1.0f - mixNow) + wahFilter.processSample (0, samples[i]) * outputScale * mixNow;
+                    const auto position = pedal.getNextValue();
+                    samples[i] *= position * position;
                 }
+                return;
+
+            case XpProgram::Kind::wah:
+            {
+                // A resonant band-pass swept between the voicing's heel and
+                // toe frequencies (spaced by ear), peaking a few dB above the
+                // dry level as a real wah does.
+                wahFilter.setType (juce::dsp::StateVariableTPTFilterType::bandpass);
+                wahFilter.setResonance (program.q);
+                const auto outputScale = 1.5f / program.q;
+                for (int start = 0; start < numSamples; start += retuneEvery)
+                {
+                    const auto count = juce::jmin (retuneEvery, numSamples - start);
+                    wahFilter.setCutoffFrequency (program.heel * std::pow (program.toe / program.heel, pedal.getNextValue()));
+                    pedal.skip (count - 1);
+                    for (int i = start; i < start + count; ++i)
+                    {
+                        const auto mixNow = mix.getNextValue();
+                        samples[i] = samples[i] * (1.0f - mixNow) + wahFilter.processSample (0, samples[i]) * outputScale * mixNow;
+                    }
+                }
+                return;
             }
-            return;
+
+            case XpProgram::Kind::autoWah:
+            {
+                // An envelope-swept filter, as the Auto-Wah type, in the
+                // program's voicing. The pedal sets either its sensitivity
+                // (heel: barely opens, toe: opens on the lightest touch) or
+                // its attack (heel: snaps open in 2 ms, toe: swells over a
+                // quarter of a second, like a brass player's note).
+                pedal.skip (numSamples);
+                const auto position = pedal.getCurrentValue();
+                const auto attackSeconds = program.pedalSetsAttack ? 0.002f * std::pow (125.0f, position) : program.attackSeconds;
+                const auto sensitivity = program.pedalSetsAttack ? 6.0f : 10.0f * position;
+                const auto attack = coefficientFor (sampleRate, attackSeconds), release = coefficientFor (sampleRate, program.releaseSeconds);
+                const auto sweepSmoothing = coefficientFor (sampleRate, 0.01f);
+                const auto sensitivityGain = std::pow (10.0f, (sensitivity - 2.0f) * 0.3f);
+
+                wahFilter.setType (program.lowPass ? juce::dsp::StateVariableTPTFilterType::lowpass
+                                                   : juce::dsp::StateVariableTPTFilterType::bandpass);
+                wahFilter.setResonance (program.q);
+                // A band-pass peaks at a gain of Q: scale it to a gentle boost.
+                // A low-pass passes the lows as they are, its peak riding on top.
+                const auto outputScale = program.lowPass ? 0.8f : 2.0f / program.q;
+
+                for (int start = 0; start < numSamples; start += retuneEvery)
+                {
+                    const auto count = juce::jmin (retuneEvery, numSamples - start);
+                    for (int i = start; i < start + count; ++i)
+                    {
+                        const auto level = std::abs (samples[i]);
+                        envelope += (level - envelope) * (level > envelope ? attack : release);
+                    }
+                    const auto target = std::sqrt (juce::jlimit (0.0f, 1.0f, envelope * sensitivityGain));
+                    sweep += (target - sweep) * (1.0f - std::pow (1.0f - sweepSmoothing, (float) count));
+                    wahFilter.setCutoffFrequency (program.heel * std::pow (program.toe / program.heel, sweep));
+
+                    for (int i = start; i < start + count; ++i)
+                    {
+                        const auto mixNow = mix.getNextValue();
+                        const auto wet = wahFilter.processSample (0, samples[i]) * outputScale;
+                        samples[i] = samples[i] * (1.0f - mixNow) + wet * mixNow;
+                    }
+                }
+                return;
+            }
+
+            case XpProgram::Kind::whammy:
+            case XpProgram::Kind::harmony:
+                break;
         }
 
-        // Whammy: the pedal bends the shift from none to the mode's interval,
-        // the shifted guitar replacing the dry one. Harmony: the dry guitar
-        // stays, and a second voice moves between the two intervals; the
-        // pair is scaled so it's no louder than the guitar alone.
-        const auto harmony = mode.kind == WhammyWahMode::Kind::harmony;
+        // Whammy: the pedal bends the shift from none to the program's
+        // interval, the shifted guitar replacing the dry one. Harmony: the
+        // dry guitar stays, and a second voice moves between the two
+        // intervals; the pair is scaled so it's no louder than the guitar alone.
+        const auto harmony = program.kind == XpProgram::Kind::harmony;
         for (int i = 0; i < numSamples; ++i)
         {
-            const auto position = std::pow (pedal.getNextValue(), mode.curve);
-            const auto semitones = juce::jlimit (-24.0f, 24.0f, mode.heel + (mode.toe - mode.heel) * position);
+            const auto semitones = program.heel + (program.toe - program.heel) * pedal.getNextValue();
             const auto dry = samples[i];
             const auto wet = shifter.processSample (dry, std::exp2 (semitones / 12.0f));
             const auto mixNow = mix.getNextValue();

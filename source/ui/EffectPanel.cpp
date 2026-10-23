@@ -27,6 +27,8 @@ struct EffectPanel::Control
         {
             auto box = std::make_unique<juce::ComboBox>();
             box->addItemList (choice->choices, 1);
+            for (const auto& item : choice->choices)
+                longestChoice = juce::jmax (longestChoice, item.length());
             box->setColour (juce::ComboBox::backgroundColourId, juce::Colour (0xff151217));
             box->setColour (juce::ComboBox::outlineColourId, ParagonColours::panelEdge);
             box->setColour (juce::ComboBox::textColourId, ParagonColours::accent);
@@ -80,6 +82,7 @@ struct EffectPanel::Control
     juce::Label label;
     std::unique_ptr<juce::Component> widget;
     bool isKnob = false;
+    int longestChoice = 0;   // a list's longest entry, in characters
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> sliderAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> comboAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> buttonAttachment;
@@ -185,7 +188,16 @@ void EffectPanel::resized()
     // On a crowded panel (the delay's nine controls) the lists give up a
     // little width so the knobs stay a good size.
     const auto listWeight = numControls >= 9 ? 1.75f : 1.9f;
-    const auto weight = [listWeight] (const Control& control) { return control.isKnob ? 1.0f : control.buttonAttachment != nullptr ? 0.75f : listWeight; };
+    // A list whose entries run long (the Whammy-Wah's "22 Down 4th / Down 3rd")
+    // gets a wider card, in step with its longest entry, so they read in full.
+    const auto weight = [listWeight] (const Control& control)
+    {
+        if (control.isKnob)
+            return 1.0f;
+        if (control.buttonAttachment != nullptr)
+            return 0.75f;
+        return juce::jmax (listWeight, listWeight * (float) control.longestChoice / 16.0f);
+    };
     float totalWeight = 0.0f;
     for (const auto& group : groups)
         for (const auto* control : group.controls)

@@ -97,8 +97,9 @@ namespace ParamIDs
     inline constexpr auto delayDuck  = "delayDuck";
     inline constexpr auto reverbDuck = "reverbDuck";
 
-    // Version 20: the FILTER / PITCH block's Whammy-Wah (XP-100 style) mode.
-    inline constexpr auto fpWhammyWahMode = "fpWhammyWahMode";
+    // Version 21: the FILTER / PITCH block's Whammy-Wah program (the XP-100's 01 to 28).
+    // (Version 20's "fpWhammyWahMode" was replaced by this the same day.)
+    inline constexpr auto fpXpProgram = "fpXpProgram";
 
     // Global settings: kept when switching rigs. Everything else is part of a rig.
     // The expression pedal's position is global for the same reason a real

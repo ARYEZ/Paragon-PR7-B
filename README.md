@@ -42,9 +42,10 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
   - **Lo-Fi** (last in the chain; no footswitch): telephone, AM radio, megaphone, cassette (wow, flutter, hiss)
     or bitcrusher, for intros and breakdowns. AMOUNT, NOISE, MIX and LEVEL.
   - **Filter / Pitch** (in the signal chain; no footswitch): an auto-wah (envelope filter), a pitch shifter
-    (two octaves down to two up, blended with the dry guitar for harmonies and octaves), or a **Whammy-Wah** in the
-    style of the DigiTech XP-100, played with the expression pedal (WHAMMY-WAH): its MODE picks one of five wahs, eight
-    whammy bends (heel: no shift, toe: the interval) or nine harmonies (your note plus a voice the pedal moves between two intervals).
+    (two octaves down to two up, blended with the dry guitar for harmonies and octaves), or a **Whammy-Wah**: the
+    DigiTech XP-100's factory programs 01–28, numbered as on the pedal and played with the expression pedal (WHAMMY-WAH):
+    a volume pedal, five wahs, six auto-wahs (the pedal sets sensitivity or attack), eight whammy bends (heel: no shift,
+    toe: the interval, as far as six octaves down) and eight harmonies (your note plus a voice the pedal moves between two intervals).
   - **2 OD / Distortion:** two models: **Screamer**, modelled on the Ibanez TS808 Tube Screamer's circuit, and
     **Classic**, Paragon's original overdrive. Drive, tone, level; 8x oversampled to avoid harsh aliasing.
   - **3 Modulation:** eleven types: chorus, flanger, phaser, tremolo, Dimension chorus, Uni-Vibe, rotary

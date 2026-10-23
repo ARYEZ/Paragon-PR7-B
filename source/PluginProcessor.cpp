@@ -254,7 +254,7 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     filterPitch.process (monoBlock, { isOn (ParamIDs::fpOn), (effects::FilterPitch::Type) (int) param (ParamIDs::fpType),
                                       param (ParamIDs::fpSensitivity), param (ParamIDs::fpResonance),
                                       param (ParamIDs::fpInterval) * whammy, param (ParamIDs::fpMix),
-                                      (int) param (ParamIDs::fpWhammyWahMode),
+                                      (int) param (ParamIDs::fpXpProgram),
                                       expressionTarget == ExpressionTargets::whammyWah ? pedal : 0.0f });
     drive.process (monoBlock, { isOn (ParamIDs::driveOn), (effects::Drive::Model) (int) param (ParamIDs::driveModel),
                                 param (ParamIDs::driveGain), param (ParamIDs::driveTone), param (ParamIDs::driveLevel) });

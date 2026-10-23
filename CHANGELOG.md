@@ -2,6 +2,20 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.22.0
+
+- **Whammy-Wah now follows the real XP-100's program list.** MODE is now **PROGRAM**, numbered 01–28 as on the pedal, with what the pedal does in each:
+  - **01 Volume Pedal:** the pedal is a volume pedal.
+  - **02–06 Wah:** Original Cry Wah, Cry Wah 2, Dark & Deep, Sweet Spot 1, Sweet Spot 2. The pedal sweeps the wah. The Sweet Spots cover just the middle of a wah's travel, finely, for a "parked" wah you can nudge.
+  - **07–12 Auto Wah** (new): Original Cry Auto, Envelope Filter and Brass Attack, each twice:
+    - In 07–09 the pedal sets the sensitivity: heel barely opens, toe opens on the lightest touch.
+    - In 10–12 it sets the attack: heel snaps open, toe swells in like a brass note.
+  - **13–20 Whammy:** Up 1 Octave, Up 2 Octaves, Up 2nd, Down 2nd, Down 4th, Down 1 Octave, Down 2 Octaves and Down 6 Octaves. Heel is no shift, toe is the full interval. **Down 6 Octaves** really does dive six octaves, down to a rumble.
+  - **21–28 Harmony:** Down Oct/Up Oct, Down 4th/Down 3rd, Up 5th/Up 6th, Up 4th/Up 5th, Up minor 3rd/Up major 3rd, Up 2nd/Up 3rd, Down 4th/Up 5th, Up 5th/Up Oct. Your note plus a voice the pedal moves from the first interval at the heel to the second at the toe.
+  - The list and what the pedal controls come from the XP-100's program chart. The wah ranges and auto-wah speeds are ours, since DigiTech didn't publish theirs.
+- A rig saved with 0.21.0's Whammy-Wah loads with program 02 (Original Cry Wah). The old modes didn't match the real list, so they aren't carried over. The factory rigs are updated: **Whammy Lead** uses 13 Up 1 Octave, **XP Wah Crunch** uses 02 Original Cry Wah, and **Harmony Bends** uses 24 Up 4th/Up 5th.
+- Drop-down lists with long entries get a wider card, so names like "22 Down 4th / Down 3rd" read in full.
+
 ## 0.21.0
 
 - **Whammy-Wah.** A new FILTER / PITCH type in the style of the DigiTech XP-100 Whammy-Wah, played with the expression pedal. Its MODE picks one of the XP-100's three kinds of effect:
