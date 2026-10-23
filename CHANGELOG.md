@@ -2,6 +2,17 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.13.0
+
+**A crisper, more polished unit.** The chassis looked flat and washed out: one pale shade, a faint texture, soft edges, and panels that barely stood out. It's redrawn for depth and polish:
+
+- **Real brushed metal:** a fine grain across the face, rim, panels and pedal bay: every row slightly different, with longer streaks and a light speckle. It's built at twice the resolution, so it stays fine on high-resolution screens.
+- **More tonal range:** the face is bright under the light at the top, with a darker reflection band through the middle. It has a sharp diagonal sheen across the upper left and darkens towards its edges, as polished metal does. The chassis rim runs from near-white highlights to deep shadow.
+- **Crisp machined edges:** a bright line along the rim's top, the red glow reflected along its bottom, dark outlines, and a bright lip where the face steps down from the rim.
+- **Recessed panels:** the slot row and footswitch row sit down in the face, with a shadow under the face's edge along their top and a lit lip along their bottom. The panels behind the slot windows are more deeply engraved.
+- **Screws:** recessed hex-head screws in the face's four corners.
+- **Less pink wash:** the red glow now catches only the face's bottom edge instead of tinting its whole lower half.
+
 ## 0.12.5
 
 - **Expression pedal corners:** the treadle's body under its face was drawn as a square box, so its corners poked out past the face's rounded corners as little points. The body now follows the face's rounded corners all the way down.
