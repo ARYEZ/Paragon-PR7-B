@@ -2,6 +2,13 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.17.2
+
+- **Pearl white expression pedal.** The treadle now matches the chassis: the same bright pearl white satin finish with its fine speckle, mica flecks and rose-peach-lilac shimmer, in place of brushed chrome.
+  - Its edges and visible thickness are pearl too, shaded rose rather than grey.
+  - As the pedal rocks, the end tipping away darkens to a warm rose instead of grey.
+  - The two ribbed rubber pads stay black, as in the mockup.
+
 ## 0.17.1
 
 - **Pearl white chassis.** The unit's body is now a bright pearl white instead of grey, to go with the neon red, orange and pink.

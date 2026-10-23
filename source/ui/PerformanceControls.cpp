@@ -186,8 +186,8 @@ namespace
     constexpr float baseCorner = 16.0f, treadleCorner = 13.0f;
     constexpr int treadleOversample = 2;   // the treadle's face is drawn at twice its size, so it stays sharp when rocked
 
-    // The treadle's face, drawn once: a brushed chrome plate in the unit's
-    // own rose-tinted chrome, two black rubber pads split by a diagonal
+    // The treadle's face, drawn once: a plate in the unit's own pearl white
+    // satin finish, two black rubber pads split by a diagonal
     // chrome band (the mockup's design), ribbed across like the DigiTech
     // RP6's, and the PR7 mark engraved at the heel. Drawn square and true,
     // so it rocks without any lean or warp.
@@ -202,36 +202,52 @@ namespace
         juce::Path plate;
         plate.addRoundedRectangle (bounds.reduced (1.0f), corner);
         {
-            juce::ColourGradient metal (ParagonColours::metalDark, 0.0f, 0.0f, ParagonColours::metalDark, fw, 0.0f, false);
-            metal.addColour (0.14, ParagonColours::metalLight);
-            metal.addColour (0.5, ParagonColours::metalMid);
-            metal.addColour (0.86, ParagonColours::metalLight);
-            g.setGradientFill (metal);
+            // Pearl white, its long edges curving away into a soft rose shade.
+            juce::ColourGradient pearl (juce::Colour (0xffe6d6de), 0.0f, 0.0f, juce::Colour (0xffdccbd4), fw, 0.0f, false);
+            pearl.addColour (0.14, juce::Colour (0xfffffdfe));
+            pearl.addColour (0.5, juce::Colour (0xfff4ebf0));
+            pearl.addColour (0.86, juce::Colour (0xfffbf6f8));
+            g.setGradientFill (pearl);
             g.fillPath (plate);
 
-            // Brushed along its length: fine streaks of light and shade.
+            // The same pearlescent shift as the chassis: rose to peach to lilac.
+            juce::ColourGradient iridescence (juce::Colour (0xffffc8dc).withAlpha (0.16f), 0.0f, 0.0f,
+                                              juce::Colour (0xffe2d0ff).withAlpha (0.14f), fw, fh, false);
+            iridescence.addColour (0.5, juce::Colour (0xffffe0c8).withAlpha (0.12f));
+            g.setGradientFill (iridescence);
+            g.fillPath (plate);
+
+            // The same satin grain as the chassis: a fine speckle with no
+            // direction to it, and the odd brighter mica fleck.
+            juce::Image grain (juce::Image::ARGB, w, h, true);
+            {
+                juce::Image::BitmapData pixels (grain, juce::Image::BitmapData::writeOnly);
+                juce::Random random (7);
+                for (int y = 0; y < h; ++y)
+                    for (int x = 0; x < w; ++x)
+                    {
+                        if (random.nextInt (500) == 0)
+                        {
+                            pixels.setPixelColour (x, y, (random.nextBool() ? juce::Colours::white : juce::Colour (0xffffd8e6)).withAlpha ((juce::uint8) (60 + random.nextInt (60))));
+                            continue;
+                        }
+                        const auto shade = random.nextFloat() * 2.0f - 1.0f;
+                        pixels.setPixelColour (x, y, (shade > 0.0f ? juce::Colours::white : juce::Colour (0xff5a3a4a))
+                                                         .withAlpha ((juce::uint8) juce::roundToInt (std::abs (shade) * 9.0f)));
+                    }
+            }
             juce::Graphics::ScopedSaveState clip (g);
             g.reduceClipRegion (plate);
-            juce::Random random (7);
-            for (int x = 0; x < w; ++x)
-            {
-                const auto shade = random.nextFloat();
-                g.setColour ((shade > 0.5f ? juce::Colours::white : juce::Colours::black).withAlpha (0.05f * std::abs (shade - 0.5f) * 2.0f));
-                g.fillRect ((float) x, 0.0f, 1.0f, fh);
-            }
+            g.drawImageAt (grain, 0, 0);
         }
-
-        // The unit's rose tint, so it reads as the same chrome.
-        g.setColour (ParagonColours::glow.withAlpha (0.07f));
-        g.fillPath (plate);
 
         // Its bevelled edge: lit along the top and left, darker at the bottom right.
         g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.9f), bounds.getTopLeft(),
-                                                 juce::Colour (0xff5d4c55), bounds.getBottomRight(), false));
+                                                 juce::Colour (0xffa88896), bounds.getBottomRight(), false));
         g.strokePath (plate, juce::PathStrokeType (fw * 0.012f));
         juce::Path seam;
         seam.addRoundedRectangle (bounds.reduced (fw * 0.03f), corner * 0.8f);
-        g.setColour (juce::Colours::black.withAlpha (0.25f));
+        g.setColour (juce::Colour (0xff4a2034).withAlpha (0.18f));
         g.strokePath (seam, juce::PathStrokeType (1.5f));
 
         // The two rubber pads, with the diagonal chrome band between them.
@@ -441,14 +457,14 @@ void ExpressionPedal::paint (juce::Graphics& g)
             juce::DropShadow (juce::Colours::black, 14, {}).drawForPath (g, shadow);
         }
 
-        // The treadle's body under its face (its thickness): chrome, dark at
-        // the bottom and lit towards the top, built up in layers so its sides
+        // The treadle's body under its face (its thickness): pearl, shaded
+        // rose at the bottom and lit towards the top, built up in layers so its sides
         // follow the face's rounded corners.
         constexpr int layers = 8;
         for (int layer = 0; layer < layers; ++layer)
         {
             const auto t = (float) layer / (float) (layers - 1);
-            g.setColour (juce::Colour (0xff3e3037).interpolatedWith (juce::Colour (0xffcdb6c1), t));
+            g.setColour (juce::Colour (0xff7a5c6a).interpolatedWith (juce::Colour (0xffeee3e9), t));
             g.fillPath (roundedOutline (topZ - thickness * (1.0f - t)));
         }
 
@@ -477,7 +493,7 @@ void ExpressionPedal::paint (juce::Graphics& g)
             const auto amount = tilt / maxTilt;   // +1 toe down (heel up), -1 heel down (toe up)
             const auto toeEnd = corner (0.5f, 0.0f, topZ), heelEnd = corner (0.5f, 1.0f, topZ);
             const auto lit = juce::Colours::white.withAlpha (0.10f * std::abs (amount));
-            const auto shaded = juce::Colours::black.withAlpha (0.35f * std::abs (amount));
+            const auto shaded = juce::Colour (0xff4a2034).withAlpha (0.28f * std::abs (amount));   // rose, not black, so the pearl doesn't go grey
             g.setGradientFill (juce::ColourGradient (amount < 0.0f ? lit : shaded, toeEnd,
                                                      amount < 0.0f ? shaded : lit, heelEnd, false));
             g.fillPath (face);
