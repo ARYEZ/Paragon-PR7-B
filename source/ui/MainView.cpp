@@ -107,6 +107,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
       expressionPanel (processorToShow.getParameters()),
       eqPanel (processorToShow.getParameters()),
       signalChain (processorToShow.getParameters(), {
+          { "PITCH", Icons::Type::pitch, ParagonColours::pitch, juce::String (ParamIDs::octOn) + "," + ParamIDs::freezeOn },
           { "COMP / GATE", Icons::Type::comp, ParagonColours::comp, ParamIDs::compOn },
           { "FILTER / PITCH", Icons::Type::filterPitch, ParagonColours::filterPitch, ParamIDs::fpOn },
           { "OD / DIST", Icons::Type::drive, ParagonColours::drive, ParamIDs::driveOn },
@@ -114,7 +115,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
           { "CABINET IR", Icons::Type::cabinet, ParagonColours::cab, ParamIDs::cabOn },
           { "EQ", Icons::Type::eq, ParagonColours::eq, ParamIDs::eqOn },
           { "GLITCH", Icons::Type::glitch, ParagonColours::glitch, ParamIDs::glitchOn },
-          { "MODULATION", Icons::Type::modulation, ParagonColours::modulation, ParamIDs::modOn },
+          { "MOD", Icons::Type::modulation, ParagonColours::modulation, ParamIDs::modOn },   // MODULATION: short, to fit twelve blocks
           { "DELAY", Icons::Type::delay, ParagonColours::delay, ParamIDs::delayOn },
           { "REVERB", Icons::Type::reverb, ParagonColours::reverb, ParamIDs::reverbOn },
           { "LO-FI", Icons::Type::loFi, ParagonColours::loFi, ParamIDs::lofiOn } }),
@@ -282,6 +283,12 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     using Group = EffectPanel::Group;
     // The compressor's TYPE shows only its own knobs: Classic's THRESHOLD and
     // RATIO, or Daybreak's COMP, DETAIL, MIX and INTENSITY.
+    panels[pitchBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
+        { "TUNING", { { ParamIDs::pitchTune, "TUNING" } } },
+        { "OCTAVER", { { ParamIDs::octOn, "ON" }, { ParamIDs::octSubTwo, "2 DOWN" }, { ParamIDs::octSubOne, "1 DOWN" },
+                       { ParamIDs::octDry, "DRY" }, { ParamIDs::octUp, "1 UP" } } },
+        { "FREEZE", { { ParamIDs::freezeOn, "FREEZE" }, { ParamIDs::freezeLevel, "LEVEL" }, { ParamIDs::freezeAttack, "ATTACK" },
+                      { ParamIDs::freezeRelease, "RELEASE" } } } });
     const auto compIs = [this] (effects::CompGate::Type type)
     {
         return [this, type] { return juce::roundToInt (rawValue (ParamIDs::compType)) == (int) type; };
@@ -302,7 +309,8 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     panels[filterPitchBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "FILTER / PITCH", { { ParamIDs::fpOn, "ON" }, { ParamIDs::fpType, "TYPE" },
                               { ParamIDs::fpSensitivity, "SENSITIVITY", fpIs (effects::FilterPitch::Type::autoWah) },
-                              { ParamIDs::fpResonance, "RESONANCE", fpIs (effects::FilterPitch::Type::autoWah) },
+                              { ParamIDs::fpResonance, "RESONANCE", [autoWah = fpIs (effects::FilterPitch::Type::autoWah),
+                                                                      talkBox = fpIs (effects::FilterPitch::Type::talkBox)] { return autoWah() || talkBox(); } },
                               { ParamIDs::fpInterval, "INTERVAL", fpIs (effects::FilterPitch::Type::pitchShifter) },
                               { ParamIDs::fpXpProgram, "PROGRAM", fpIs (effects::FilterPitch::Type::whammyWah) },
                               { ParamIDs::fpMix, "MIX" } } } });
@@ -343,13 +351,13 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
         { "LO-FI", { { ParamIDs::lofiOn, "ON" }, { ParamIDs::lofiType, "TYPE" }, { ParamIDs::lofiAmount, "AMOUNT" },
                      { ParamIDs::lofiNoise, "NOISE" }, { ParamIDs::lofiMix, "MIX" }, { ParamIDs::lofiLevel, "LEVEL" } } } });
     const std::pair<Icons::Type, juce::Colour> headers[] = {
-        { Icons::Type::comp, ParagonColours::comp }, { Icons::Type::filterPitch, ParagonColours::filterPitch },
+        { Icons::Type::pitch, ParagonColours::pitch }, { Icons::Type::comp, ParagonColours::comp }, { Icons::Type::filterPitch, ParagonColours::filterPitch },
         { Icons::Type::drive, ParagonColours::drive },
         { Icons::Type::amp, ParagonColours::amp }, { Icons::Type::cabinet, ParagonColours::cab },
         { Icons::Type::eq, ParagonColours::eq }, { Icons::Type::glitch, ParagonColours::glitch },
         { Icons::Type::modulation, ParagonColours::modulation }, { Icons::Type::delay, ParagonColours::delay },
         { Icons::Type::reverb, ParagonColours::reverb }, { Icons::Type::loFi, ParagonColours::loFi } };
-    const char* titles[] = { "COMP / GATE", "FILTER / PITCH", "OD / DISTORTION", "AMP (NAM)", "CABINET (IR)", "GRAPHIC EQ", "GLITCH", "MODULATION", "DELAY", "REVERB", "LO-FI" };
+    const char* titles[] = { "PITCH", "COMP / GATE", "FILTER / PITCH", "OD / DISTORTION", "AMP (NAM)", "CABINET (IR)", "GRAPHIC EQ", "GLITCH", "MODULATION", "DELAY", "REVERB", "LO-FI" };
     for (size_t i = 0; i < panels.size(); ++i)
     {
         if (panels[i] == nullptr)
@@ -631,9 +639,11 @@ void MainView::resized()
     const auto local = [origin] (juce::Rectangle<float> r) { return r - origin; };
 
     PedalBody::Geometry geometry;
-    geometry.face = local (mockF (164, 94, 1338, 540));
+    // The face plate sits inside the rim with about as much rim showing
+    // below it as above (the rim's top ends level with the pedal bay's bottom, 547).
+    geometry.face = local (mockF (164, 94, 1338, 534));
     geometry.pedalBay = local (mockF (1347, 86, 1535, 547));
-    geometry.sections = { local (mockF (174, 240, 1325, 388)), local (mockF (174, 396, 1325, 530)) };
+    geometry.sections = { local (mockF (174, 240, 1325, 388)), local (mockF (174, 396, 1325, 524)) };
     geometry.insets = { local (mockF (253, 250, 512, 382)), local (mockF (578, 250, 820, 382)), local (mockF (870, 250, 1148, 382)) };
     geometry.badge = local (mockF (212, 117, 410, 207));
 
@@ -682,7 +692,7 @@ void MainView::resized()
     heelIndicator.setBounds (mock (1262, 407, 1314, 423));
 
     for (size_t i = 0; i < footswitches.size(); ++i)
-        footswitches[i]->setBounds (mock (footswitchX[i] - 48, 400, footswitchX[i] + 164, 524));
+        footswitches[i]->setBounds (mock (footswitchX[i] - 48, 400, footswitchX[i] + 164, 520));
 
     // Exactly where the artwork was cut from the mockup, plus headroom above
     // for the toe to rise into.

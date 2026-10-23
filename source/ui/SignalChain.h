@@ -19,7 +19,7 @@ public:
         juce::String name;
         Icons::Type icon;
         juce::Colour colour;
-        juce::String onParameterId;
+        juce::String onParameterId;   // its on switch; several separated by commas (on if any is)
     };
 
     SignalChain (juce::AudioProcessorValueTreeState& parameters, std::vector<Block> blocks);

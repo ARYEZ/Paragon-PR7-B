@@ -26,10 +26,16 @@ namespace
     constexpr float chorus = 0, flanger = 1, tremolo = 3, dimension = 4, uniVibe = 5, rotary = 6, vibrato = 7,
                     harmonicTremolo = 8, autoPan = 9, doubler = 10;
     // FILTER / PITCH types.
-    constexpr float autoWah = 0, pitchShifter = 1, whammyWah = 2;
+    constexpr float autoWah = 0, pitchShifter = 1, whammyWah = 2, talkBoxType = 3;
+    constexpr float pedalTalkBox = 8;   // the expression pedal's TALK BOX setting
     constexpr float daybreakComp = 1;   // COMP / GATE's TYPE
     constexpr float glitchSequence = 1, glitchTexturizer = 3, glitchSixteenth = 3;   // GLITCH's MODE and LENGTH
     constexpr float pedalGlitch = 7;   // the expression pedal's GLITCH setting
+    constexpr float pedalWah = 2;      // the expression pedal's WAH / FILTER setting
+    constexpr float glitchKillswitch = 4;
+    constexpr int E = 4;               // bank E: rigs inspired by particular songs
+    constexpr float muffFuzz = 2, faceFuzz = 3;   // OD / DISTORTION's MODEL
+    constexpr float digitalDelay = 0;
     constexpr float xpCryWah = 1, xpUpOctave = 12, xpOctDownOctUp = 20, xpUp4thUp5th = 23;   // Whammy-Wah programs 02, 13, 21 and 24
     constexpr float pedalWhammyWah = 6;   // the expression pedal's WHAMMY-WAH setting
     // Delay types (index into effects::Delay::typeNames).
@@ -196,6 +202,85 @@ std::vector<Rig> makeFactoryRigs()
             { glitchDensity, 4 }, { glitchChaos, 5 }, { glitchMix, 0.45f },
             { delayOn, 1 }, { delaySync, quarter }, { delayFeedback, 0.4f }, { delayMix, 0.25f },
             { reverbOn, 1 }, { reverbType, hall }, { reverbSize, 0.8f }, { reverbMix, 0.35f } }),
+
+        //======================================================================
+        // Bank E: inspired by particular songs. Our settings for the sound,
+        // not the artists' own (which are their own gear, played their way).
+
+        // Rage Against the Machine, "Killing in the Name" solo: a Whammy an
+        // octave up, rocked to the toe for the squeal, into a cranked crunch
+        // with no reverb. (For a higher squeal, PROGRAM 14 Up 2 Octaves.)
+        make ("Killing Solo (RATM)", E, 1, "Song,Lead,Pitch,Expression", {
+            { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpUpOctave }, { fpMix, 1 },
+            { expressionTarget, pedalWhammyWah },
+            { driveOn, 1 }, { driveGain, 3 }, { driveTone, 6 }, { driveLevel, 6 },
+            { presence, 1 } }),
+
+        // Rage Against the Machine, "Bulls on Parade" scratch: a wah on the
+        // pedal, rocked as you rub the muted strings over the pickup, and
+        // the toggle-switch chop (GLITCH Killswitch, 1/16, on the song's
+        // grid when the DAW plays).
+        make ("Bulls Scratch (RATM)", E, 2, "Song,Wah,Glitch,Expression", {
+            { expressionTarget, pedalWah },
+            { glitchOn, 1 }, { glitchMode, glitchKillswitch }, { glitchSync, 1 }, { glitchDivision, glitchSixteenth },
+            { glitchDensity, 5 }, { glitchChaos, 0 }, { glitchMix, 1 },
+            { driveOn, 1 }, { driveGain, 4 }, { driveTone, 6 }, { driveLevel, 5 },
+            { presence, 1 } }),
+
+        // Pink Floyd. David Gilmour's sounds as his gear guides describe them;
+        // the rest is in his hands (vibrato, bends, note choice).
+
+        // "Comfortably Numb" solos: a Big Muff-style fuzz (sustain about 70%,
+        // tone 30-40%) into a delay of about 370 ms, through a subtly mixed
+        // rotating speaker (his Yamaha RA-200), with studio reverb.
+        make ("Numb Solo (Floyd)", E, 3, "Song,Lead,Fuzz", {
+            { driveOn, 1 }, { driveModel, muffFuzz }, { driveGain, 7 }, { driveTone, 3.5f }, { driveLevel, 1 },
+            { modOn, 1 }, { modType, rotary }, { modRate, 0.9f }, { modDepth, 0.5f }, { modMix, 0.3f },
+            { delayOn, 1 }, { delayType, digitalDelay }, { delaySync, syncOff }, { delayTime, 370 }, { delayFeedback, 0.3f }, { delayMix, 0.25f },
+            { reverbOn, 1 }, { reverbType, hall }, { reverbSize, 0.6f }, { reverbMix, 0.18f } }),
+
+        // "Us and Them": the neck pickup, clean, through a slow rotating
+        // speaker (a Leslie dominated it; a Uni-Vibe is close too), with echo.
+        // For the louder chorus, stomp footswitch 2: a Fuzz Face-style fuzz
+        // is set up and waiting, as Gilmour kicked his in.
+        make ("Us and Them (Floyd)", E, 4, "Song,Clean,Modulation,Fuzz", {
+            { driveOn, 0 }, { driveModel, faceFuzz }, { driveGain, 6 }, { driveTone, 6 }, { driveLevel, 0 },
+            { modOn, 1 }, { modType, rotary }, { modRate, 0.7f }, { modDepth, 0.6f }, { modMix, 0.6f },
+            { delayOn, 1 }, { delayType, tapeDelay }, { delaySync, syncOff }, { delayTime, 420 }, { delayFeedback, 0.25f }, { delayMix, 0.2f },
+            { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.25f } }),
+
+        // "Run Like Hell": muted eighths into a long, clean delay (about
+        // 380 ms, five or six repeats) that makes the gallop, with flanging
+        // and light compression.
+        make ("Run Like Hell (Floyd)", E, 5, "Song,Clean,Delay,Modulation", {
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 }, { compLevel, 2 },
+            { modOn, 1 }, { modType, flanger }, { modRate, 0.3f }, { modDepth, 0.5f }, { modMix, 0.4f },
+            { delayOn, 1 }, { delayType, digitalDelay }, { delaySync, syncOff }, { delayTime, 380 }, { delayFeedback, 0.55f }, { delayMix, 0.3f },
+            { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.12f } }),
+
+        // "Money" solos: the bridge pickup into a Fuzz Face-style fuzz, with
+        // a multi-head echo in the spirit of his Binson Echorec.
+        make ("Money Solo (Floyd)", E, 6, "Song,Lead,Fuzz,Delay", {
+            { driveOn, 1 }, { driveModel, faceFuzz }, { driveGain, 7 }, { driveTone, 7 }, { driveLevel, 1 },
+            { delayOn, 1 }, { delayType, multiTap }, { delaySync, syncOff }, { delayTime, 330 }, { delayFeedback, 0.3f }, { delayMix, 0.22f },
+            { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.15f } }),
+
+        // Tool, "Jambi" solo: a talk box on a tight, heavy tone. Load a
+        // high-gain amp capture; the pedal opens the "mouth" from oo to ee.
+        make ("Jambi Talk Box (Tool)", E, 7, "Song,Lead,Talk Box,Expression", {
+            { fpOn, 1 }, { fpType, talkBoxType }, { fpResonance, 6 }, { fpMix, 1 },
+            { expressionTarget, pedalTalkBox },
+            { driveOn, 1 }, { driveGain, 3 }, { driveTone, 6 }, { driveLevel, 6 },
+            { delayOn, 1 }, { delayType, digitalDelay }, { delaySync, eighth }, { delayFeedback, 0.2f }, { delayMix, 0.12f },
+            { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.1f } }),
+
+        // Peter Frampton, "Show Me the Way": the talk box on a warm, lightly
+        // driven tone, the most famous talk box sound there is.
+        make ("Show Me the Way (Frampton)", E, 8, "Song,Lead,Talk Box,Expression", {
+            { fpOn, 1 }, { fpType, talkBoxType }, { fpResonance, 5 }, { fpMix, 1 },
+            { expressionTarget, pedalTalkBox },
+            { driveOn, 1 }, { driveModel, 0 }, { driveGain, 3 }, { driveTone, 5 }, { driveLevel, 2 },
+            { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.2f } }),
 
         make ("Phone Intro", B, 5, "Lo-Fi,Clean", {
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 },

@@ -7,6 +7,9 @@ namespace
 {
     constexpr int textureScale = 2;
     constexpr float chassisRadius = 28.0f;
+    constexpr float glowMargin = 10.0f;        // room round the unit for the light spilling from it...
+    constexpr float glowMarginBelow = 5.0f;    // ...less underneath, where the dock is close
+    constexpr float frontEdge = 8.0f;          // the unit's front edge (its thickness), below the rim's top
     constexpr float faceRadius = 16.0f;
 
 }
@@ -60,7 +63,7 @@ void PedalBody::makeSatinTexture()
 
 void PedalBody::paint (juce::Graphics& g)
 {
-    auto chassis = getLocalBounds().toFloat().reduced (10.0f);
+    auto chassis = getLocalBounds().toFloat().reduced (glowMargin).withTrimmedBottom (glowMarginBelow - glowMargin);
     juce::Path chassisPath;
     chassisPath.addRoundedRectangle (chassis, chassisRadius);
 
@@ -78,7 +81,7 @@ void PedalBody::paint (juce::Graphics& g)
                                              juce::Colour (0xff5e4652), 0.0f, chassis.getBottom(), false));
     g.fillPath (chassisPath);
 
-    const auto top = chassis.withTrimmedBottom (12.0f);
+    const auto top = chassis.withTrimmedBottom (frontEdge);
     juce::Path topPath;
     topPath.addRoundedRectangle (top, chassisRadius);
     {

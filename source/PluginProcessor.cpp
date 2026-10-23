@@ -105,6 +105,8 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     reverb.prepare (sampleRate, preparedBlockSize);
     loFi.prepare (sampleRate, preparedBlockSize);
     glitch.prepare (sampleRate, preparedBlockSize);
+    pitchBlock.prepare (sampleRate, preparedBlockSize);
+    talkBox.prepare (sampleRate, preparedBlockSize);
     wah.prepare (sampleRate, preparedBlockSize);
     inputTap.setSampleRate (sampleRate);
 
@@ -129,10 +131,17 @@ float ParagonX1AudioProcessor::param (const char* id) const
 
 void ParagonX1AudioProcessor::readHostTempo()
 {
+    // The song position too, while the transport plays, so GLITCH can put its
+    // steps on the song's grid. -1: not playing, or the host doesn't say.
+    songBeatsAtBlock = -1.0;
     if (auto* host = getPlayHead())
         if (const auto position = host->getPosition())
+        {
             if (const auto bpm = position->getBpm(); bpm.hasValue() && *bpm > 0.0)
                 hostBpm = *bpm;
+            if (const auto beats = position->getPpqPosition(); position->getIsPlaying() && beats.hasValue())
+                songBeatsAtBlock = *beats;
+        }
 }
 
 bool ParagonX1AudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -242,6 +251,12 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     inputGain.applyGain (mono, numSamples);
     inputMeter.pushSamples (mono, numSamples);
 
+    // PITCH: TUNING, OCTAVER and FREEZE, before anything else shapes the guitar.
+    pitchBlock.process (monoBlock, { param (ParamIDs::pitchTune), isOn (ParamIDs::octOn), param (ParamIDs::octSubTwo),
+                                     param (ParamIDs::octSubOne), param (ParamIDs::octDry), param (ParamIDs::octUp),
+                                     isOn (ParamIDs::freezeOn), param (ParamIDs::freezeLevel),
+                                     param (ParamIDs::freezeAttack) / 1000.0f, param (ParamIDs::freezeRelease) / 1000.0f });
+
     const auto expressionTarget = (int) param (ParamIDs::expressionTarget);
     const auto pedal = expressionAmount();
     wah.process (monoBlock, expressionTarget == ExpressionTargets::wah, pedal);
@@ -254,7 +269,10 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     // the heel to its INTERVAL at the toe, like a DigiTech Whammy.
     // WHAMMY-WAH: the pedal plays the Whammy-Wah type. Unassigned, it rests at the heel.
     const auto whammy = expressionTarget == ExpressionTargets::pitch ? pedal : 1.0f;
-    filterPitch.process (monoBlock, { isOn (ParamIDs::fpOn), (effects::FilterPitch::Type) (int) param (ParamIDs::fpType),
+    // The Talk Box type runs after the cab (below); here FILTER / PITCH stands aside for it.
+    const auto fpType = (effects::FilterPitch::Type) (int) param (ParamIDs::fpType);
+    const auto talkBoxOn = isOn (ParamIDs::fpOn) && fpType == effects::FilterPitch::Type::talkBox;
+    filterPitch.process (monoBlock, { isOn (ParamIDs::fpOn) && ! talkBoxOn, fpType,
                                       param (ParamIDs::fpSensitivity), param (ParamIDs::fpResonance),
                                       param (ParamIDs::fpInterval) * whammy, param (ParamIDs::fpMix),
                                       (int) param (ParamIDs::fpXpProgram),
@@ -267,8 +285,13 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
                                                      param (ParamIDs::glitchPitch), param (ParamIDs::glitchChaos),
                                                      param (ParamIDs::glitchMix) * (expressionTarget == ExpressionTargets::glitch ? pedal : 1.0f) };
     const auto glitchPre = (int) param (ParamIDs::glitchPosition) == (int) effects::Glitch::Position::pre;
+    // Where this chunk starts in the song. Only while the DAW's own tempo is
+    // in charge: a tapped tempo doesn't match the DAW's grid.
+    const auto songBeats = songBeatsAtBlock >= 0.0 && tappedBpm.load() <= 0.0
+                               ? songBeatsAtBlock + (double) start / getSampleRate() * hostBpm.load() / 60.0
+                               : -1.0;
     if (glitchPre)
-        glitch.process (monoBlock, glitchSettings, getTempoBpm());
+        glitch.process (monoBlock, glitchSettings, getTempoBpm(), songBeats);
 
     drive.process (monoBlock, { isOn (ParamIDs::driveOn), (effects::Drive::Model) (int) param (ParamIDs::driveModel),
                                 param (ParamIDs::driveGain), param (ParamIDs::driveTone), param (ParamIDs::driveLevel) });
@@ -277,6 +300,11 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     cab.process (mono, numSamples, cabOn->load() > 0.5f);
     presence.process (monoBlock, param (ParamIDs::presence));
 
+    // TALK BOX: the amp's sound shaped into vowels by the pedal (its TALK BOX
+    // setting; unassigned, it rests at the heel: "oo").
+    talkBox.process (monoBlock, talkBoxOn, expressionTarget == ExpressionTargets::talkBox ? pedal : 0.0f,
+                     param (ParamIDs::fpResonance), param (ParamIDs::fpMix));
+
     effects::GraphicEq::Settings eq;
     eq.on = isOn (ParamIDs::eqOn);
     for (size_t band = 0; band < eq.gainsDb.size(); ++band)
@@ -284,7 +312,7 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     eq.levelDb = param (ParamIDs::eqLevel);
     graphicEq.process (monoBlock, eq);
     if (! glitchPre)
-        glitch.process (monoBlock, glitchSettings, getTempoBpm());
+        glitch.process (monoBlock, glitchSettings, getTempoBpm(), songBeats);
 
     // From here on, stereo: modulation, delay and reverb spread the sound
     // across both speakers.

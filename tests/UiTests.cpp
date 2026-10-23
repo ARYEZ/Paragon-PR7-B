@@ -84,16 +84,16 @@ TEST_CASE ("The chain and footswitches pick which block's knobs show; the graphi
     ParagonX1AudioProcessor processor;
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
 
-    // The knob panels in signal-chain order: ten EffectPanels, with the
-    // graphic EQ's own panel as block 5 (after the cabinet).
+    // The knob panels in signal-chain order: eleven EffectPanels, with the
+    // graphic EQ's own panel as block 6 (after the cabinet).
     std::vector<EffectPanel*> effectPanels;
     findAll (*editor, effectPanels);
-    REQUIRE (effectPanels.size() == 10);
+    REQUIRE (effectPanels.size() == 11);
     std::vector<GraphicEqPanel*> eqPanels;
     findAll (*editor, eqPanels);
     REQUIRE (eqPanels.size() == 1);
     std::vector<juce::Component*> panels (effectPanels.begin(), effectPanels.end());
-    panels.insert (panels.begin() + 5, eqPanels[0]);
+    panels.insert (panels.begin() + 6, eqPanels[0]);
 
     const auto visiblePanel = [&]
     {
@@ -109,25 +109,25 @@ TEST_CASE ("The chain and footswitches pick which block's knobs show; the graphi
     };
 
     // To start with the dock shows the graphic EQ.
-    CHECK (visiblePanel() == 5);
+    CHECK (visiblePanel() == 6);
 
     std::vector<SignalChain*> chains;
     findAll (*editor, chains);
     REQUIRE (chains.size() == 1);
-    for (int block = 0; block < 11; ++block)
+    for (int block = 0; block < 12; ++block)
     {
         chains[0]->onSelect (block);
         CHECK (visiblePanel() == block);
     }
 
-    // Footswitch 3's name shows modulation (block 7); footswitch 4's shows delay (block 8).
+    // Footswitch 3's name shows modulation (block 8); footswitch 4's shows delay (block 9).
     std::vector<Footswitch*> footswitches;
     findAll (*editor, footswitches);
     REQUIRE (footswitches.size() == 4);
     footswitches[2]->onSelect();
-    CHECK (visiblePanel() == 7);
-    footswitches[3]->onSelect();
     CHECK (visiblePanel() == 8);
+    footswitches[3]->onSelect();
+    CHECK (visiblePanel() == 9);
 
     // The GRAPHIC EQ button on any other block's panel goes back to the EQ.
     std::vector<juce::TextButton*> buttons;
@@ -136,7 +136,7 @@ TEST_CASE ("The chain and footswitches pick which block's knobs show; the graphi
     REQUIRE (back != buttons.end());
     CHECK ((*back)->isVisible());
     (*back)->onClick();
-    CHECK (visiblePanel() == 5);
+    CHECK (visiblePanel() == 6);
     CHECK_FALSE ((*back)->isVisible());
 }
 
@@ -216,9 +216,9 @@ TEST_CASE ("The expression screen: click a line to assign the pedal, again to un
     const auto rowCentre = [&] (int line)
     {
         // The glass's content: the heading at the top, the position bar at
-        // the bottom, the five lines evenly between (as the screen lays them out).
+        // the bottom, the lines showing evenly between (as the screen lays them out).
         const auto glass = screen.getLocalBounds().toFloat().reduced (7.0f).reduced (5.0f, 4.0f);
-        const auto top = glass.getY() + 15.0f, height = (glass.getHeight() - 25.0f) / (float) ExpressionAssign::numTargets;
+        const auto top = glass.getY() + 15.0f, height = (glass.getHeight() - 25.0f) / (float) ExpressionAssign::visibleRows;
         return juce::Point<float> (glass.getCentreX(), top + height * ((float) line + 0.5f));
     };
     const auto click = [&] (int line)
@@ -262,6 +262,24 @@ TEST_CASE ("The expression screen: click a line to assign the pedal, again to un
     scroll (1.0f);
     scroll (1.0f);
     CHECK (target() == ExpressionTargets::volume);
+    click (0);
+    CHECK (target() == ExpressionTargets::off);
+
+    // The list is longer than the screen: the down arrow (the heading's
+    // right end) scrolls it, and the last line becomes TALK BOX, which also
+    // switches FILTER / PITCH on as a Talk Box.
+    const auto glass = screen.getLocalBounds().toFloat().reduced (7.0f).reduced (5.0f, 4.0f);
+    const auto downArrow = juce::Point<float> (glass.getRight() - 5.0f, glass.getY() + 6.5f);
+    for (int i = 0; i < 2; ++i)
+    {
+        const auto now = juce::Time::getCurrentTime();
+        screen.mouseUp (juce::MouseEvent (juce::Desktop::getInstance().getMainMouseSource(), downArrow, {}, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                          &screen, &screen, now, downArrow, now, 1, false));
+    }
+    CHECK (target() == ExpressionTargets::off);   // scrolling doesn't choose anything
+    click (ExpressionAssign::visibleRows - 1);
+    CHECK (target() == ExpressionTargets::talkBox);
+    CHECK (juce::roundToInt (state.getRawParameterValue (ParamIDs::fpType)->load()) == (int) effects::FilterPitch::Type::talkBox);
 }
 
 TEST_CASE ("EQ PRESETS: choosing one sets the faders and switches the EQ on; moving a fader lets go of the name", "[ui]")

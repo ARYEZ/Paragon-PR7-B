@@ -9,11 +9,11 @@
 namespace
 {
     const Icons::Type targetIcons[] = { Icons::Type::volume, Icons::Type::wah, Icons::Type::rig, Icons::Type::filterPitch, Icons::Type::loFi,
-                                        Icons::Type::wah, Icons::Type::glitch };
+                                        Icons::Type::wah, Icons::Type::glitch, Icons::Type::wah };
     constexpr float screenSize = 7.0f / 11.0f;   // the assign screen's frame and bezel, relative to the main screen's
 
-    const char* pedalNames[] = { "VOLUME", "WAH / FILTER", "MORPH / FX", "PITCH / WHAMMY", "LO-FI", "WHAMMY-WAH", "GLITCH" };
-    constexpr int lastTarget = ExpressionTargets::glitch;
+    const char* pedalNames[] = { "VOLUME", "WAH / FILTER", "MORPH / FX", "PITCH / WHAMMY", "LO-FI", "WHAMMY-WAH", "GLITCH", "TALK BOX" };
+    constexpr int lastTarget = ExpressionTargets::talkBox;
     static_assert (std::size (pedalNames) == (size_t) lastTarget && ExpressionAssign::numTargets == lastTarget);
 
     juce::RangedAudioParameter& parameter (juce::AudioProcessorValueTreeState& state, const char* id)
@@ -81,6 +81,9 @@ ExpressionAssign::ExpressionAssign (juce::AudioProcessorValueTreeState& stateToU
           currentTarget = juce::roundToInt (value);
           for (size_t i = 0; i < buttons.size(); ++i)
               buttons[i]->setToggleState ((int) i + 1 == currentTarget, juce::dontSendNotification);
+          // Keep the chosen line on the screen.
+          if (currentTarget != ExpressionTargets::off)
+              firstRow = juce::jlimit (currentTarget - visibleRows, currentTarget - 1, firstRow);
           repaint();
       })
 {
@@ -88,7 +91,7 @@ ExpressionAssign::ExpressionAssign (juce::AudioProcessorValueTreeState& stateToU
     {
         // The screen draws its own menu; it has no buttons.
         setTooltip ("Expression pedal assign. Click a line (or scroll) to choose what the pedal controls; "
-                    "click the highlighted line again to unassign it.");
+                    "click the highlighted line again to unassign it. The arrows show more of the list.");
         setMouseCursor (juce::MouseCursor::PointingHandCursor);
         startTimerHz (30);   // follows the pedal's position
     }
@@ -139,6 +142,13 @@ void ExpressionAssign::select (int target)
         set (ParamIDs::fpType, (float) effects::FilterPitch::Type::whammyWah);
     }
 
+    // TALK BOX plays the FILTER / PITCH block's Talk Box type: switch it on as one.
+    if (newTarget == ExpressionTargets::talkBox)
+    {
+        set (ParamIDs::fpOn, 1.0f);
+        set (ParamIDs::fpType, (float) effects::FilterPitch::Type::talkBox);
+    }
+
     // GLITCH fades the GLITCH block in, so switch it on.
     if (newTarget == ExpressionTargets::glitch)
         set (ParamIDs::glitchOn, 1.0f);
@@ -162,14 +172,20 @@ juce::Rectangle<float> ExpressionAssign::screenGlass() const
     return getLocalBounds().toFloat().reduced (11.0f * screenSize);   // where LedDisplay::paintScreen puts the glass
 }
 
-std::array<juce::Rectangle<float>, ExpressionAssign::numTargets> ExpressionAssign::screenRows() const
+juce::Rectangle<float> ExpressionAssign::scrollArrows() const
 {
-    // Inside the glass: the EXPRESSION heading and a rule, a line per
-    // target, then the position bar along the bottom.
+    // The heading line's right end: an up and a down arrow, side by side.
+    return screenGlass().reduced (5.0f, 4.0f).removeFromTop (13.0f).removeFromRight (20.0f);
+}
+
+std::array<juce::Rectangle<float>, ExpressionAssign::visibleRows> ExpressionAssign::screenRows() const
+{
+    // Inside the glass: the EXPRESSION heading and a rule, the lines
+    // showing (the list scrolls), then the position bar along the bottom.
     auto content = screenGlass().reduced (5.0f, 4.0f);
     content.removeFromTop (15.0f);
     content.removeFromBottom (10.0f);
-    std::array<juce::Rectangle<float>, numTargets> rows;
+    std::array<juce::Rectangle<float>, visibleRows> rows;
     const auto rowHeight = content.getHeight() / (float) rows.size();
     for (auto& row : rows)
         row = content.removeFromTop (rowHeight).reduced (0.0f, 0.5f);
@@ -193,18 +209,34 @@ void ExpressionAssign::paint (juce::Graphics& g)
     auto header = content.removeFromTop (13.0f);
     g.setColour (orange);
     g.setFont (juce::FontOptions (10.0f, juce::Font::bold));
-    g.drawFittedText ("EXPRESSION", header.toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
+    g.drawFittedText ("EXPRESSION", header.withTrimmedRight (20.0f).toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
     g.setColour (orange.withAlpha (0.35f));
     g.fillRect (content.removeFromTop (1.0f));
+
+    // Scroll arrows: lit when there's more of the list that way.
+    {
+        auto arrows = scrollArrows();
+        const auto drawArrow = [&] (juce::Rectangle<float> area, bool up, bool more)
+        {
+            const auto c = area.getCentre();
+            juce::Path triangle;
+            triangle.addTriangle (c.x - 3.0f, up ? c.y + 2.0f : c.y - 2.0f, c.x + 3.0f, up ? c.y + 2.0f : c.y - 2.0f, c.x, up ? c.y - 2.5f : c.y + 2.5f);
+            g.setColour (orange.withAlpha (more ? 0.9f : 0.2f));
+            g.fillPath (triangle);
+        };
+        drawArrow (arrows.removeFromLeft (10.0f), true, firstRow > 0);
+        drawArrow (arrows, false, firstRow + visibleRows < numTargets);
+    }
 
     // The menu: the chosen line inverted (a solid orange bar, dark text),
     // the others dimmed so the choice stands out. With nothing chosen, all
     // of them show normally.
     const auto rows = screenRows();
-    g.setFont (juce::FontOptions (7.8f, juce::Font::bold));
+    g.setFont (juce::FontOptions (8.5f, juce::Font::bold));
     for (size_t i = 0; i < rows.size(); ++i)
     {
-        const auto selected = currentTarget == (int) i + 1;
+        const auto line = firstRow + (int) i;   // which target this line shows
+        const auto selected = currentTarget == line + 1;
         if (selected)
         {
             g.setColour (orange);
@@ -215,7 +247,7 @@ void ExpressionAssign::paint (juce::Graphics& g)
         {
             g.setColour (orange.withAlpha (assigned ? 0.5f : 0.85f));
         }
-        g.drawFittedText (pedalNames[i], rows[i].reduced (4.0f, 0.0f).toNearestInt(), juce::Justification::centredLeft, 1, 0.7f);
+        g.drawFittedText (pedalNames[line], rows[i].reduced (4.0f, 0.0f).toNearestInt(), juce::Justification::centredLeft, 1, 0.7f);
     }
 
     // The pedal's position: a segmented bar like a level meter, and the
@@ -251,10 +283,19 @@ void ExpressionAssign::mouseUp (const juce::MouseEvent& event)
     if (style != Style::pedal || ! event.mouseWasClicked())
         return;
 
+    // The arrows scroll the list; a line picks its target.
+    if (auto arrows = scrollArrows().expanded (3.0f); arrows.contains (event.position))
+    {
+        const auto up = event.position.x < arrows.getCentreX();
+        firstRow = juce::jlimit (0, numTargets - visibleRows, firstRow + (up ? -1 : 1));
+        repaint();
+        return;
+    }
+
     const auto rows = screenRows();
     for (size_t i = 0; i < rows.size(); ++i)
         if (rows[i].withX (screenGlass().getX()).withWidth (screenGlass().getWidth()).contains (event.position))
-            select ((int) i + 1);
+            select (firstRow + (int) i + 1);
 }
 
 void ExpressionAssign::mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails& wheel)

@@ -2,6 +2,65 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.28.0
+
+- **Talk Box.** A new FILTER / PITCH type. A real talk box sends the amp's sound up a tube into your mouth, which shapes it into vowels. This does the same with three resonant formants, the peaks a voice makes for each vowel.
+  - The expression pedal (its new **TALK BOX** setting) glides the "mouth" through **oo, oh, ah, eh, ee**, heel to toe.
+  - Like the real thing, it works on the amp's sound: it runs after the amp and cab, where the drive gives it plenty of harmonics to shape.
+  - **RESONANCE** sets how sharp and vocal it is, and **MIX** sets the blend with the plain guitar.
+  - Choosing TALK BOX on the EXPRESSION screen switches FILTER / PITCH on as a Talk Box. If the pedal isn't assigned to it, it rests at "oo".
+- **The EXPRESSION screen scrolls.** With eight pedal settings, it shows six lines at the readable size, with arrows in its heading: lit when there's more that way, and clickable to scroll. Choosing a setting, by clicking or with the mouse wheel, keeps it on screen.
+- **New song rigs in bank E:**
+  - **E7 Jambi Talk Box (Tool):** the talk box on a tight, heavy tone. Load a high-gain amp capture.
+  - **E8 Show Me the Way (Frampton):** the talk box on a warm, lightly driven tone.
+
+## 0.27.0
+
+- **New PITCH block**, first in the signal chain, before anything else shapes the guitar:
+  - **TUNING:** virtual retuning, -12 to +12 semitones. The knob names the result: D standard (-2), B (-5), A (-7)... or Capo 1-12 going up. It shifts every string together (like tuning the whole guitar down), so it can't drop one string alone the way drop D does. At E standard the guitar passes untouched.
+  - **OCTAVER:** a POG-style octave pedal. Levels for two octaves down, one octave down, the dry guitar and one octave up, so you can blend organ-like stacks. Chords track too, with a little shimmer on dense ones.
+  - **FREEZE:** switch it on and what you just played is caught and held as an endless, smooth pad while you play over it. LEVEL sets how loud it is, ATTACK how it swells in, RELEASE how it fades when switched off.
+- The PITCH tile in the signal chain lights when the octaver or freeze is on. Double-click it to switch them off, or the octaver on.
+- With twelve blocks in the chain, the modulation tile now reads MOD.
+- Times of a second or more show in seconds (1.5 s).
+
+## 0.26.1
+
+- **Chassis bottom edge fixed.** The face plate came down past the rim's polished top and overhung its front edge, so the inner border didn't line up along the bottom. Now:
+  - The rim shows below the face plate about as much as above it.
+  - The rim's edge lines up with the bottom of the expression pedal's housing.
+  - The unit's front edge is a little slimmer.
+  - The footswitches are about 3 pixels shorter to make room, too little to notice.
+
+## 0.26.0
+
+- **Two fuzz models** in OD / DISTORTION:
+  - **Muff Fuzz** follows the Big Muff's circuit: two clipping stages one after another, for long, violin-like sustain (DRIVE is its sustain). Its tone stack scoops the mids at noon, from warm and woolly to bright. This is David Gilmour's lead sound.
+  - **Face Fuzz** follows the silicon Fuzz Face: one high-gain stage that clips one half of the wave harder than the other, for a raspy, round fuzz. Turn your guitar's volume down and it cleans up. It also darkens the guitar slightly, as the real pedal's input does. The original has no tone knob, so TONE here is a gentle treble cut.
+  - Both sit near your guitar's own level at LEVEL 0 dB.
+- **Pink Floyd rigs in bank E**, built from David Gilmour's documented gear:
+  - **E3 Numb Solo (Floyd):** the "Comfortably Numb" solos. Muff Fuzz (sustain 7, tone 3.5) into a 370 ms delay, through a subtly mixed rotating speaker, with hall reverb.
+  - **E4 Us and Them (Floyd):** the neck pickup, clean, through a slow rotating speaker with tape echo. For the louder chorus, stomp footswitch 2: a Face Fuzz is set up and waiting.
+  - **E5 Run Like Hell (Floyd):** muted eighths into a 380 ms delay with five or six repeats (the gallop), with flanger and light compression.
+  - **E6 Money Solo (Floyd):** the bridge pickup into the Face Fuzz, with a multi-tap echo in the spirit of his Binson Echorec.
+  - These are our settings for the sound. The rest is in your hands: Gilmour's tech says his tone is mostly his fingers.
+
+## 0.25.0
+
+- **Bank E: song-inspired rigs.** A fifth bank for rigs built around particular songs' sounds. These are our settings for the sound, not the artists' own rigs. The first two:
+  - **E1 Killing Solo (RATM):** the "Killing in the Name" solo squeal. A Whammy an octave up on the expression pedal (rock to the toe), into a cranked crunch with no reverb. For an even higher squeal, set PROGRAM to 14 Up 2 Octaves.
+  - **E2 Bulls Scratch (RATM):** the "Bulls on Parade" scratch. A wah on the pedal (rock it as you rub muted strings over the pickup), and GLITCH's new Killswitch chopping in 1/16s, on the song's grid when the DAW plays.
+- **GLITCH: new Killswitch mode.** A guitar's toggle switch flicked in time, as Tom Morello and Buckethead do. Each step plays, then cuts to silence for its last part. DENSITY sets how much is cut (a tenth to nine tenths of the step), and CHAOS leaves some steps uncut. With SYNC on and the DAW playing, it locks to the song's grid like Sequence and Interfere.
+- **Sharper GLITCH edges.** The fade into and out of a stutter, dropout or cut is now a straight 1.5 ms ramp, so cuts are completely silent and stutter edges are crisp. Before, it eased out over about 15 ms.
+- **Banks as keys.** The dock's rig browser shows the banks as a row of letter keys (A B C D E), so they all fit. Before, bank D was cut off.
+
+## 0.24.1
+
+- **GLITCH locks to the song's grid.** With SYNC on and your DAW playing, **Sequence** and **Interfere** start each step exactly on the song's grid lines: every 1/16 on a 16th note, every 1-bar step on the downbeat.
+  - Stutters now lock to the drums, and fall in the same places every time you play the song back.
+  - If the DAW loops or you jump to another spot, the steps follow the new position.
+  - When the transport is stopped, or the tempo is tapped (which doesn't match the DAW's grid), the steps count from when GLITCH switches on, as before. Pitch Delay and Texturizer aren't grid-based, so they're unchanged.
+
 ## 0.24.0
 
 - **GLITCH**, a new block for granular glitch, stutter and texture effects. It keeps the last few seconds of your playing and plays pieces of it back. Four MODEs:

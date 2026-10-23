@@ -5,7 +5,8 @@ namespace effects
     namespace
     {
         constexpr double historySeconds = 8.0;     // more than the longest piece ever reaches back
-        constexpr float blendSeconds = 0.002f;     // the cross-fade in and out of a stutter or dropout: short, so the edges stay sharp
+        constexpr float blendSeconds = 0.0015f;    // the fade in and out of a stutter, dropout or cut: a straight line, done in
+                                                   // 1.5 ms, so the edges are sharp and a cut is fully silent
     }
 
     void Glitch::prepare (double newSampleRate, int maxBlockSize)
@@ -63,7 +64,7 @@ namespace effects
         return juce::jlimit (-24.0f, 24.0f, semitones);
     }
 
-    void Glitch::process (juce::dsp::AudioBlock<float> monoBlock, const Settings& settings, double bpm) noexcept
+    void Glitch::process (juce::dsp::AudioBlock<float> monoBlock, const Settings& settings, double bpm, double songBeats) noexcept
     {
         if (! settings.on && bypass.isSilent())
         {
@@ -92,10 +93,27 @@ namespace effects
             const auto length = lengthInSamples (settings, bpm);
             auto* samples = block.getChannelPointer (0);
 
+            // On the song's grid: only for synced steps, while the song plays.
+            onGrid = songBeats >= 0.0 && settings.sync && bpm > 0.0
+                     && (settings.mode == Mode::sequence || settings.mode == Mode::interfere || settings.mode == Mode::killswitch);
+            if (! onGrid)
+                lastGridStep = std::numeric_limits<juce::int64>::min();
+            const auto stepBeats = (double) syncBeats[(size_t) juce::jlimit (0, (int) std::size (syncBeats) - 1, settings.division)];
+            const auto beatsPerSample = bpm / 60.0 / sampleRate;
+
             for (size_t i = 0; i < block.getNumSamples(); ++i)
             {
                 const auto dry = samples[i];
                 history[(size_t) (written & historyMask)] = dry;
+
+                if (onGrid)
+                {
+                    // Which grid step this sample is in; a new one (or a jump,
+                    // when the DAW loops or seeks) starts a step here.
+                    const auto gridStep = (juce::int64) std::floor ((songBeats + (double) i * beatsPerSample) / stepBeats + 1.0e-9);
+                    gridLine = gridStep != lastGridStep;
+                    lastGridStep = gridStep;
+                }
 
                 float wet = 0.0f;
                 switch (settings.mode)
@@ -103,6 +121,7 @@ namespace effects
                     case Mode::pitchDelay: wet = pitchDelaySample (dry, settings, length); break;
                     case Mode::sequence:   wet = sequenceSample (dry, settings, length); break;
                     case Mode::interfere:  wet = interfereSample (dry, settings, length); break;
+                    case Mode::killswitch: wet = killswitchSample (dry, settings, length); break;
                     case Mode::texturizer: wet = texturizerSample (settings, length); break;
                 }
 
@@ -142,12 +161,31 @@ namespace effects
         return shifted;
     }
 
+    void Glitch::moveBlend() noexcept
+    {
+        const auto target = action == Action::live ? 0.0f : 1.0f;
+        const auto step = 1.0f / (blendSeconds * (float) sampleRate);
+        blend = blend < target ? juce::jmin (target, blend + step) : juce::jmax (target, blend - step);
+    }
+
+    bool Glitch::startsStep() noexcept
+    {
+        if (! onGrid)
+            return stepRemaining <= 0;   // free-running: one step straight after another
+
+        // On the grid, steps start only on its lines. A step that ends early
+        // (Interfere shortens them) goes back to the live guitar until the next line.
+        if (! gridLine && stepRemaining <= 0)
+            action = Action::live;
+        return gridLine;
+    }
+
     float Glitch::sequenceSample (float input, const Settings& settings, int length) noexcept
     {
         // At each step, maybe (DENSITY) repeat the slice just played for the
         // whole step instead of the live guitar. CHAOS chops the repeat finer
         // (halves, quarters, eighths of the step) and sometimes plays it backwards.
-        if (stepRemaining <= 0)
+        if (startsStep())
         {
             stepRemaining = length;
             stepPlayed = 0;
@@ -177,8 +215,28 @@ namespace effects
 
         --stepRemaining;
         ++stepPlayed;
-        blend += ((action == Action::live ? 0.0f : 1.0f) - blend) * (1.0f / (blendSeconds * (float) sampleRate));
+        moveBlend();
         return input * (1.0f - blend) + acted * blend;
+    }
+
+    float Glitch::killswitchSample (float input, const Settings& settings, int length) noexcept
+    {
+        // Each step plays, then cuts out for its last part (DENSITY: from a
+        // tenth to nine tenths of the step), like flicking a guitar's toggle
+        // to a pickup turned all the way down. CHAOS leaves some steps uncut.
+        if (startsStep())
+        {
+            stepRemaining = length;
+            stepPlayed = 0;
+            const auto cutFraction = 0.1f + 0.08f * juce::jlimit (0.0f, 10.0f, settings.density);
+            loopLength = chance() < settings.chaos * 0.05f ? length + 1 : (int) ((float) length * (1.0f - cutFraction));   // where the cut starts
+        }
+
+        action = stepPlayed >= loopLength && stepRemaining > 0 ? Action::drop : Action::live;
+        --stepRemaining;
+        ++stepPlayed;
+        moveBlend();
+        return input * (1.0f - blend);
     }
 
     float Glitch::interfereSample (float input, const Settings& settings, int length) noexcept
@@ -186,7 +244,7 @@ namespace effects
         // The guitar in segments (LENGTH, shortened at random by CHAOS); some
         // (DENSITY) are broken: dropped out, played backwards, or caught in a
         // short buzzing loop.
-        if (stepRemaining <= 0)
+        if (startsStep())
         {
             const auto shorten = 1.0f - settings.chaos / 10.0f * 0.75f * chance();
             stepRemaining = juce::jmax (32, (int) ((float) length * shorten));
@@ -215,7 +273,7 @@ namespace effects
 
         --stepRemaining;
         ++stepPlayed;
-        blend += ((action == Action::live ? 0.0f : 1.0f) - blend) * (1.0f / (blendSeconds * (float) sampleRate));
+        moveBlend();
         return input * (1.0f - blend) + acted * blend;
     }
 

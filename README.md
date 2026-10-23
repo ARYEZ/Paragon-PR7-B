@@ -44,18 +44,28 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
     gain-reduction meter.
   - **Lo-Fi** (last in the chain; no footswitch): telephone, AM radio, megaphone, cassette (wow, flutter, hiss)
     or bitcrusher, for intros and breakdowns. AMOUNT, NOISE, MIX and LEVEL.
-  - **Glitch** (in the signal chain; no footswitch): granular glitch effects in four MODEs: **Pitch Delay** (echoes that each
+  - **Pitch** (first in the signal chain; no footswitch): **TUNING** retunes the whole guitar (-12 to +12 semitones: D
+    standard, B, a capo...), the **OCTAVER** blends two octaves down, one down, the dry guitar and one up (POG-style,
+    chords track too), and **FREEZE** holds what you just played as an endless pad you can play over (with LEVEL,
+    ATTACK and RELEASE).
+  - **Glitch** (in the signal chain; no footswitch): granular glitch effects in five MODEs (the fifth, **Killswitch**,
+    cuts the end of each step to silence, like flicking a guitar's toggle switch in time): **Pitch Delay** (echoes that each
     step in PITCH), **Sequence** (tempo-locked stutters that repeat the slice just played), **Interfere** (dropouts, backwards
     slivers and buzzing loops) and **Texturizer** (a cloud of grains). LENGTH (in note values with SYNC), DENSITY, PITCH, CHAOS
-    (randomises everything together: low is rhythmic, high is unpredictable) and MIX. POSITION puts it after the amp (POST,
+    (randomises everything together: low is rhythmic, high is unpredictable) and MIX. With SYNC on and the DAW playing,
+    Sequence and Interfere start their steps on the song's grid (every 1/16, every bar...), locked to the drums. POSITION puts it after the amp (POST,
     the default: exact chops) or before it (PRE: the chops hit the drive). The expression pedal's GLITCH setting fades it in.
   - **Filter / Pitch** (in the signal chain; no footswitch): an auto-wah (envelope filter), a pitch shifter
     (two octaves down to two up, blended with the dry guitar for harmonies and octaves), or a **Whammy-Wah**: the
     DigiTech XP-100's factory programs 01–28, numbered as on the pedal and played with the expression pedal (WHAMMY-WAH):
     a volume pedal, five wahs, six auto-wahs (the pedal sets sensitivity or attack), eight whammy bends (heel: no shift,
-    toe: the interval, as far as six octaves down) and eight harmonies (your note plus a voice the pedal moves between two intervals).
-  - **2 OD / Distortion:** two models: **Screamer**, modelled on the Ibanez TS808 Tube Screamer's circuit, and
-    **Classic**, Paragon's original overdrive. Drive, tone, level; 8x oversampled to avoid harsh aliasing.
+    toe: the interval, as far as six octaves down) and eight harmonies (your note plus a voice the pedal moves between two intervals);
+    or a **Talk Box**: the amp's sound, after the cab, shaped into vowels (oo to ee) by the expression pedal (TALK BOX),
+    with RESONANCE and MIX.
+  - **2 OD / Distortion:** four models: **Screamer**, modelled on the Ibanez TS808 Tube Screamer's circuit;
+    **Classic**, Paragon's original overdrive; **Muff Fuzz**, following the Big Muff's two clipping stages and
+    mid-scooping tone stack (long, violin-like sustain); and **Face Fuzz**, following the silicon Fuzz Face's uneven
+    clipping (raspy and round, cleaning up with the guitar's volume). Drive, tone, level; 8x oversampled to avoid harsh aliasing.
   - **3 Modulation:** eleven types: chorus, flanger, phaser, tremolo, Dimension chorus, Uni-Vibe, rotary
     (Leslie), vibrato, harmonic tremolo, auto-pan and doubler. SYNC locks the rate to the tapped or DAW tempo.
   - **4 Reverb / Delay:** switches both; each also has its own ON switch. The delay syncs to your

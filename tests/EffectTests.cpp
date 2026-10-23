@@ -8,6 +8,7 @@
 #include "dsp/effects/Delay.h"
 #include "dsp/effects/Reverb.h"
 #include "dsp/effects/Glitch.h"
+#include "dsp/effects/TalkBox.h"
 #include "ui/EqPresets.h"
 
 using Catch::Matchers::WithinAbs;
@@ -21,10 +22,17 @@ namespace
     struct FakePlayHead final : juce::AudioPlayHead
     {
         double bpm = 120.0;
+        bool playing = false;              // a transport that's playing reports the song position
+        double startBeats = 0.0;           // where the song was when the run began, in beats
+        juce::int64 samplesPlayed = 0;     // moved on by EffectRig::run
+
         juce::Optional<PositionInfo> getPosition() const override
         {
             PositionInfo info;
             info.setBpm (bpm);
+            info.setIsPlaying (playing);
+            if (playing)
+                info.setPpqPosition (startBeats + (double) samplesPlayed / sampleRate * bpm / 60.0);
             return info;
         }
     };
@@ -58,6 +66,7 @@ namespace
                 buffer.clear();
                 std::copy (input.begin() + (long) start, input.begin() + (long) start + count, buffer.getWritePointer (0));
                 processor.processBlock (buffer, midi);
+                playHead.samplesPlayed += count;
                 for (int ch = 0; ch < channels; ++ch)
                     output[(size_t) ch].insert (output[(size_t) ch].end(), buffer.getReadPointer (ch), buffer.getReadPointer (ch) + count);
             }
@@ -325,6 +334,46 @@ TEST_CASE ("GLITCH: each mode chops, repeats or smears the guitar as it says", "
         CHECK (maxAbsDifference (rig.runMono (noise), noise, (size_t) (0.1 * sampleRate)) < 1.0e-3f);
     }
 
+    SECTION ("Synced, with the song playing: steps start on the song's grid lines")
+    {
+        // 1/16 at 120 BPM: steps of a quarter of a beat (6000 samples). The
+        // song starts 0.1 beats in, so the first grid line comes 3600 samples
+        // in, then every 6000. Every step repeats the one before it, so the
+        // step from 9600 is a repeat of the audio from 3600 to 9600.
+        const auto run = [&] (bool playing)
+        {
+            EffectRig rig;
+            glitchRig (rig, effects::Glitch::Mode::sequence, 10.0f, 0.0f);
+            rig.set (ParamIDs::glitchSync, 1.0f);
+            rig.set (ParamIDs::glitchDivision, 3.0f);   // 1/16
+            rig.playHead.playing = playing;
+            rig.playHead.startBeats = 0.1;
+            return rig.runMono (noise);
+        };
+        const auto matchesGrid = [&] (const std::vector<float>& output)
+        {
+            std::vector<float> got (output.begin() + 9600 + 200, output.begin() + 15600 - 200);
+            std::vector<float> expected (noise.begin() + 3600 + 200, noise.begin() + 9600 - 200);
+            return maxAbsDifference (got, expected) < 0.01f;
+        };
+        CHECK (matchesGrid (run (true)));
+        CHECK_FALSE (matchesGrid (run (false)));   // stopped: steps count from switch-on (0, 6000, 12000...)
+    }
+
+    SECTION ("Killswitch: each step plays, then cuts to silence for its last part")
+    {
+        // DENSITY 5: the last half of each 100 ms step (4800 samples) is cut.
+        EffectRig rig;
+        glitchRig (rig, effects::Glitch::Mode::killswitch, 5.0f, 0.0f);
+        const auto output = rig.runMono (noise);
+        for (int step = 2; step < 8; ++step)
+        {
+            const auto at = [&] (int sample) { return (double) (step * 4800 + sample) / sampleRate; };
+            CHECK (rms (output, at (2600), at (4700)) < 1.0e-3f);                            // cut
+            CHECK (rms (output, at (300), at (2200)) > 0.8f * rms (noise, at (300), at (2200)));   // playing
+        }
+    }
+
     SECTION ("PRE and POST both glitch the guitar")
     {
         for (const auto position : { effects::Glitch::Position::post, effects::Glitch::Position::pre })
@@ -335,6 +384,63 @@ TEST_CASE ("GLITCH: each mode chops, repeats or smears the guitar as it says", "
             const auto output = rig.runMono (noise);
             CHECK (maxAbsDifference (output, noise, (size_t) (0.2 * sampleRate)) > 0.1f);
         }
+    }
+}
+
+TEST_CASE ("Fuzzes: Muff sustains with odd harmonics and scoops the mids; Face clips unevenly and cleans up", "[effects][drive]")
+{
+    const auto play = [] (effects::Drive::Model model, float amplitude, float drive = 5.0f, float tone = 5.0f, double hz = 220.0)
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::driveOn, 1.0f);
+        rig.set (ParamIDs::driveModel, (float) model);
+        rig.set (ParamIDs::driveGain, drive);
+        rig.set (ParamIDs::driveTone, tone);
+        const auto output = rig.runMono (sine (hz, amplitude, 1.0));
+        REQUIRE (allFinite (output));
+        return output;
+    };
+
+    SECTION ("At LEVEL 0 dB both sit near the guitar's own level, at any FUZZ / SUSTAIN")
+    {
+        for (const auto model : { effects::Drive::Model::muff, effects::Drive::Model::face })
+            for (const auto drive : { 2.0f, 5.0f, 9.0f })
+            {
+                INFO ("model " << (int) model << ", drive " << drive);
+                CHECK (std::abs (dB (rms (play (model, 0.3f, drive), 0.3) / (0.3f / std::sqrt (2.0f)))) < 3.0f);
+            }
+    }
+
+    SECTION ("Muff clips both halves alike (odd harmonics); Face clips one harder (a strong 2nd)")
+    {
+        const auto secondToThird = [&] (effects::Drive::Model model)
+        {
+            const auto output = play (model, 0.3f, 7.0f, 7.0f);
+            return dB (levelAt (output, 440.0, 0.3) / levelAt (output, 660.0, 0.3));
+        };
+        CHECK (secondToThird (effects::Drive::Model::face) > secondToThird (effects::Drive::Model::muff) + 10.0f);
+    }
+
+    SECTION ("Face cleans up as the guitar's volume comes down")
+    {
+        const auto harmonics = [&] (float amplitude)
+        {
+            const auto output = play (effects::Drive::Model::face, amplitude, 5.0f);
+            return dB ((levelAt (output, 440.0, 0.3) + levelAt (output, 660.0, 0.3)) / levelAt (output, 220.0, 0.3));
+        };
+        CHECK (harmonics (0.3f) > harmonics (0.01f) + 10.0f);
+    }
+
+    SECTION ("Muff's TONE scoops the mids at noon")
+    {
+        // A quiet 1 kHz tone (still fuzzed), against 250 Hz, through the tone stack.
+        const auto midsAgainstLows = [&] (float tone)
+        {
+            const auto mids = play (effects::Drive::Model::muff, 0.3f, 5.0f, tone, 1000.0);
+            const auto lows = play (effects::Drive::Model::muff, 0.3f, 5.0f, tone, 250.0);
+            return dB (rms (mids, 0.3) / rms (lows, 0.3));
+        };
+        CHECK (midsAgainstLows (5.0f) < midsAgainstLows (10.0f) - 3.0f);
     }
 }
 
@@ -715,6 +821,99 @@ TEST_CASE ("Whammy-Wah: the expression pedal plays the XP-100's programs", "[eff
         CHECK (rms (play ("01 Volume Pedal", 0.0f, note), 0.2) < 1.0e-4f);
         CHECK_THAT (rms (play ("01 Volume Pedal", 1.0f, note), 0.2), WithinAbs (rms (note, 0.2), 0.01));
     }
+}
+
+TEST_CASE ("PITCH: TUNING retunes the guitar, the OCTAVER stacks octaves, FREEZE holds a note", "[effects][pitch]")
+{
+    const auto note = sine (330.0, 0.3f, 1.0);
+
+    SECTION ("TUNING: -12 an octave down, +2 a whole step up, 0 untouched")
+    {
+        const auto tuned = [&] (float semitones)
+        {
+            EffectRig rig;
+            rig.set (ParamIDs::pitchTune, semitones);
+            const auto output = rig.runMono (note);
+            REQUIRE (allFinite (output));
+            return output;
+        };
+        const auto down = tuned (-12.0f);
+        CHECK (dB (levelAt (down, 165.0, 0.2) / levelAt (down, 330.0, 0.2)) > 20.0f);
+        const auto up = tuned (2.0f);
+        CHECK (dB (levelAt (up, 330.0 * 1.1225, 0.2) / levelAt (up, 330.0, 0.2)) > 20.0f);
+        CHECK (maxAbsDifference (tuned (0.0f), note) < 1.0e-4f);
+    }
+
+    SECTION ("OCTAVER: each voice on its octave; DRY alone is the guitar as it was")
+    {
+        const auto octaver = [&] (float subTwo, float subOne, float dryLevel, float upOne)
+        {
+            EffectRig rig;
+            rig.set (ParamIDs::octOn, 1.0f);
+            rig.set (ParamIDs::octSubTwo, subTwo);
+            rig.set (ParamIDs::octSubOne, subOne);
+            rig.set (ParamIDs::octDry, dryLevel);
+            rig.set (ParamIDs::octUp, upOne);
+            const auto output = rig.runMono (note);
+            REQUIRE (allFinite (output));
+            return output;
+        };
+        const auto oneDown = octaver (0.0f, 1.0f, 0.0f, 0.0f);
+        CHECK (dB (levelAt (oneDown, 165.0, 0.2) / levelAt (oneDown, 330.0, 0.2)) > 20.0f);
+        const auto twoDown = octaver (1.0f, 0.0f, 0.0f, 0.0f);
+        CHECK (dB (levelAt (twoDown, 82.5, 0.2) / levelAt (twoDown, 330.0, 0.2)) > 20.0f);
+        const auto oneUp = octaver (0.0f, 0.0f, 0.0f, 1.0f);
+        CHECK (dB (levelAt (oneUp, 660.0, 0.2) / levelAt (oneUp, 330.0, 0.2)) > 20.0f);
+        CHECK (maxAbsDifference (octaver (0.0f, 0.0f, 1.0f, 0.0f), note, (size_t) (0.1 * sampleRate)) < 1.0e-3f);
+    }
+
+    SECTION ("FREEZE: holds the note after you stop, and fades when switched off")
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::freezeAttack, 50.0f);
+        rig.set (ParamIDs::freezeRelease, 200.0f);
+        rig.runMono (sine (440.0, 0.3f, 0.6));        // play a note...
+        rig.set (ParamIDs::freezeOn, 1.0f);            // ...freeze it...
+        const auto held = rig.runMono (silence (1.0)); // ...and stop playing
+        REQUIRE (allFinite (held));
+        // Still sounding, a second later, and still the note: its pieces come
+        // from random places in what was caught, so measure loudness (their
+        // phases don't line up over a long stretch) and check that a short
+        // stretch is mostly 440 Hz.
+        CHECK (rms (held, 0.3) > 0.05f);
+        std::vector<float> stretch (held.begin() + (size_t) (0.5 * sampleRate), held.begin() + (size_t) (0.52 * sampleRate));
+        CHECK (dB (levelAt (stretch, 440.0, 0.0) / levelAt (stretch, 1000.0, 0.0)) > 20.0f);
+        rig.set (ParamIDs::freezeOn, 0.0f);
+        const auto released = rig.runMono (silence (0.6));
+        CHECK (rms (released, 0.4) < 1.0e-3f);         // gone after its release
+    }
+}
+
+TEST_CASE ("Talk Box: the pedal shapes the amp's sound from oo to ee", "[effects][wah]")
+{
+    // The vowels' formants: oo low, ee with its second formant up high.
+    CHECK (effects::TalkBox::formantsFor (0.0f)[1] < 1000.0f);
+    CHECK (effects::TalkBox::formantsFor (1.0f)[1] > 2000.0f);
+
+    // A bright, harmonic-rich note (like a driven amp): at the toe the energy
+    // near 2.3 kHz (ee's second formant) is far stronger than at the heel.
+    std::vector<float> bright ((size_t) sampleRate);
+    for (size_t i = 0; i < bright.size(); ++i)
+        for (int harmonic = 1; harmonic <= 30; ++harmonic)
+            bright[i] += 0.05f * (float) std::sin (juce::MathConstants<double>::twoPi * 110.0 * harmonic * (double) i / sampleRate) / std::sqrt ((float) harmonic);
+    const auto ee = [&] (float pedal)
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::fpOn, 1.0f);
+        rig.set (ParamIDs::fpType, (float) effects::FilterPitch::Type::talkBox);
+        rig.set (ParamIDs::fpMix, 1.0f);
+        rig.set (ParamIDs::expressionTarget, (float) ExpressionTargets::talkBox);
+        rig.set (ParamIDs::expression, pedal);
+        const auto output = rig.runMono (bright);
+        REQUIRE (allFinite (output));
+        return dB (levelAt (output, 110.0 * 21, 0.2) / levelAt (output, 110.0 * 3, 0.2));   // 2.3 kHz against 330 Hz
+    };
+    CHECK (ee (1.0f) - ee (0.0f) > 9.0f);   // measured about 12 dB: as big a change as between the two vowels in speech
 }
 
 TEST_CASE ("The auto-wah opens up as you play harder", "[effects][wah]")
