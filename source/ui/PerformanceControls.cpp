@@ -8,10 +8,13 @@
 
 namespace
 {
-    const Icons::Type targetIcons[] = { Icons::Type::volume, Icons::Type::wah, Icons::Type::rig, Icons::Type::filterPitch, Icons::Type::loFi };
+    const Icons::Type targetIcons[] = { Icons::Type::volume, Icons::Type::wah, Icons::Type::rig, Icons::Type::filterPitch, Icons::Type::loFi,
+                                        Icons::Type::wah };
     constexpr float screenSize = 7.0f / 11.0f;   // the assign screen's frame and bezel, relative to the main screen's
 
-    const char* pedalNames[] = { "VOLUME", "WAH / FILTER", "MORPH / FX", "PITCH / WHAMMY", "LO-FI" };
+    const char* pedalNames[] = { "VOLUME", "WAH / FILTER", "MORPH / FX", "PITCH / WHAMMY", "LO-FI", "WHAMMY-WAH" };
+    constexpr int lastTarget = ExpressionTargets::whammyWah;
+    static_assert (std::size (pedalNames) == (size_t) lastTarget && ExpressionAssign::numTargets == lastTarget);
 
     juce::RangedAudioParameter& parameter (juce::AudioProcessorValueTreeState& state, const char* id)
     {
@@ -91,7 +94,7 @@ ExpressionAssign::ExpressionAssign (juce::AudioProcessorValueTreeState& stateToU
     }
     else
     {
-        for (int target = ExpressionTargets::volume; target <= ExpressionTargets::loFi; ++target)
+        for (int target = ExpressionTargets::volume; target <= lastTarget; ++target)
         {
             const auto index = (size_t) (target - 1);
             auto button = std::make_unique<IconButton> (ExpressionTargets::names[target], targetIcons[index],
@@ -129,6 +132,13 @@ void ExpressionAssign::select (int target)
         set (ParamIDs::fpType, (float) effects::FilterPitch::Type::pitchShifter);
     }
 
+    // WHAMMY-WAH plays the FILTER / PITCH block's Whammy-Wah type: switch it on as one.
+    if (newTarget == ExpressionTargets::whammyWah)
+    {
+        set (ParamIDs::fpOn, 1.0f);
+        set (ParamIDs::fpType, (float) effects::FilterPitch::Type::whammyWah);
+    }
+
     // LO-FI fades the LO-FI block in, so switch it on.
     if (newTarget == ExpressionTargets::loFi)
         set (ParamIDs::lofiOn, 1.0f);
@@ -148,17 +158,17 @@ juce::Rectangle<float> ExpressionAssign::screenGlass() const
     return getLocalBounds().toFloat().reduced (11.0f * screenSize);   // where LedDisplay::paintScreen puts the glass
 }
 
-std::array<juce::Rectangle<float>, 5> ExpressionAssign::screenRows() const
+std::array<juce::Rectangle<float>, ExpressionAssign::numTargets> ExpressionAssign::screenRows() const
 {
-    // Inside the glass: the EXPRESSION heading and a rule, the five lines,
-    // then the position bar along the bottom.
+    // Inside the glass: the EXPRESSION heading and a rule, a line per
+    // target, then the position bar along the bottom.
     auto content = screenGlass().reduced (5.0f, 4.0f);
-    content.removeFromTop (17.0f);
-    content.removeFromBottom (12.0f);
-    std::array<juce::Rectangle<float>, 5> rows;
+    content.removeFromTop (15.0f);
+    content.removeFromBottom (10.0f);
+    std::array<juce::Rectangle<float>, numTargets> rows;
     const auto rowHeight = content.getHeight() / (float) rows.size();
     for (auto& row : rows)
-        row = content.removeFromTop (rowHeight).reduced (0.0f, 1.0f);
+        row = content.removeFromTop (rowHeight).reduced (0.0f, 0.5f);
     return rows;
 }
 
@@ -187,7 +197,7 @@ void ExpressionAssign::paint (juce::Graphics& g)
     // the others dimmed so the choice stands out. With nothing chosen, all
     // of them show normally.
     const auto rows = screenRows();
-    g.setFont (juce::FontOptions (9.0f, juce::Font::bold));
+    g.setFont (juce::FontOptions (8.5f, juce::Font::bold));
     for (size_t i = 0; i < rows.size(); ++i)
     {
         const auto selected = currentTarget == (int) i + 1;
@@ -255,7 +265,7 @@ void ExpressionAssign::mouseWheelMove (const juce::MouseEvent&, const juce::Mous
 
     const auto step = wheelTravel > 0.0f ? 1 : -1;
     wheelTravel = 0.0f;
-    const auto next = juce::jlimit ((int) ExpressionTargets::volume, (int) ExpressionTargets::loFi,
+    const auto next = juce::jlimit ((int) ExpressionTargets::volume, lastTarget,
                                     currentTarget == ExpressionTargets::off ? (int) ExpressionTargets::volume : currentTarget + step);
     if (next != currentTarget)
         select (next);

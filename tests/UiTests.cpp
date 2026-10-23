@@ -218,7 +218,7 @@ TEST_CASE ("The expression screen: click a line to assign the pedal, again to un
         // The glass's content: the heading at the top, the position bar at
         // the bottom, the five lines evenly between (as the screen lays them out).
         const auto glass = screen.getLocalBounds().toFloat().reduced (7.0f).reduced (5.0f, 4.0f);
-        const auto top = glass.getY() + 17.0f, height = (glass.getHeight() - 29.0f) / 5.0f;
+        const auto top = glass.getY() + 15.0f, height = (glass.getHeight() - 25.0f) / (float) ExpressionAssign::numTargets;
         return juce::Point<float> (glass.getCentreX(), top + height * ((float) line + 0.5f));
     };
     const auto click = [&] (int line)
@@ -244,6 +244,14 @@ TEST_CASE ("The expression screen: click a line to assign the pedal, again to un
     click (4);
     CHECK (target() == ExpressionTargets::loFi);
     click (4);
+    CHECK (target() == ExpressionTargets::off);
+
+    // WHAMMY-WAH also switches the FILTER / PITCH block on as a Whammy-Wah.
+    click (5);
+    CHECK (target() == ExpressionTargets::whammyWah);
+    CHECK (state.getRawParameterValue (ParamIDs::fpOn)->load() > 0.5f);
+    CHECK (juce::roundToInt (state.getRawParameterValue (ParamIDs::fpType)->load()) == (int) effects::FilterPitch::Type::whammyWah);
+    click (5);
     CHECK (target() == ExpressionTargets::off);
 
     // Scrolling down from unassigned starts at the top, then steps down; it stops at the ends.

@@ -41,8 +41,10 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
   - **1 Comp / Gate:** compressor (threshold, ratio, level) and noise gate (threshold; all the way down is off).
   - **Lo-Fi** (last in the chain; no footswitch): telephone, AM radio, megaphone, cassette (wow, flutter, hiss)
     or bitcrusher, for intros and breakdowns. AMOUNT, NOISE, MIX and LEVEL.
-  - **Filter / Pitch** (in the signal chain; no footswitch): an auto-wah (envelope filter) or a pitch shifter
-    (two octaves down to two up, blended with the dry guitar for harmonies and octaves).
+  - **Filter / Pitch** (in the signal chain; no footswitch): an auto-wah (envelope filter), a pitch shifter
+    (two octaves down to two up, blended with the dry guitar for harmonies and octaves), or a **Whammy-Wah** in the
+    style of the DigiTech XP-100, played with the expression pedal (WHAMMY-WAH): its MODE picks one of five wahs, eight
+    whammy bends (heel: no shift, toe: the interval) or nine harmonies (your note plus a voice the pedal moves between two intervals).
   - **2 OD / Distortion:** two models: **Screamer**, modelled on the Ibanez TS808 Tube Screamer's circuit, and
     **Classic**, Paragon's original overdrive. Drive, tone, level; 8x oversampled to avoid harsh aliasing.
   - **3 Modulation:** eleven types: chorus, flanger, phaser, tremolo, Dimension chorus, Uni-Vibe, rotary
@@ -75,7 +77,8 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
   pedal's position) or with EXPRESSION ASSIGN in the dock, to
   **VOLUME**, **WAH / FILTER** (a wah before the drive), **MORPH / FX** (fades modulation, delay and
   reverb in from the heel), **PITCH / WHAMMY** (bends the pitch shifter from no shift at the heel to its
-  INTERVAL at the toe) or **LO-FI** (fades the lo-fi effect in: full band at the heel, lo-fi at the toe). MIN and MAX set where the heel and toe land. The assignment and range
+  INTERVAL at the toe), **LO-FI** (fades the lo-fi effect in: full band at the heel, lo-fi at the toe) or
+  **WHAMMY-WAH** (plays the FILTER / PITCH block's Whammy-Wah). MIN and MAX set where the heel and toe land. The assignment and range
   are saved with each rig.
 - **Bottom panels:** RIG BROWSER jumps to the PRESETS page filtered; SELECTED RIG files and saves the
   current rig; the middle shows the graphic EQ, or the knobs of whichever block you pick (click a

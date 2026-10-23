@@ -292,6 +292,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                               { ParamIDs::fpSensitivity, "SENSITIVITY", fpIs (effects::FilterPitch::Type::autoWah) },
                               { ParamIDs::fpResonance, "RESONANCE", fpIs (effects::FilterPitch::Type::autoWah) },
                               { ParamIDs::fpInterval, "INTERVAL", fpIs (effects::FilterPitch::Type::pitchShifter) },
+                              { ParamIDs::fpWhammyWahMode, "MODE", fpIs (effects::FilterPitch::Type::whammyWah) },
                               { ParamIDs::fpMix, "MIX" } } } });
     panels[driveBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "OVERDRIVE", { { ParamIDs::driveOn, "ON" }, { ParamIDs::driveModel, "MODEL" }, { ParamIDs::driveGain, "DRIVE" }, { ParamIDs::driveTone, "TONE" },

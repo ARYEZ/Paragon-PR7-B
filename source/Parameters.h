@@ -97,6 +97,9 @@ namespace ParamIDs
     inline constexpr auto delayDuck  = "delayDuck";
     inline constexpr auto reverbDuck = "reverbDuck";
 
+    // Version 20: the FILTER / PITCH block's Whammy-Wah (XP-100 style) mode.
+    inline constexpr auto fpWhammyWahMode = "fpWhammyWahMode";
+
     // Global settings: kept when switching rigs. Everything else is part of a rig.
     // The expression pedal's position is global for the same reason a real
     // pedal's is: it's where your foot is, not part of the sound. What the
@@ -107,8 +110,8 @@ namespace ParamIDs
 namespace ExpressionTargets
 {
     // Saved by number: only ever add to the end.
-    enum { off, volume, wah, morph, pitch, loFi };
-    inline const juce::StringArray names { "Off", "Volume", "Wah / Filter", "Morph FX", "Pitch / Whammy", "Lo-Fi" };
+    enum { off, volume, wah, morph, pitch, loFi, whammyWah };
+    inline const juce::StringArray names { "Off", "Volume", "Wah / Filter", "Morph FX", "Pitch / Whammy", "Lo-Fi", "Whammy-Wah" };
 }
 
 namespace ParamRanges

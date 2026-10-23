@@ -2,6 +2,17 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.21.0
+
+- **Whammy-Wah.** A new FILTER / PITCH type in the style of the DigiTech XP-100 Whammy-Wah, played with the expression pedal. Its MODE picks one of the XP-100's three kinds of effect:
+  - **Wah (5):** Classic, Vocal (narrow and talky), Wide (a long sweep), Deep (dark and low) and Bright. The pedal sweeps the wah from heel to toe.
+  - **Whammy (8):** 2 Oct Up, Oct Up, 5th Down, 4th Down, Oct Down, 2 Oct Down, Dive Bomb and Drop Tune (a whole step down). The pedal bends the pitch from none at the heel to the full interval at the toe, and only the bent note is heard. Dive Bomb hangs on and then plunges, like a whammy bar. It goes down two octaves, the pitch shifter's limit.
+  - **Harmony (9):** 2nd/3rd Up, b3rd/3rd Up, 3rd/4th Up, 4th/5th Up, 5th/6th Up, 5th/Oct Up, 3rd/4th Down, 4th/5th Down and Oct Down/Up. Your note plus a second voice, which the pedal moves from the first interval at the heel to the second at the toe. MIX sets how loud the harmony is.
+  - These follow the XP-100's layout and the classic Whammy settings. They're not a copy of DigiTech's processing.
+- **New expression setting: WHAMMY-WAH**, on the EXPRESSION screen and in EXPRESSION ASSIGN. Choosing it switches the FILTER / PITCH block on as a Whammy-Wah. If the pedal isn't assigned to it, the Whammy-Wah rests at the heel.
+- **New factory rigs:** **Whammy Lead** (B7, octave-up whammy), **XP Wah Crunch** (B8, the Classic wah into a crunch drive) and **Harmony Bends** (B9, a third rising to a fourth).
+- The EXPRESSION screen fits six lines now.
+
 ## 0.20.0
 
 - **EQ presets.** The graphic EQ has a **PRESETS** menu next to FLAT with twelve starting curves. These are the shapes guitarists most often dial into an octave-band graphic EQ, like an MXR 10-band or the graphic EQ in an amp sim, after the amp and cab:

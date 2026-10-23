@@ -191,5 +191,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     // default, so earlier projects and rigs sound the same.
     layout.add (makeFloat (ParamIDs::delayDuck, "Delay Duck", { 0.0f, 1.0f, 0.01f }, 0.0f, 17, asPercent));
     layout.add (makeFloat (ParamIDs::reverbDuck, "Reverb Duck", { 0.0f, 1.0f, 0.01f }, 0.0f, 17, asPercent));
+
+    layout.add (makeChoice (ParamIDs::fpWhammyWahMode, "Whammy-Wah Mode", 20, effects::FilterPitch::whammyWahModeNames(), 0));
     return layout;
 }
