@@ -28,6 +28,8 @@ namespace
     // FILTER / PITCH types.
     constexpr float autoWah = 0, pitchShifter = 1, whammyWah = 2;
     constexpr float daybreakComp = 1;   // COMP / GATE's TYPE
+    constexpr float glitchSequence = 1, glitchTexturizer = 3, glitchSixteenth = 3;   // GLITCH's MODE and LENGTH
+    constexpr float pedalGlitch = 7;   // the expression pedal's GLITCH setting
     constexpr float xpCryWah = 1, xpUpOctave = 12, xpOctDownOctUp = 20, xpUp4thUp5th = 23;   // Whammy-Wah programs 02, 13, 21 and 24
     constexpr float pedalWhammyWah = 6;   // the expression pedal's WHAMMY-WAH setting
     // Delay types (index into effects::Delay::typeNames).
@@ -177,6 +179,23 @@ std::vector<Rig> makeFactoryRigs()
             { eqOn, 1 }, { "eq63", -6 }, { "eq125", -4 }, { "eq250", -1 }, { "eq1k", 1 }, { "eq2k", 2 }, { "eq4k", 2 }, { "eq8k", 1 },
             { eqLevel, -0.5f },
             { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.25f }, { reverbMix, 0.1f } }),
+
+        // Tempo-locked stutters on a crunch, faded in with the pedal: rock
+        // forward on a transition or the end of a riff.
+        make ("Stutter Edit", C, 10, "Glitch,Drive,Expression", {
+            { glitchOn, 1 }, { glitchMode, glitchSequence }, { glitchSync, 1 }, { glitchDivision, glitchSixteenth },
+            { glitchDensity, 6 }, { glitchChaos, 2 }, { glitchMix, 1 },
+            { expressionTarget, pedalGlitch },
+            { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 }, { driveLevel, 4 },
+            { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.12f } }),
+
+        // A slow cloud of grains under a clean tone: chords smear into a pad.
+        make ("Grain Cloud", D, 10, "Glitch,Ambient,Clean", {
+            { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 },
+            { glitchOn, 1 }, { glitchMode, glitchTexturizer }, { glitchSync, 0 }, { glitchTime, 250 },
+            { glitchDensity, 4 }, { glitchChaos, 5 }, { glitchMix, 0.45f },
+            { delayOn, 1 }, { delaySync, quarter }, { delayFeedback, 0.4f }, { delayMix, 0.25f },
+            { reverbOn, 1 }, { reverbType, hall }, { reverbSize, 0.8f }, { reverbMix, 0.35f } }),
 
         make ("Phone Intro", B, 5, "Lo-Fi,Clean", {
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 },

@@ -84,11 +84,11 @@ TEST_CASE ("The chain and footswitches pick which block's knobs show; the graphi
     ParagonX1AudioProcessor processor;
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
 
-    // The knob panels in signal-chain order: nine EffectPanels, with the
+    // The knob panels in signal-chain order: ten EffectPanels, with the
     // graphic EQ's own panel as block 5 (after the cabinet).
     std::vector<EffectPanel*> effectPanels;
     findAll (*editor, effectPanels);
-    REQUIRE (effectPanels.size() == 9);
+    REQUIRE (effectPanels.size() == 10);
     std::vector<GraphicEqPanel*> eqPanels;
     findAll (*editor, eqPanels);
     REQUIRE (eqPanels.size() == 1);
@@ -114,20 +114,20 @@ TEST_CASE ("The chain and footswitches pick which block's knobs show; the graphi
     std::vector<SignalChain*> chains;
     findAll (*editor, chains);
     REQUIRE (chains.size() == 1);
-    for (int block = 0; block < 10; ++block)
+    for (int block = 0; block < 11; ++block)
     {
         chains[0]->onSelect (block);
         CHECK (visiblePanel() == block);
     }
 
-    // Footswitch 3's name shows modulation (block 6); footswitch 4's shows delay (block 7).
+    // Footswitch 3's name shows modulation (block 7); footswitch 4's shows delay (block 8).
     std::vector<Footswitch*> footswitches;
     findAll (*editor, footswitches);
     REQUIRE (footswitches.size() == 4);
     footswitches[2]->onSelect();
-    CHECK (visiblePanel() == 6);
-    footswitches[3]->onSelect();
     CHECK (visiblePanel() == 7);
+    footswitches[3]->onSelect();
+    CHECK (visiblePanel() == 8);
 
     // The GRAPHIC EQ button on any other block's panel goes back to the EQ.
     std::vector<juce::TextButton*> buttons;

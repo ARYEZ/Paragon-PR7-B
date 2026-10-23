@@ -306,6 +306,30 @@ namespace Icons
                 break;
             }
 
+            case Type::glitch:
+            {
+                // A waveform chopped up: a smooth start, then square stutter
+                // steps that jump about, as GLITCH cuts the sound into pieces.
+                p.startNewSubPath (0.04f, 0.5f);
+                p.quadraticTo (0.12f, 0.22f, 0.2f, 0.5f);
+                p.lineTo (0.28f, 0.5f);
+                p.lineTo (0.28f, 0.2f);
+                p.lineTo (0.4f, 0.2f);
+                p.lineTo (0.4f, 0.74f);
+                p.lineTo (0.48f, 0.74f);
+                p.lineTo (0.48f, 0.36f);
+                p.lineTo (0.58f, 0.36f);
+                p.lineTo (0.58f, 0.86f);
+                p.lineTo (0.66f, 0.86f);
+                p.lineTo (0.66f, 0.12f);
+                p.lineTo (0.74f, 0.12f);
+                p.lineTo (0.74f, 0.6f);
+                p.lineTo (0.84f, 0.6f);
+                p.lineTo (0.84f, 0.42f);
+                p.lineTo (0.96f, 0.42f);
+                break;
+            }
+
             case Type::flame:
                 // The mockup's "All Rigs" icon.
                 p.startNewSubPath (0.5f, 0.05f);

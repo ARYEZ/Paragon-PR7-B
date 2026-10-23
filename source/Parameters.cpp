@@ -5,6 +5,7 @@
 #include "dsp/effects/Drive.h"
 #include "dsp/effects/FilterPitch.h"
 #include "dsp/effects/LoFi.h"
+#include "dsp/effects/Glitch.h"
 #include "dsp/effects/GraphicEq.h"
 #include "dsp/effects/Modulation.h"
 #include "dsp/effects/Reverb.h"
@@ -200,5 +201,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::compDetail, "Comp Detail", { 0.0f, 10.0f, 0.1f }, 5.0f, v22, asKnob));
     layout.add (makeFloat (ParamIDs::compMix, "Comp Mix", { 0.0f, 1.0f, 0.01f }, 1.0f, v22, asPercent));
     layout.add (makeSwitch (ParamIDs::compIntensity, "Comp Intensity", v22, false));
+
+    constexpr int v23 = 23;
+    layout.add (makeSwitch (ParamIDs::glitchOn, "Glitch On", v23, false));
+    layout.add (makeChoice (ParamIDs::glitchMode, "Glitch Mode", v23, effects::Glitch::modeNames, (int) effects::Glitch::Mode::sequence));
+    layout.add (makeChoice (ParamIDs::glitchPosition, "Glitch Position", v23, effects::Glitch::positionNames, 0));
+    layout.add (makeSwitch (ParamIDs::glitchSync, "Glitch Sync", v23, true));
+    layout.add (makeFloat (ParamIDs::glitchTime, "Glitch Length", skewed (10.0f, 1000.0f, 150.0f, 1.0f), 120.0f, v23, asMs));
+    layout.add (makeChoice (ParamIDs::glitchDivision, "Glitch Length (Sync)", v23, effects::Glitch::syncNames, 3));
+    layout.add (makeFloat (ParamIDs::glitchDensity, "Glitch Density", { 0.0f, 10.0f, 0.1f }, 5.0f, v23, asKnob));
+    layout.add (makeFloat (ParamIDs::glitchPitch, "Glitch Pitch", { -12.0f, 12.0f, 1.0f }, 0.0f, v23, asSemitones));
+    layout.add (makeFloat (ParamIDs::glitchChaos, "Glitch Chaos", { 0.0f, 10.0f, 0.1f }, 3.0f, v23, asKnob));
+    layout.add (makeFloat (ParamIDs::glitchMix, "Glitch Mix", { 0.0f, 1.0f, 0.01f }, 0.5f, v23, asPercent));
     return layout;
 }

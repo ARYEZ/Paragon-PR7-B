@@ -24,6 +24,9 @@ namespace effects
         // Snap to on/off without fading: when the host restarts playback.
         void setImmediately (bool on) { amount.setCurrentAndTargetValue (on ? 1.0f : 0.0f); }
 
+        // Switched off and finished fading out: the effect isn't heard at all.
+        bool isSilent() const noexcept { return ! amount.isSmoothing() && amount.getTargetValue() <= 0.0f; }
+
         // Runs `processWet (block)` (which processes the block in place) and
         // blends it with the dry signal as needed.
         template <typename ProcessWet>

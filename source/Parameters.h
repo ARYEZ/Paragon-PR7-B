@@ -108,6 +108,18 @@ namespace ParamIDs
     inline constexpr auto compMix       = "compMix";         // MIX
     inline constexpr auto compIntensity = "compIntensity";   // INTENSITY
 
+    // Version 23: the GLITCH block.
+    inline constexpr auto glitchOn       = "glitchOn";
+    inline constexpr auto glitchMode     = "glitchMode";
+    inline constexpr auto glitchPosition = "glitchPosition";   // Post (after the amp) or Pre (before it)
+    inline constexpr auto glitchSync     = "glitchSync";
+    inline constexpr auto glitchTime     = "glitchTime";       // LENGTH in ms, when not synced
+    inline constexpr auto glitchDivision = "glitchDivision";   // LENGTH as a note value, when synced
+    inline constexpr auto glitchDensity  = "glitchDensity";
+    inline constexpr auto glitchPitch    = "glitchPitch";
+    inline constexpr auto glitchChaos    = "glitchChaos";
+    inline constexpr auto glitchMix      = "glitchMix";
+
     // Global settings: kept when switching rigs. Everything else is part of a rig.
     // The expression pedal's position is global for the same reason a real
     // pedal's is: it's where your foot is, not part of the sound. What the
@@ -118,8 +130,8 @@ namespace ParamIDs
 namespace ExpressionTargets
 {
     // Saved by number: only ever add to the end.
-    enum { off, volume, wah, morph, pitch, loFi, whammyWah };
-    inline const juce::StringArray names { "Off", "Volume", "Wah / Filter", "Morph FX", "Pitch / Whammy", "Lo-Fi", "Whammy-Wah" };
+    enum { off, volume, wah, morph, pitch, loFi, whammyWah, glitch };
+    inline const juce::StringArray names { "Off", "Volume", "Wah / Filter", "Morph FX", "Pitch / Whammy", "Lo-Fi", "Whammy-Wah", "Glitch" };
 }
 
 namespace ParamRanges

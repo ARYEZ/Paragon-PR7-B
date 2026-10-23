@@ -2,6 +2,25 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.24.0
+
+- **GLITCH**, a new block for granular glitch, stutter and texture effects. It keeps the last few seconds of your playing and plays pieces of it back. Four MODEs:
+  - **Pitch Delay:** echoes where each repeat is shifted by PITCH from the last, so they climb (or fall) away.
+  - **Sequence:** tempo-locked stutters. At each step it may grab the slice you just played and repeat it instead, like a beat-repeat edit.
+  - **Interfere:** a failing signal. Your playing is cut into segments, some dropped out, played backwards, or caught in a short buzzing loop.
+  - **Texturizer:** a cloud of overlapping grains from the last moments of playing, smeared into a pad. Lovely on cleans.
+- **Controls:**
+  - **LENGTH:** the size of the pieces. With SYNC on it's a note value from 1/64 to a bar, at the tapped or host tempo; otherwise milliseconds.
+  - **DENSITY:** how many repeats, stutters, breaks or grains.
+  - **PITCH:** ±12 semitones.
+  - **CHAOS:** the macro. At 0 everything is regular and rhythmic. Turn it up and lengths, pitches (including octave jumps), directions and positions are randomised together.
+  - **MIX.**
+- **POSITION:** **Post** (the default) puts it after the amp and cab, before modulation, so the chops are exact. **Pre** puts it before the amp, so the chops hit the drive for a wilder, sputtering sound.
+- **New expression setting: GLITCH.** The pedal fades GLITCH in: dry at the heel, its MIX at the toe. Choosing it switches GLITCH on. The EXPRESSION screen now has seven lines.
+- **New factory rigs:** **Stutter Edit** (C10: 1/16 stutters on a crunch, on the pedal) and **Grain Cloud** (D10: a Texturizer pad on a clean tone).
+- The signal chain has eleven blocks now. GLITCH sits after EQ, where it runs in Post.
+- This is our own design, built from Neural DSP's description of the Glitch pedal in *Archetype: Misha*. It isn't a copy of their processing.
+
 ## 0.23.0
 
 - **Daybreak compressor.** COMP / GATE has a TYPE: **Classic** (the original, still the default, so your rigs sound the same) or **Daybreak**, a modern pedal compressor laid out like the boutique ones metal players use:

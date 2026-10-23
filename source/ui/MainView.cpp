@@ -113,6 +113,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
           { "NAMP", Icons::Type::amp, ParagonColours::amp, ParamIDs::ampOn },
           { "CABINET IR", Icons::Type::cabinet, ParagonColours::cab, ParamIDs::cabOn },
           { "EQ", Icons::Type::eq, ParagonColours::eq, ParamIDs::eqOn },
+          { "GLITCH", Icons::Type::glitch, ParagonColours::glitch, ParamIDs::glitchOn },
           { "MODULATION", Icons::Type::modulation, ParagonColours::modulation, ParamIDs::modOn },
           { "DELAY", Icons::Type::delay, ParagonColours::delay, ParamIDs::delayOn },
           { "REVERB", Icons::Type::reverb, ParagonColours::reverb, ParamIDs::reverbOn },
@@ -328,6 +329,16 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
         { "REVERB", { { ParamIDs::reverbOn, "ON" }, { ParamIDs::reverbType, "TYPE" }, { ParamIDs::reverbSize, "SIZE" },
                       { ParamIDs::reverbPreDelay, "PRE-DELAY" }, { ParamIDs::reverbTone, "TONE" }, { ParamIDs::reverbMix, "MIX" },
                       { ParamIDs::reverbDuck, "DUCK" } } } });
+    // GLITCH's LENGTH is a time, or a note value while synced: the one that
+    // applies shows.
+    const auto glitchSynced = [this] { return rawValue (ParamIDs::glitchSync) > 0.5f; };
+    const auto glitchFree = [this] { return rawValue (ParamIDs::glitchSync) <= 0.5f; };
+    panels[glitchBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
+        { "GLITCH", { { ParamIDs::glitchOn, "ON" }, { ParamIDs::glitchMode, "MODE" }, { ParamIDs::glitchPosition, "POSITION" },
+                      { ParamIDs::glitchSync, "SYNC" },
+                      { ParamIDs::glitchTime, "LENGTH", glitchFree, true }, { ParamIDs::glitchDivision, "LENGTH", glitchSynced, true },
+                      { ParamIDs::glitchDensity, "DENSITY" }, { ParamIDs::glitchPitch, "PITCH" }, { ParamIDs::glitchChaos, "CHAOS" },
+                      { ParamIDs::glitchMix, "MIX" } } } });
     panels[loFiBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "LO-FI", { { ParamIDs::lofiOn, "ON" }, { ParamIDs::lofiType, "TYPE" }, { ParamIDs::lofiAmount, "AMOUNT" },
                      { ParamIDs::lofiNoise, "NOISE" }, { ParamIDs::lofiMix, "MIX" }, { ParamIDs::lofiLevel, "LEVEL" } } } });
@@ -335,10 +346,10 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
         { Icons::Type::comp, ParagonColours::comp }, { Icons::Type::filterPitch, ParagonColours::filterPitch },
         { Icons::Type::drive, ParagonColours::drive },
         { Icons::Type::amp, ParagonColours::amp }, { Icons::Type::cabinet, ParagonColours::cab },
-        { Icons::Type::eq, ParagonColours::eq },
+        { Icons::Type::eq, ParagonColours::eq }, { Icons::Type::glitch, ParagonColours::glitch },
         { Icons::Type::modulation, ParagonColours::modulation }, { Icons::Type::delay, ParagonColours::delay },
         { Icons::Type::reverb, ParagonColours::reverb }, { Icons::Type::loFi, ParagonColours::loFi } };
-    const char* titles[] = { "COMP / GATE", "FILTER / PITCH", "OD / DISTORTION", "AMP (NAM)", "CABINET (IR)", "GRAPHIC EQ", "MODULATION", "DELAY", "REVERB", "LO-FI" };
+    const char* titles[] = { "COMP / GATE", "FILTER / PITCH", "OD / DISTORTION", "AMP (NAM)", "CABINET (IR)", "GRAPHIC EQ", "GLITCH", "MODULATION", "DELAY", "REVERB", "LO-FI" };
     for (size_t i = 0; i < panels.size(); ++i)
     {
         if (panels[i] == nullptr)

@@ -104,6 +104,7 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     delay.prepare (sampleRate, preparedBlockSize);
     reverb.prepare (sampleRate, preparedBlockSize);
     loFi.prepare (sampleRate, preparedBlockSize);
+    glitch.prepare (sampleRate, preparedBlockSize);
     wah.prepare (sampleRate, preparedBlockSize);
     inputTap.setSampleRate (sampleRate);
 
@@ -258,6 +259,17 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
                                       param (ParamIDs::fpInterval) * whammy, param (ParamIDs::fpMix),
                                       (int) param (ParamIDs::fpXpProgram),
                                       expressionTarget == ExpressionTargets::whammyWah ? pedal : 0.0f });
+    // GLITCH: before the amp (PRE) or after the EQ (POST). The pedal, on
+    // GLITCH, fades it in: dry at the heel, its MIX at the toe.
+    const effects::Glitch::Settings glitchSettings { isOn (ParamIDs::glitchOn), (effects::Glitch::Mode) (int) param (ParamIDs::glitchMode),
+                                                     isOn (ParamIDs::glitchSync), param (ParamIDs::glitchTime),
+                                                     (int) param (ParamIDs::glitchDivision), param (ParamIDs::glitchDensity),
+                                                     param (ParamIDs::glitchPitch), param (ParamIDs::glitchChaos),
+                                                     param (ParamIDs::glitchMix) * (expressionTarget == ExpressionTargets::glitch ? pedal : 1.0f) };
+    const auto glitchPre = (int) param (ParamIDs::glitchPosition) == (int) effects::Glitch::Position::pre;
+    if (glitchPre)
+        glitch.process (monoBlock, glitchSettings, getTempoBpm());
+
     drive.process (monoBlock, { isOn (ParamIDs::driveOn), (effects::Drive::Model) (int) param (ParamIDs::driveModel),
                                 param (ParamIDs::driveGain), param (ParamIDs::driveTone), param (ParamIDs::driveLevel) });
 
@@ -271,6 +283,8 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
         eq.gainsDb[band] = eqGainDb[band]->load();
     eq.levelDb = param (ParamIDs::eqLevel);
     graphicEq.process (monoBlock, eq);
+    if (! glitchPre)
+        glitch.process (monoBlock, glitchSettings, getTempoBpm());
 
     // From here on, stereo: modulation, delay and reverb spread the sound
     // across both speakers.

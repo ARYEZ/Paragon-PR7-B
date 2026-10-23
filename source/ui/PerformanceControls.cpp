@@ -9,11 +9,11 @@
 namespace
 {
     const Icons::Type targetIcons[] = { Icons::Type::volume, Icons::Type::wah, Icons::Type::rig, Icons::Type::filterPitch, Icons::Type::loFi,
-                                        Icons::Type::wah };
+                                        Icons::Type::wah, Icons::Type::glitch };
     constexpr float screenSize = 7.0f / 11.0f;   // the assign screen's frame and bezel, relative to the main screen's
 
-    const char* pedalNames[] = { "VOLUME", "WAH / FILTER", "MORPH / FX", "PITCH / WHAMMY", "LO-FI", "WHAMMY-WAH" };
-    constexpr int lastTarget = ExpressionTargets::whammyWah;
+    const char* pedalNames[] = { "VOLUME", "WAH / FILTER", "MORPH / FX", "PITCH / WHAMMY", "LO-FI", "WHAMMY-WAH", "GLITCH" };
+    constexpr int lastTarget = ExpressionTargets::glitch;
     static_assert (std::size (pedalNames) == (size_t) lastTarget && ExpressionAssign::numTargets == lastTarget);
 
     juce::RangedAudioParameter& parameter (juce::AudioProcessorValueTreeState& state, const char* id)
@@ -139,6 +139,10 @@ void ExpressionAssign::select (int target)
         set (ParamIDs::fpType, (float) effects::FilterPitch::Type::whammyWah);
     }
 
+    // GLITCH fades the GLITCH block in, so switch it on.
+    if (newTarget == ExpressionTargets::glitch)
+        set (ParamIDs::glitchOn, 1.0f);
+
     // LO-FI fades the LO-FI block in, so switch it on.
     if (newTarget == ExpressionTargets::loFi)
         set (ParamIDs::lofiOn, 1.0f);
@@ -197,7 +201,7 @@ void ExpressionAssign::paint (juce::Graphics& g)
     // the others dimmed so the choice stands out. With nothing chosen, all
     // of them show normally.
     const auto rows = screenRows();
-    g.setFont (juce::FontOptions (8.5f, juce::Font::bold));
+    g.setFont (juce::FontOptions (7.8f, juce::Font::bold));
     for (size_t i = 0; i < rows.size(); ++i)
     {
         const auto selected = currentTarget == (int) i + 1;

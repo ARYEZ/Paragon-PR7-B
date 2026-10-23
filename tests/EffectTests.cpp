@@ -7,6 +7,7 @@
 #include "dsp/effects/Modulation.h"
 #include "dsp/effects/Delay.h"
 #include "dsp/effects/Reverb.h"
+#include "dsp/effects/Glitch.h"
 #include "ui/EqPresets.h"
 
 using Catch::Matchers::WithinAbs;
@@ -228,6 +229,112 @@ TEST_CASE ("Daybreak compressor: COMP, DETAIL, MIX and INTENSITY do what they sa
             return rig.processor.getCompGainReductionDb();
         };
         CHECK (reductionFor (40.0) > reductionFor (440.0) + 3.0f);
+    }
+}
+
+TEST_CASE ("GLITCH: each mode chops, repeats or smears the guitar as it says", "[effects][glitch]")
+{
+    const auto glitchRig = [] (EffectRig& rig, effects::Glitch::Mode mode, float density, float chaos, float pitch = 0.0f, float mixAmount = 1.0f)
+    {
+        rig.set (ParamIDs::glitchOn, 1.0f);
+        rig.set (ParamIDs::glitchMode, (float) mode);
+        rig.set (ParamIDs::glitchSync, 0.0f);
+        rig.set (ParamIDs::glitchTime, 100.0f);   // 4800 samples at 48 kHz
+        rig.set (ParamIDs::glitchDensity, density);
+        rig.set (ParamIDs::glitchChaos, chaos);
+        rig.set (ParamIDs::glitchPitch, pitch);
+        rig.set (ParamIDs::glitchMix, mixAmount);
+    };
+    // Noise: every stretch of it different, so a repeat is easy to recognise.
+    std::vector<float> noise ((size_t) sampleRate);
+    juce::Random random (42);
+    for (auto& sample : noise)
+        sample = (random.nextFloat() * 2.0f - 1.0f) * 0.3f;
+
+    SECTION ("MIX at 0 leaves the guitar as it was, in every mode")
+    {
+        for (const auto mode : { effects::Glitch::Mode::pitchDelay, effects::Glitch::Mode::sequence,
+                                 effects::Glitch::Mode::interfere, effects::Glitch::Mode::texturizer })
+        {
+            EffectRig rig;
+            glitchRig (rig, mode, 10.0f, 10.0f, 7.0f, 0.0f);
+            const auto output = rig.runMono (noise);
+            REQUIRE (allFinite (output));
+            CHECK (maxAbsDifference (output, noise, (size_t) (0.05 * sampleRate)) < 1.0e-3f);
+        }
+    }
+
+    SECTION ("Sequence, every step and no chaos: each step repeats the one before it")
+    {
+        EffectRig rig;
+        glitchRig (rig, effects::Glitch::Mode::sequence, 10.0f, 0.0f);
+        const auto output = rig.runMono (noise);
+        constexpr size_t step = 4800;
+        // The middle of the fourth step is the third step's audio (clear of the short fades at the edges).
+        std::vector<float> got (output.begin() + 3 * step + 200, output.begin() + 4 * step - 200);
+        std::vector<float> expected (noise.begin() + 2 * step + 200, noise.begin() + 3 * step - 200);
+        CHECK (maxAbsDifference (got, expected) < 0.01f);
+    }
+
+    SECTION ("Interfere: the signal drops out in places")
+    {
+        EffectRig rig;
+        glitchRig (rig, effects::Glitch::Mode::interfere, 10.0f, 0.0f);
+        const auto output = rig.runMono (noise);
+        REQUIRE (allFinite (output));
+        auto silentStretches = 0;
+        for (double start = 0.1; start < 0.95; start += 0.005)
+            if (rms (output, start, start + 0.005) < 0.01f * rms (noise))
+                ++silentStretches;
+        CHECK (silentStretches >= 3);
+    }
+
+    SECTION ("Pitch Delay: each echo an octave above the last")
+    {
+        EffectRig rig;
+        glitchRig (rig, effects::Glitch::Mode::pitchDelay, 4.0f, 0.0f, 12.0f);
+        auto input = sine (330.0, 0.3f, 0.3);
+        const auto tail = silence (0.7);
+        input.insert (input.end(), tail.begin(), tail.end());
+        const auto output = rig.runMono (input);
+        REQUIRE (allFinite (output));
+        // After the note stops, the echoes are up an octave (and more), not at the note.
+        std::vector<float> echoes (output.begin() + (size_t) (0.35 * sampleRate), output.begin() + (size_t) (0.5 * sampleRate));
+        CHECK (dB (levelAt (echoes, 660.0, 0.0) / (levelAt (echoes, 330.0, 0.0) + 1.0e-9f)) > 10.0f);
+    }
+
+    SECTION ("Texturizer: a cloud of grains that carries on after the note")
+    {
+        EffectRig rig;
+        glitchRig (rig, effects::Glitch::Mode::texturizer, 6.0f, 2.0f);
+        auto input = sine (440.0, 0.3f, 0.6);
+        const auto tail = silence (0.6);
+        input.insert (input.end(), tail.begin(), tail.end());
+        const auto output = rig.runMono (input);
+        REQUIRE (allFinite (output));
+        CHECK (rms (output, 0.65, 0.75) > 0.02f);                     // still sounding after the note
+        CHECK (dB (rms (output, 0.2, 0.55) / 0.212f) > -12.0f);       // about as loud as the guitar while playing
+    }
+
+    SECTION ("The pedal on GLITCH fades it in: dry at the heel")
+    {
+        EffectRig rig;
+        glitchRig (rig, effects::Glitch::Mode::interfere, 10.0f, 5.0f);
+        rig.set (ParamIDs::expressionTarget, (float) ExpressionTargets::glitch);
+        rig.set (ParamIDs::expression, 0.0f);
+        CHECK (maxAbsDifference (rig.runMono (noise), noise, (size_t) (0.1 * sampleRate)) < 1.0e-3f);
+    }
+
+    SECTION ("PRE and POST both glitch the guitar")
+    {
+        for (const auto position : { effects::Glitch::Position::post, effects::Glitch::Position::pre })
+        {
+            EffectRig rig;
+            glitchRig (rig, effects::Glitch::Mode::sequence, 10.0f, 0.0f);
+            rig.set (ParamIDs::glitchPosition, (float) position);
+            const auto output = rig.runMono (noise);
+            CHECK (maxAbsDifference (output, noise, (size_t) (0.2 * sampleRate)) > 0.1f);
+        }
     }
 }
 

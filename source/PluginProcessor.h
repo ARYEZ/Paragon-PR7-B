@@ -13,6 +13,7 @@
 #include "dsp/effects/FilterPitch.h"
 #include "dsp/effects/GraphicEq.h"
 #include "dsp/effects/LoFi.h"
+#include "dsp/effects/Glitch.h"
 #include "dsp/effects/Modulation.h"
 #include "dsp/effects/Presence.h"
 #include "dsp/effects/Reverb.h"
@@ -239,6 +240,7 @@ private:
     effects::Delay delay;
     effects::Reverb reverb;
     effects::LoFi loFi;   // last: after the reverb
+    effects::Glitch glitch;   // after the EQ (POST), or after FILTER / PITCH (PRE)
     effects::Wah wah;
     effects::GraphicEq graphicEq;   // after the cabinet and presence, before modulation
     std::array<std::atomic<float>*, effects::GraphicEq::numBands> eqGainDb {};   // the expression pedal's WAH, first in the chain as on a pedalboard

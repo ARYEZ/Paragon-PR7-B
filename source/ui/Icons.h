@@ -16,7 +16,9 @@ namespace Icons
                       // Version 0.10
                       filterPitch,
                       // Version 0.12
-                      loFi };
+                      loFi,
+                      // Version 0.24
+                      glitch };
 
     juce::Path get (Type type);
 

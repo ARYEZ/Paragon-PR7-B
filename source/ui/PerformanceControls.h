@@ -63,7 +63,7 @@ private:
 };
 
 //==============================================================================
-// VOLUME / WAH-FILTER / MORPH-FX / PITCH-WHAMMY / LO-FI / WHAMMY-WAH: what the expression
+// VOLUME / WAH-FILTER / MORPH-FX / PITCH-WHAMMY / LO-FI / WHAMMY-WAH / GLITCH: what the expression
 // pedal controls. Click one to assign the pedal to it, or click the lit one
 // again to switch the pedal off. Comes in two looks: a small LCD screen on
 // the unit's face (a menu with the choice highlighted, the pedal's position
@@ -74,7 +74,7 @@ class ExpressionAssign final : public juce::Component,
 {
 public:
     enum class Style { pedal, list };
-    static constexpr int numTargets = 6;   // what the pedal can control: everything but "Off"
+    static constexpr int numTargets = 7;   // what the pedal can control: everything but "Off"
 
     ExpressionAssign (juce::AudioProcessorValueTreeState&, Style);
 

@@ -279,6 +279,8 @@ void EffectPanel::resized()
             return 1.0f;
         if (control.buttonAttachment != nullptr)
             return 0.75f;
+        if (control.longestChoice <= 6)
+            return 1.5f;   // a short list (GLITCH's Post / Pre) needs less room than a long one
         return juce::jmax (listWeight, listWeight * (float) control.longestChoice / 16.0f);
     };
     float totalWeight = 0.0f;
