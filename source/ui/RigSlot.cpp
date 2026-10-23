@@ -33,7 +33,7 @@ void RigSlot::paint (juce::Graphics& g)
     SlotWindow::drawRingLed (g, { (float) layout.title.getCentreX() + (float) titleWidth / 2.0f + 13.0f, (float) layout.title.getCentreY() },
                              modified);
 
-    SlotWindow::drawButton (g, layout.button, Icons::Type::rig, ParagonColours::text, buttonHover, false);
+    SlotWindow::drawButton (g, layout.button, buttonHover, false);
     SlotWindow::drawCaption (g, layout.caption, "Load / Save Full Rig", false);
 }
 

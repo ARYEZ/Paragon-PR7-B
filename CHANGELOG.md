@@ -2,6 +2,13 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.19.0
+
+- **New name: Paragon PR7-G**, the guitar processor, ready for more processors in the Paragon line. The logo on the unit and in the header now reads PR7-G, in the same slanted, speed-cut lettering.
+  - **When you update:** delete the old `Paragon PR7.vst3` from your VST3 folder and copy in `Paragon PR7-G.vst3`. It's still the same plugin to your DAW, so your projects open with it as before. Keep only one, though: two copies of the same plugin can confuse the DAW.
+  - Your rigs come along: the first time it runs, Paragon PR7-G copies them from the Paragon PR7 folder (or from Paragon X1, if that's where they are) into its own folder. The originals are left where they were.
+- **AMP, CABINET and RIG keys** no longer have icons on them, so they match the four footswitches below them. The title and LED above each key and the caption below still say what it is and whether something is loaded.
+
 ## 0.18.0
 
 - **EXPRESSION screen.** The expression pedal's assign buttons on the unit are now a small LCD screen: a little sibling of the main display, with the same chrome frame, black bezel and orange-lit glass.

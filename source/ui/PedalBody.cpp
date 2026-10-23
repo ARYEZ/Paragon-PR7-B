@@ -308,7 +308,7 @@ void PedalBody::paintScrew (juce::Graphics& g, juce::Point<float> centre, float 
 
 void PedalBody::paintBadge (juce::Graphics& g) const
 {
-    // Heavy italic PARAGON, as "CYBER RPX" in the mockup, over the PR7 mark.
+    // Heavy italic PARAGON, as "CYBER RPX" in the mockup, over the PR7-G mark.
     if (geometry.badge.isEmpty())
         return;
 
@@ -328,10 +328,10 @@ void PedalBody::paintBadge (juce::Graphics& g) const
     g.setFont (font);
     drawStamped ("PARAGON", area.removeFromTop (lineHeight), ParagonColours::ink);
 
-    // The PR7 mark under it, as tall as the lettering's capitals, starting
+    // The PR7-G mark under it, as tall as the lettering's capitals, starting
     // where they do (the slant makes the P's foot sit under PARAGON's P).
     auto secondLine = area.removeFromTop (lineHeight);
-    Logo::drawPR7 (g, secondLine.withSizeKeepingCentre (secondLine.getWidth(), lineHeight * 0.82f).withTrimmedLeft (lineHeight * 0.04f),
+    Logo::drawMark (g, secondLine.withSizeKeepingCentre (secondLine.getWidth(), lineHeight * 0.82f).withTrimmedLeft (lineHeight * 0.04f),
                    juce::Justification::centredLeft,
                    { ParagonColours::ink, ParagonColours::glow, juce::Colours::white.withAlpha (0.7f) });
 

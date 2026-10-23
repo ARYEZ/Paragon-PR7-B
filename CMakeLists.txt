@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.24)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "macOS architectures")
 
-project(ParagonX1 VERSION 0.18.0 LANGUAGES C CXX)
+project(ParagonX1 VERSION 0.19.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,7 +20,7 @@ option(PARAGON_BUILD_TESTS "Build the unit tests" ON)
 include(cmake/Dependencies.cmake)
 
 juce_add_plugin(ParagonX1
-    PRODUCT_NAME             "Paragon PR7"   # was "Paragon X1"; codes below unchanged so DAWs still recognise it
+    PRODUCT_NAME             "Paragon PR7-G" # was "Paragon X1", then "Paragon PR7"; codes below unchanged so DAWs still recognise it
     COMPANY_NAME             "Paragon"
     BUNDLE_ID                "com.paragon.paragonx1"
     PLUGIN_MANUFACTURER_CODE Prgn     # four characters, at least one upper case

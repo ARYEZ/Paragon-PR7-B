@@ -85,18 +85,14 @@ namespace SlotWindow
         g.fillEllipse (lens.reduced (2.5f).withHeight (lens.getHeight() * 0.3f));
     }
 
-    void drawButton (juce::Graphics& g, juce::Rectangle<int> areaInt, Icons::Type icon, juce::Colour iconColour,
-                     bool hover, bool highlight)
+    void drawButton (juce::Graphics& g, juce::Rectangle<int> areaInt, bool hover, bool highlight)
     {
-        // A piano-black key in a chrome bezel, like the footswitches, its
-        // icon glowing on top.
+        // A plain piano-black key in a chrome bezel, exactly like the
+        // footswitches: no icon, the title above and caption below say what it is.
         const auto bezel = areaInt.toFloat();
         ParagonLookAndFeel::drawChromeBezel (g, bezel, 11.0f);
         const auto area = bezel.reduced (7.0f, 6.0f).withTrimmedBottom (1.0f);
         ParagonLookAndFeel::drawPianoBlackKey (g, area, 7.0f, 5.5f, false, hover || highlight);
-        const auto top = area.reduced (6.0f, 0.0f).withTrimmedTop (4.0f).withTrimmedBottom (9.6f);
-        const auto iconSize = top.getHeight() * 0.62f;
-        Icons::draw (g, icon, top.withSizeKeepingCentre (iconSize * 1.3f, iconSize), iconColour, 1.8f, true);
     }
 
     void drawCaption (juce::Graphics& g, juce::Rectangle<int> area, const juce::String& text, bool isError)

@@ -273,9 +273,8 @@ namespace
     constexpr int treadleOversample = 2;   // the treadle's face is drawn at twice its size, so it stays sharp when rocked
 
     // The treadle's face, drawn once: a plate in the unit's own pearl white
-    // satin finish, two black rubber pads split by a diagonal
-    // chrome band (the mockup's design), ribbed across like the DigiTech
-    // RP6's, and the PR7 mark engraved at the heel. Drawn square and true,
+    // satin finish, and two black rubber pads split by a diagonal band
+    // (the mockup's design), ribbed across like the DigiTech RP6's. Drawn square and true,
     // so it rocks without any lean or warp.
     juce::Image makeTreadleFace (int w, int h)
     {

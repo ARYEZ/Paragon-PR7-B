@@ -95,9 +95,9 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
       muteAttachment (processorToShow.getParameters(), ParamIDs::tunerMute, mutePedal),
       rigLevelAttachment (processorToShow.getParameters(), ParamIDs::rigLevel, rigLevelKnob),
       presenceAttachment (processorToShow.getParameters(), ParamIDs::presence, presenceKnob),
-      ampSlot ("AMP", Icons::Type::amp, ParagonColours::amp, "*.nam", "Load / Edit NAM Model",
+      ampSlot ("AMP", "*.nam", "Load / Edit NAM Model",
                processorToShow.getParameters(), ParamIDs::ampOn),
-      cabSlot ("CABINET", Icons::Type::cabinet, ParagonColours::text, "*.wav;*.aif;*.aiff;*.flac", "Load / Edit IR",
+      cabSlot ("CABINET", "*.wav;*.aif;*.aiff;*.flac", "Load / Edit IR",
                processorToShow.getParameters(), ParamIDs::cabOn),
       pedalAssign (processorToShow.getParameters(), ExpressionAssign::Style::pedal),
       expressionPedal (processorToShow),
@@ -563,7 +563,7 @@ void MainView::paint (juce::Graphics& g)
     g.setColour (ParagonColours::text);
     g.drawText ("PARAGON", nameArea, juce::Justification::centredLeft, false);
     const auto nameWidth = (float) juce::GlyphArrangement::getStringWidthInt (nameFont, "PARAGON ");
-    Logo::drawPR7 (g, nameArea.withTrimmedLeft (nameWidth).withSizeKeepingCentre (nameArea.getWidth() - nameWidth, 17.0f),
+    Logo::drawMark (g, nameArea.withTrimmedLeft (nameWidth).withSizeKeepingCentre (nameArea.getWidth() - nameWidth, 17.0f),
                    juce::Justification::centredLeft, { ParagonColours::glow, ParagonColours::glow, {}, {}, 1.0f, true });
 
     // Framed groups: the tabs, the rig selector and the tempo.

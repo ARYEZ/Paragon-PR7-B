@@ -8,8 +8,8 @@ namespace Logo
         // are 0.24 wide and bars 0.2 tall: chunky, for a bold silhouette.
         constexpr float slant = 0.3f;     // how far the top leans right, per unit of height
         constexpr float spacing = 0.1f;
-        constexpr float letterWidths[] = { 0.8f, 0.84f, 0.8f };
-        constexpr float totalWidth = 0.8f + 0.84f + 0.8f + 2.0f * spacing + slant;
+        constexpr float letterWidths[] = { 0.8f, 0.84f, 0.8f, 0.4f, 0.8f };   // P, R, 7, dash, G
+        constexpr float totalWidth = 0.8f + 0.84f + 0.8f + 0.4f + 0.8f + 4.0f * spacing + slant;
 
         // The two speed cuts, as fractions of the height from the top.
         constexpr std::pair<float, float> cuts[] = { { 0.63f, 0.68f }, { 0.79f, 0.83f } };
@@ -37,7 +37,7 @@ namespace Logo
             addPolygon (path, { { 0.24f, 0.2f }, { 0.56f, 0.2f }, { 0.56f, 0.4f }, { 0.24f, 0.4f } }, x);
         }
 
-        // The letters, 1 unit tall, upright: [0] is P and R, [1] is the 7.
+        // The letters, 1 unit tall, upright: [0] is P, R and "-G", [1] is the 7.
         std::pair<juce::Path, juce::Path> letterPaths()
         {
             juce::Path pr, seven;
@@ -53,6 +53,16 @@ namespace Logo
 
             addPolygon (seven, { { 0.0f, 0.0f }, { 0.8f, 0.0f }, { 0.8f, 0.2f }, { 0.44f, 1.0f }, { 0.18f, 1.0f },
                                  { 0.5f, 0.2f }, { 0.0f, 0.2f } }, x);
+            x += letterWidths[2] + spacing;
+
+            // "-G" (the guitar processor): a dash at mid height, clear of the
+            // speed cuts, and a G with the same bevelled corners as the P and R.
+            addPolygon (pr, { { 0.0f, 0.42f }, { 0.4f, 0.42f }, { 0.4f, 0.6f }, { 0.0f, 0.6f } }, x);
+            x += letterWidths[3] + spacing;
+
+            addPolygon (pr, { { 0.16f, 0.0f }, { 0.8f, 0.0f }, { 0.8f, 0.2f }, { 0.24f, 0.2f }, { 0.24f, 0.8f },
+                              { 0.56f, 0.8f }, { 0.56f, 0.62f }, { 0.42f, 0.62f }, { 0.42f, 0.44f }, { 0.8f, 0.44f },
+                              { 0.8f, 0.85f }, { 0.64f, 1.0f }, { 0.16f, 1.0f }, { 0.0f, 0.85f }, { 0.0f, 0.15f } }, x);
 
             // Lean them forward: the top moves right, the baseline stays put.
             const auto lean = juce::AffineTransform (1.0f, -slant, slant, 0.0f, 1.0f, 0.0f);
@@ -67,7 +77,7 @@ namespace Logo
         return height * totalWidth;
     }
 
-    juce::Rectangle<float> drawPR7 (juce::Graphics& g, juce::Rectangle<float> area, juce::Justification justification, const Style& style)
+    juce::Rectangle<float> drawMark (juce::Graphics& g, juce::Rectangle<float> area, juce::Justification justification, const Style& style)
     {
         const auto height = juce::jmin (area.getHeight(), area.getWidth() / totalWidth);
         const auto bounds = justification.appliedToRectangle (juce::Rectangle<float> (widthFor (height), height), area);

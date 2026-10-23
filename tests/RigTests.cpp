@@ -391,11 +391,11 @@ TEST_CASE ("Each rig's RIG LEVEL adds to the master output", "[rigs]")
     CHECK_THAT (buffer.getMagnitude (0, 0, 256), WithinAbs (0.1 * 1.9953, 0.005));
 }
 
-TEST_CASE ("Rigs saved under the old name (Paragon X1) carry over to Paragon PR7", "[rigs]")
+TEST_CASE ("Rigs saved under an old name (Paragon X1, Paragon PR7) carry over to Paragon PR7-G", "[rigs]")
 {
     const auto root = juce::File::getSpecialLocation (juce::File::tempDirectory)
                           .getChildFile ("ParagonRename-" + juce::String::toHexString (juce::Random::getSystemRandom().nextInt64()));
-    const auto oldFolder = root.getChildFile ("Paragon X1"), newFolder = root.getChildFile ("Paragon PR7");
+    const auto oldFolder = root.getChildFile ("Paragon PR7"), newFolder = root.getChildFile ("Paragon PR7-G");
     REQUIRE (oldFolder.getChildFile ("Rigs").createDirectory());
     REQUIRE (oldFolder.getChildFile ("Rigs").getChildFile ("My Rig.x1rig").replaceWithText ("<ParagonRig/>"));
 
