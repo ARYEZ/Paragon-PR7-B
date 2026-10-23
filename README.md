@@ -51,7 +51,8 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
     DAW's tempo (or set SYNC to Off for milliseconds), has a tone control for darker repeats, and
     optional ping-pong; it comes in eight types: Digital (the original), Analog, Tape, Mod, Reverse,
     Multi-Tap, Shimmer and Ducking. The reverb comes in eight types: Room, Hall, Cathedral, Plate, Spring,
-    Digital, Reverse and Classic (the original), with SIZE, PRE-DELAY, TONE and MIX. Both let their
+    Digital, Reverse and Classic (the original), with SIZE, PRE-DELAY, TONE and MIX. Both have a DUCK knob that tucks
+    the repeats or reverb under your playing and lets them swell back in the gaps. Both let their
     tails ring out when switched off.
 - **Graphic EQ:** 9 bands (63 Hz to 16 kHz, ±12 dB) and a level, after the cabinet. Open it from the
   **EQ** block in the signal chain; the curve shows the EQ's actual response. FLAT resets it.

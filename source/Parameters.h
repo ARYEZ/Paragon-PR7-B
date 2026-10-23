@@ -93,6 +93,10 @@ namespace ParamIDs
     // Version 16: the delay's TYPE.
     inline constexpr auto delayType = "delayType";
 
+    // Version 17: DUCK for the delay and the reverb.
+    inline constexpr auto delayDuck  = "delayDuck";
+    inline constexpr auto reverbDuck = "reverbDuck";
+
     // Global settings: kept when switching rigs. Everything else is part of a rig.
     // The expression pedal's position is global for the same reason a real
     // pedal's is: it's where your foot is, not part of the sound. What the

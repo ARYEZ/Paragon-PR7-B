@@ -2,6 +2,16 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.17.0
+
+- **DUCK knob on DELAY and REVERB.** It turns the repeats or the reverb down while you play and lets them swell back in the gaps, so big delays and spaces don't blur your notes.
+  - At 0% (the default) it's off, so nothing you've saved changes.
+  - At 100% the effect drops by up to 24 dB under your playing and comes back within about a fifth of a second after you stop.
+  - It works with every type: a ducked Tape delay, a ducked Cathedral, and so on.
+- The **Ducking** delay type is now simply Digital with DUCK set high, so rigs that used it sound the same. Turning DUCK past its preset ducks it further still.
+- **Digital is the default reverb for new rigs:** the bright, lush 80s arena-rock reverb. Digital is also the default delay. Projects and rigs saved before reverb types existed still load with Classic.
+- On the delay's crowded panel, the drop-down lists give up a little width so the knobs stay a good size, and long choices like "1/8 triplet" squeeze to fit instead of being cut off.
+
 ## 0.16.0
 
 **Eight delay types.** The DELAY block has a TYPE setting. Every type keeps tempo SYNC, FEEDBACK, TONE, MIX, PING-PONG and trails (repeats ring out when you switch the delay off).

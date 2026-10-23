@@ -179,15 +179,17 @@ void EffectPanel::resized()
     // Cards as wide as fit (up to a limit), centred as a row. An ON light
     // needs little room and a drop-down list a lot, so cards are sized by
     // what they hold rather than all alike.
-    const auto weight = [] (const Control& control) { return control.isKnob ? 1.0f : control.buttonAttachment != nullptr ? 0.75f : 1.9f; };
     int numControls = 0;
+    for (const auto& group : groups)
+        numControls += (int) group.controls.size();
+    // On a crowded panel (the delay's nine controls) the lists give up a
+    // little width so the knobs stay a good size.
+    const auto listWeight = numControls >= 9 ? 1.75f : 1.9f;
+    const auto weight = [listWeight] (const Control& control) { return control.isKnob ? 1.0f : control.buttonAttachment != nullptr ? 0.75f : listWeight; };
     float totalWeight = 0.0f;
     for (const auto& group : groups)
         for (const auto* control : group.controls)
-        {
-            ++numControls;
             totalWeight += weight (*control);
-        }
     const auto gaps = tileGap * (numControls - (int) groups.size()) + groupGap * ((int) groups.size() - 1);
     const auto unitWidth = juce::jmin ((float) maxTileWidth, (float) (area.getWidth() - gaps) / juce::jmax (1.0f, totalWeight));
     const auto tileWidth = [&] (const Control& control) { return juce::roundToInt (unitWidth * weight (control)); };

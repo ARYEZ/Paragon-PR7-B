@@ -54,6 +54,7 @@ namespace effects
         feedback.reset (sampleRate, 0.05);
         mix.reset (sampleRate, 0.05);
 
+        ducker.prepare (sampleRate);
         resetState();
         tail.prepare (sampleRate, maxDelaySeconds * 2.0 + 0.5);   // reverse plays a chunk late, so allow for that
         wet.setSize (maxChannels, maxBlockSize);
@@ -71,8 +72,7 @@ namespace effects
         reverseHeads = {};
         wowPhase = flutterPhase = drift = driftTarget = 0.0f;
         driftCountdown = 0;
-        duckEnvelope = 0.0f;
-        duckGain = 1.0f;
+        ducker.reset();
     }
 
     float Delay::delaySeconds (const Settings& settings, double bpm) noexcept
@@ -139,10 +139,8 @@ namespace effects
         const auto driftDepth = type == Type::tape ? 0.4f * ms : 0.0f;
         const auto driftSmoothing = 1.0f - std::exp (-1.0f / (0.25f * (float) sampleRate));
 
-        // Ducking: the repeats drop by up to 18 dB while you play, coming
-        // back over about a fifth of a second when you stop.
-        const auto duckAttack = 1.0f - std::exp (-1.0f / (0.005f * (float) sampleRate));
-        const auto duckRelease = 1.0f - std::exp (-1.0f / (0.12f * (float) sampleRate));
+        // DUCK: the Ducking type has it at least at 93% (about 18 dB).
+        const auto duckAmount = type == Type::ducking ? juce::jmax (settings.duck, 0.934f) : juce::jlimit (0.0f, 1.0f, settings.duck);
 
         const auto numChannels = (int) block.getNumChannels();
         const auto numSamples = (int) block.getNumSamples();
@@ -262,15 +260,14 @@ namespace effects
                 }
             }
 
-            // Ducking: follow how loud the playing is, and turn the repeats down under it.
-            if (type == Type::ducking)
+            // DUCK: follow how loud the playing is, and turn the repeats down under it.
+            auto duckGain = 1.0f;
+            if (duckAmount > 0.0f)
             {
                 auto level = 0.0f;
                 for (int ch = 0; ch < numChannels; ++ch)
                     level = juce::jmax (level, std::abs (block.getChannelPointer ((size_t) ch)[i]));
-                duckEnvelope += (level - duckEnvelope) * (level > duckEnvelope ? duckAttack : duckRelease);
-                const auto target = 1.0f - 0.875f * juce::jlimit (0.0f, 1.0f, duckEnvelope * 8.0f);
-                duckGain += (target - duckGain) * (target < duckGain ? duckAttack : duckRelease);
+                duckGain = ducker.next (level, duckAmount);
             }
 
             for (int ch = 0; ch < numChannels; ++ch)
@@ -296,7 +293,7 @@ namespace effects
                 wet.setSample (ch, i, heard[ch]);
             }
 
-            const auto gain = mixNow * (type == Type::ducking ? duckGain : 1.0f);
+            const auto gain = mixNow * duckGain;
             for (int ch = 0; ch < numChannels; ++ch)
                 block.getChannelPointer ((size_t) ch)[i] += heard[ch] * gain;
         }

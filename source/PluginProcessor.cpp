@@ -295,11 +295,12 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
                                        param (ParamIDs::modMix) * (morphsDepth ? 1.0f : morph) });
     delay.process (stereoBlock, { isOn (ParamIDs::delayOn), param (ParamIDs::delayTime), (int) param (ParamIDs::delaySync),
                                   param (ParamIDs::delayFeedback), param (ParamIDs::delayTone), param (ParamIDs::delayMix) * morph,
-                                  isOn (ParamIDs::delayPingPong), (effects::Delay::Type) (int) param (ParamIDs::delayType) },
+                                  isOn (ParamIDs::delayPingPong), (effects::Delay::Type) (int) param (ParamIDs::delayType),
+                                  param (ParamIDs::delayDuck) },
                    getTempoBpm());
     reverb.process (stereoBlock, { isOn (ParamIDs::reverbOn), (effects::Reverb::Type) (int) param (ParamIDs::reverbType),
                                    param (ParamIDs::reverbSize), param (ParamIDs::reverbTone), param (ParamIDs::reverbMix) * morph,
-                                   param (ParamIDs::reverbPreDelay) });
+                                   param (ParamIDs::reverbPreDelay), param (ParamIDs::reverbDuck) });
 
     // LO-FI last, so the whole sound goes through the phone. Assigned to the
     // expression pedal, the pedal fades it in: full band at the heel, lo-fi at the toe.

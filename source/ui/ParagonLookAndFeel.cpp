@@ -598,6 +598,12 @@ void ParagonLookAndFeel::drawStampedText (juce::Graphics& g, const juce::String&
     g.drawText (text, area, justification, false);
 }
 
+void ParagonLookAndFeel::positionComboBoxText (juce::ComboBox& box, juce::Label& label)
+{
+    LookAndFeel_V4::positionComboBoxText (box, label);
+    label.setMinimumHorizontalScale (0.6f);
+}
+
 int ParagonLookAndFeel::getSliderThumbRadius (juce::Slider& slider)
 {
     if (slider.getProperties()[eqFaderProperty])

@@ -77,6 +77,9 @@ public:
     // EQ faders: travel inset by half the cap's height, so the cap's centre
     // reaches exactly the top and bottom of the scale.
     int getSliderThumbRadius (juce::Slider&) override;
+    // Drop-down lists: a long choice ("Multi-Tap", "1/8 triplet") squeezes to
+    // fit a narrow box rather than being cut off with "...".
+    void positionComboBoxText (juce::ComboBox&, juce::Label&) override;
 
     // The two-thumb MIN / MAX slider: a thin track with round glowing thumbs.
     void drawLinearSlider (juce::Graphics&, int x, int y, int width, int height,

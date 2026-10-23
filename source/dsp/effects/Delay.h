@@ -17,7 +17,9 @@ namespace effects
     //   reverse    each repeat played backwards
     //   multiTap   repeats at rhythmic spacings inside each beat, accenting it
     //   shimmer    each repeat pitched up an octave, rising into a glowing wash
-    //   ducking    repeats tuck under your playing and swell back in the gaps
+    //   ducking    Digital with DUCK preset high: repeats tuck under your
+    //              playing and swell back in the gaps (DUCK works on every
+    //              type; this keeps rigs that used the type sounding the same)
     //
     // Echo time is either free (milliseconds) or locked to the DAW's tempo.
     // Ping-pong bounces repeats between the left and right speakers.
@@ -48,6 +50,7 @@ namespace effects
             float mix = 0.25f;           // 0 to 1
             bool pingPong = false;
             Type type = Type::digital;
+            float duck = 0.0f;           // 0 to 1: DUCK
         };
 
         void prepare (double sampleRate, int maxBlockSize);
@@ -94,7 +97,7 @@ namespace effects
         // Shimmer: an octave-up pitch shifter in the feedback loop, per side.
         std::array<PitchShifter, maxChannels> shimmerShifters;
 
-        // Ducking: how loud the playing is.
-        float duckEnvelope = 0.0f, duckGain = 1.0f;
+        // DUCK (and the Ducking type, which is Digital with DUCK preset).
+        Ducker ducker;
     };
 }

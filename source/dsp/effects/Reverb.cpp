@@ -115,6 +115,7 @@ namespace effects
         send.reset (sampleRate, 0.02);
         mix.reset (sampleRate, 0.05);
         preDelay.reset (sampleRate, 0.1);
+        ducker.prepare (sampleRate);
         wet.setSize (maxChannels, maxBlockSize);
         tail.prepare (sampleRate, 1.6);   // longer than a reversed swell, which can sound after a quiet gap
         running = false;
@@ -211,11 +212,21 @@ namespace effects
             case Type::digital: processNetwork (wetBlock, settings); break;
         }
 
+        // Mix in the reverb, ducked under the playing if DUCK is up (the
+        // block still holds just the playing at this point).
+        const auto duckAmount = juce::jlimit (0.0f, 1.0f, settings.duck);
         for (int i = 0; i < numSamples; ++i)
         {
-            const auto mixNow = mix.getNextValue();
+            auto gain = mix.getNextValue();
+            if (duckAmount > 0.0f)
+            {
+                auto level = 0.0f;
+                for (int ch = 0; ch < numChannels; ++ch)
+                    level = juce::jmax (level, std::abs (block.getChannelPointer ((size_t) ch)[i]));
+                gain *= ducker.next (level, duckAmount);
+            }
             for (int ch = 0; ch < numChannels; ++ch)
-                block.getChannelPointer ((size_t) ch)[i] += wet.getSample (ch, i) * mixNow;
+                block.getChannelPointer ((size_t) ch)[i] += wet.getSample (ch, i) * gain;
         }
 
         if (! settings.on && tail.isFinished (wetBlock))

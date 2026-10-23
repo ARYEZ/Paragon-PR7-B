@@ -26,7 +26,8 @@ namespace effects
     //
     // SIZE sets how long the tail lasts (and, for reverse, the length of
     // each reversed swell); PRE-DELAY the gap before the reverb starts;
-    // TONE how bright it is. Switching off lets the tail ring out.
+    // TONE how bright it is; DUCK how far it tucks under your playing.
+    // Switching off lets the tail ring out.
     class Reverb
     {
     public:
@@ -38,11 +39,12 @@ namespace effects
         struct Settings
         {
             bool on = false;
-            Type type = Type::hall;
+            Type type = Type::digital;
             float size = 0.5f;        // 0 to 1
             float tone = 6.0f;        // 0 (dark) to 10 (bright)
             float mix = 0.28f;        // 0 to 1
             float preDelayMs = 20.0f;
+            float duck = 0.0f;        // 0 to 1: DUCK
         };
 
         void prepare (double sampleRate, int maxBlockSize);
@@ -73,6 +75,7 @@ namespace effects
         juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Linear> preDelayLine;
         bool running = false;
         Type lastType = Type::hall;
+        Ducker ducker;
         TailWatch tail;
 
         // A simple circular buffer with fractional reads.

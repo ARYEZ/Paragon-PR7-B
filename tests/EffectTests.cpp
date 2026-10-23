@@ -1097,6 +1097,65 @@ TEST_CASE ("Reverb types: each is a stable stereo space of its own", "[effects][
     }
 }
 
+TEST_CASE ("DUCK tucks the delay and the reverb under the playing, on any type", "[effects][delay][reverb]")
+{
+    // Play for a second, then stop. With DUCK at 100% the wet signal is well
+    // down while playing, and comes back once the playing stops.
+    auto input = sine (220.0, 0.3f, 1.0);
+    input.resize ((size_t) (2.5 * sampleRate), 0.0f);
+    const auto wetOf = [&] (const char* onId, const char* duckId, const char* typeId, float type, float duck)
+    {
+        EffectRig rig;
+        rig.set (onId, 1.0f);
+        rig.set (typeId, type);
+        rig.set (duckId, duck);
+        if (std::string (onId) == ParamIDs::delayOn)
+        {
+            rig.set (ParamIDs::delaySync, 0.0f);
+            rig.set (ParamIDs::delayTime, 250.0f);
+            rig.set (ParamIDs::delayFeedback, 0.5f);
+            rig.set (ParamIDs::delayMix, 1.0f);
+        }
+        else
+        {
+            rig.set (ParamIDs::reverbMix, 1.0f);
+        }
+        auto output = rig.runMono (input);
+        for (size_t i = 0; i < output.size(); ++i)
+            output[i] -= input[i];
+        return output;
+    };
+
+    SECTION ("Delay: a ducked tape delay")
+    {
+        const auto plain = wetOf (ParamIDs::delayOn, ParamIDs::delayDuck, ParamIDs::delayType, (float) effects::Delay::Type::tape, 0.0f);
+        const auto ducked = wetOf (ParamIDs::delayOn, ParamIDs::delayDuck, ParamIDs::delayType, (float) effects::Delay::Type::tape, 1.0f);
+        CHECK (rms (ducked, 0.5, 0.95) < 0.1f * rms (plain, 0.5, 0.95));   // 20 dB down while playing
+        CHECK (rms (ducked, 1.5, 1.8) > 0.5f * rms (plain, 1.5, 1.8));     // back after
+    }
+
+    SECTION ("Reverb: a ducked cathedral")
+    {
+        const auto plain = wetOf (ParamIDs::reverbOn, ParamIDs::reverbDuck, ParamIDs::reverbType, (float) effects::Reverb::Type::cathedral, 0.0f);
+        const auto ducked = wetOf (ParamIDs::reverbOn, ParamIDs::reverbDuck, ParamIDs::reverbType, (float) effects::Reverb::Type::cathedral, 1.0f);
+        CHECK (rms (ducked, 0.5, 0.95) < 0.1f * rms (plain, 0.5, 0.95));
+        CHECK (rms (ducked, 1.5, 1.8) > 0.5f * rms (plain, 1.5, 1.8));
+    }
+
+    SECTION ("DUCK at 0% changes nothing")
+    {
+        EffectRig a, b;
+        for (auto* rig : { &a, &b })
+        {
+            rig->set (ParamIDs::reverbOn, 1.0f);
+            rig->set (ParamIDs::delayOn, 1.0f);
+        }
+        b.set (ParamIDs::reverbDuck, 0.0f);
+        b.set (ParamIDs::delayDuck, 0.0f);
+        CHECK (maxAbsDifference (a.runMono (input), b.runMono (input)) < 1.0e-6f);
+    }
+}
+
 TEST_CASE ("Projects and rigs saved before reverb types keep the original reverb", "[effects][reverb]")
 {
     EffectRig original;
@@ -1118,8 +1177,10 @@ TEST_CASE ("Projects and rigs saved before reverb types keep the original reverb
     CHECK (juce::roundToInt (restored.processor.getParameters().getRawParameterValue (ParamIDs::reverbType)->load())
            == (int) effects::Reverb::Type::classic);
 
-    EffectRig fresh;
+    EffectRig fresh;   // new rigs: the Digital reverb and the Digital delay
     CHECK (juce::roundToInt (fresh.processor.getParameters().getRawParameterValue (ParamIDs::reverbType)->load())
-           == (int) effects::Reverb::Type::hall);
+           == (int) effects::Reverb::Type::digital);
+    CHECK (juce::roundToInt (fresh.processor.getParameters().getRawParameterValue (ParamIDs::delayType)->load())
+           == (int) effects::Delay::Type::digital);
 }
 
