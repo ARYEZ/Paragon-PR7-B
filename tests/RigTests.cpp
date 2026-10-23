@@ -425,3 +425,17 @@ TEST_CASE ("Rig files from Paragon X1 (.x1rig) still load", "[rigs]")
                         [] (const auto& entry) { return entry.rig.name == "From X1"; }));
     folder.deleteRecursively();
 }
+
+TEST_CASE ("A rig file saved before reverb types loads with the original reverb", "[rigs]")
+{
+    auto xml = juce::XmlDocument::parse (R"(<ParagonRig version="1" parameterVersion="10" name="Old"><Param id="reverbOn" value="1"/></ParagonRig>)");
+    REQUIRE (xml != nullptr);
+    const auto rig = Rig::fromXml (*xml);
+    REQUIRE (rig.has_value());
+    REQUIRE (rig->parameters.count ("reverbType") == 1);
+    CHECK (rig->parameters.at ("reverbType") == 0.0f);
+
+    Rig current;   // saved by this version: written with its reverb type, and read back as it is
+    current.parameters["reverbType"] = 4.0f;
+    CHECK (Rig::fromXml (*current.toXml())->parameters.at ("reverbType") == 4.0f);
+}

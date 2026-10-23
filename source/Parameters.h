@@ -86,6 +86,10 @@ namespace ParamIDs
     inline constexpr auto lofiMix    = "lofiMix";
     inline constexpr auto lofiLevel  = "lofiLevel";
 
+    // Version 15: the reverb's TYPE and PRE-DELAY.
+    inline constexpr auto reverbType     = "reverbType";
+    inline constexpr auto reverbPreDelay = "reverbPreDelay";
+
     // Global settings: kept when switching rigs. Everything else is part of a rig.
     // The expression pedal's position is global for the same reason a real
     // pedal's is: it's where your foot is, not part of the sound. What the

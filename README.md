@@ -49,7 +49,9 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
     (Leslie), vibrato, harmonic tremolo, auto-pan and doubler. SYNC locks the rate to the tapped or DAW tempo.
   - **4 Reverb / Delay:** switches both; each also has its own ON switch. The delay syncs to your
     DAW's tempo (or set SYNC to Off for milliseconds), has a tone control for darker repeats, and
-    optional ping-pong. Both let their tails ring out when switched off.
+    optional ping-pong. The reverb comes in eight types: Room, Hall, Cathedral, Plate, Spring,
+    Digital, Reverse and Classic (the original), with SIZE, PRE-DELAY, TONE and MIX. Both let their
+    tails ring out when switched off.
 - **Graphic EQ:** 9 bands (63 Hz to 16 kHz, ±12 dB) and a level, after the cabinet. Open it from the
   **EQ** block in the signal chain; the curve shows the EQ's actual response. FLAT resets it.
 - All effects start switched off, so projects made with earlier versions sound the same.

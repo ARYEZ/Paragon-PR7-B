@@ -253,7 +253,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     footswitches[3]->describe = [this]
     {
         const auto synced = audioProcessor.getParameters().getRawParameterValue (ParamIDs::delaySync)->load() > 0.5f;
-        return "Delay " + valueText (synced ? ParamIDs::delaySync : ParamIDs::delayTime) + "  Reverb " + valueText (ParamIDs::reverbMix);
+        return "Delay " + valueText (synced ? ParamIDs::delaySync : ParamIDs::delayTime) + "  " + valueText (ParamIDs::reverbType) + " " + valueText (ParamIDs::reverbMix);
     };
     const int footswitchBlocks[] = { compBlock, driveBlock, modBlock, delayBlock };
     for (size_t i = 0; i < footswitches.size(); ++i)
@@ -312,8 +312,8 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                      { ParamIDs::delayFeedback, "FEEDBACK" }, { ParamIDs::delayTone, "TONE" }, { ParamIDs::delayMix, "MIX" },
                      { ParamIDs::delayPingPong, "PING-PONG" } } } });
     panels[reverbBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
-        { "REVERB", { { ParamIDs::reverbOn, "ON" }, { ParamIDs::reverbSize, "SIZE" }, { ParamIDs::reverbTone, "TONE" },
-                      { ParamIDs::reverbMix, "MIX" } } } });
+        { "REVERB", { { ParamIDs::reverbOn, "ON" }, { ParamIDs::reverbType, "TYPE" }, { ParamIDs::reverbSize, "SIZE" },
+                      { ParamIDs::reverbPreDelay, "PRE-DELAY" }, { ParamIDs::reverbTone, "TONE" }, { ParamIDs::reverbMix, "MIX" } } } });
     panels[loFiBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "LO-FI", { { ParamIDs::lofiOn, "ON" }, { ParamIDs::lofiType, "TYPE" }, { ParamIDs::lofiAmount, "AMOUNT" },
                      { ParamIDs::lofiNoise, "NOISE" }, { ParamIDs::lofiMix, "MIX" }, { ParamIDs::lofiLevel, "LEVEL" } } } });

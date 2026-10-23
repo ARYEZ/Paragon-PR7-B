@@ -5,6 +5,7 @@
 #include "Parameters.h"
 #include "PluginProcessor.h"
 #include "dsp/effects/Modulation.h"
+#include "dsp/effects/Reverb.h"
 
 using Catch::Matchers::WithinAbs;
 
@@ -882,4 +883,106 @@ TEST_CASE ("Graphic EQ's drawn curve matches what it does", "[effects][eq]")
     CHECK (std::abs (effects::GraphicEq::responseDb (gains, 63.0f)) < 0.5f);
     // A band above half a low sample rate is pulled down rather than breaking.
     CHECK (effects::GraphicEq::bandFrequency (8, 22050.0) < 11025.0f);
+}
+
+TEST_CASE ("Reverb types: each is a stable stereo space of its own", "[effects][reverb]")
+{
+    using ReverbType = effects::Reverb::Type;
+    const auto play = [] (ReverbType type, const std::vector<float>& input, float preDelayMs = 0.0f)
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::reverbOn, 1.0f);
+        rig.set (ParamIDs::reverbType, (float) type);
+        rig.set (ParamIDs::reverbMix, 1.0f);
+        rig.set (ParamIDs::reverbPreDelay, preDelayMs);
+        return rig.run (input);
+    };
+
+    SECTION ("Every type makes a stereo tail that fades away")
+    {
+        for (int type = 0; type < effects::Reverb::typeNames.size(); ++type)
+        {
+            INFO (effects::Reverb::typeNames[type]);
+            const auto output = play ((ReverbType) type, impulse (14.0, 0.5f));
+            REQUIRE (allFinite (output[0]));
+            REQUIRE (allFinite (output[1]));
+            CHECK (rms (output[0], 0.05, 1.0) > 1.0e-3f);    // there's a tail
+            CHECK (rms (output[0], 13.0, 14.0) < 1.0e-4f);   // and it ends, even the longest cathedral
+
+            std::vector<float> difference (output[0].size());
+            for (size_t i = 0; i < difference.size(); ++i)
+                difference[i] = output[0][i] - output[1][i];
+            CHECK (rms (difference, 0.05, 1.0) > 0.1f * rms (output[0], 0.05, 1.0));   // and it's wide
+        }
+    }
+
+    SECTION ("Bigger spaces ring longer: room, then hall, then cathedral")
+    {
+        const auto tailAt = [&] (ReverbType type)
+        {
+            return rms (play (type, impulse (2.0, 0.5f))[0], 1.4, 1.6);
+        };
+        const auto room = tailAt (ReverbType::room), hall = tailAt (ReverbType::hall), cathedral = tailAt (ReverbType::cathedral);
+        CHECK (hall > 10.0f * room);
+        CHECK (cathedral > 3.0f * hall);
+    }
+
+    SECTION ("PRE-DELAY: nothing comes back until it's over")
+    {
+        const auto output = play (ReverbType::hall, impulse (0.5, 0.5f), 100.0f);
+        CHECK (rms (output[0], 0.005, 0.095) < 1.0e-5f);   // the click itself is at 0; then silence
+        CHECK (rms (output[0], 0.1, 0.3) > 1.0e-3f);       // then the reverb
+    }
+
+    SECTION ("Reverse swells up rather than dying away")
+    {
+        const auto output = play (ReverbType::reverse, impulse (1.5, 0.5f));
+        const auto start = rms (output[0], 0.005, 0.15);
+        const auto swell = rms (output[0], 0.35, 0.8);
+        CHECK (swell > 3.0f * start);
+    }
+
+    SECTION ("Spring is band-limited like a real tank: little deep bass or fizz")
+    {
+        const auto output = play (ReverbType::spring, impulse (2.0, 0.5f));
+        // The tail's energy in an octave round a frequency.
+        const auto band = [&] (float hz)
+        {
+            juce::dsp::IIR::Filter<float> filter;
+            filter.coefficients = juce::dsp::IIR::Coefficients<float>::makeBandPass (sampleRate, hz, 1.4f);
+            std::vector<float> filtered (output[0]);
+            for (auto& sample : filtered)
+                sample = filter.processSample (sample);
+            return rms (filtered, 0.02, 1.5);
+        };
+        const auto mids = band (1200.0f);
+        CHECK (mids > 4.0f * band (50.0f));
+        CHECK (mids > 4.0f * band (12000.0f));
+    }
+}
+
+TEST_CASE ("Projects and rigs saved before reverb types keep the original reverb", "[effects][reverb]")
+{
+    EffectRig original;
+    juce::MemoryBlock saved;
+    original.processor.getStateInformation (saved);
+    auto xml = juce::AudioProcessor::getXmlFromBinary (saved.getData(), (int) saved.getSize());
+    REQUIRE (xml != nullptr);
+    for (auto* child : xml->getChildIterator())
+        if (child->getStringAttribute ("id") == ParamIDs::reverbType)
+        {
+            xml->removeChildElement (child, true);
+            break;
+        }
+    juce::MemoryBlock older;
+    juce::AudioProcessor::copyXmlToBinary (*xml, older);
+
+    EffectRig restored;
+    restored.processor.setStateInformation (older.getData(), (int) older.getSize());
+    CHECK (juce::roundToInt (restored.processor.getParameters().getRawParameterValue (ParamIDs::reverbType)->load())
+           == (int) effects::Reverb::Type::classic);
+
+    EffectRig fresh;
+    CHECK (juce::roundToInt (fresh.processor.getParameters().getRawParameterValue (ParamIDs::reverbType)->load())
+           == (int) effects::Reverb::Type::hall);
 }

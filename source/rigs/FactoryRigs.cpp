@@ -27,6 +27,8 @@ namespace
                     harmonicTremolo = 8, autoPan = 9, doubler = 10;
     // FILTER / PITCH types.
     constexpr float autoWah = 0, pitchShifter = 1;
+    // Reverb types (index into effects::Reverb::typeNames).
+    constexpr float room = 1, hall = 2, cathedral = 3, plate = 4, spring = 5, digital = 6, reverse = 7;
     // LO-FI types.
     constexpr float telephone = 0, amRadio = 1, megaphone = 2, cassette = 3, bitcrusher = 4;
 }
@@ -41,22 +43,22 @@ std::vector<Rig> makeFactoryRigs()
 
         make ("Studio Clean", A, 2, "Clean", {
             { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 }, { compLevel, 3 },
-            { reverbOn, 1 }, { reverbSize, 0.4f }, { reverbMix, 0.2f } }),
+            { reverbOn, 1 }, { reverbType, plate }, { reverbSize, 0.4f }, { reverbMix, 0.2f } }),
 
         make ("Chorus Clean", A, 3, "Clean,Modulation", {
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 }, { compLevel, 2 },
             { modOn, 1 }, { modType, chorus }, { modRate, 0.6f }, { modDepth, 0.5f }, { modMix, 0.5f },
-            { reverbOn, 1 }, { reverbMix, 0.25f } }),
+            { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.25f } }),
 
         make ("Edge of Breakup", A, 4, "Crunch,Drive", {
             { driveOn, 1 }, { driveGain, 2 }, { driveTone, 6 }, { driveLevel, 4 },
-            { reverbOn, 1 }, { reverbMix, 0.2f } }),
+            { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.2f } }),
 
         make ("Lead Boost", B, 1, "Lead,Drive", {
             { compThreshold, -20 }, { gateThreshold, -60 }, { compOn, 1 }, { compRatio, 2 },
             { driveOn, 1 }, { driveGain, 4 }, { driveTone, 6 }, { driveLevel, 6 },
             { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.3f }, { delayMix, 0.2f },
-            { reverbOn, 1 }, { reverbMix, 0.25f }, { rigLevel, 2 } }),
+            { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.25f }, { rigLevel, 2 } }),
 
         // A low-gain overdrive in front of a high-gain amp tightens the bass
         // and sharpens the attack: the classic metal "boost" trick.
@@ -70,16 +72,16 @@ std::vector<Rig> makeFactoryRigs()
             { modOn, 1 }, { modType, chorus }, { modRate, 0.25f }, { modDepth, 0.6f }, { modMix, 0.35f },
             { delayOn, 1 }, { delaySync, quarter }, { delayFeedback, 0.6f }, { delayMix, 0.35f },
             { delayTone, 5 }, { delayPingPong, 1 },
-            { reverbOn, 1 }, { reverbSize, 0.9f }, { reverbTone, 5 }, { reverbMix, 0.45f } }),
+            { reverbOn, 1 }, { reverbType, cathedral }, { reverbSize, 0.9f }, { reverbTone, 5 }, { reverbMix, 0.45f } }),
 
         make ("Slapback", C, 2, "Rockabilly,Delay", {
             { delayOn, 1 }, { delaySync, syncOff }, { delayTime, 110 }, { delayFeedback, 0.1f },
             { delayMix, 0.3f }, { delayTone, 5 },
-            { reverbOn, 1 }, { reverbSize, 0.25f }, { reverbMix, 0.15f } }),
+            { reverbOn, 1 }, { reverbType, spring }, { reverbSize, 0.25f }, { reverbMix, 0.15f } }),
 
         make ("Surf Tremolo", C, 3, "Surf,Modulation", {
             { modOn, 1 }, { modType, tremolo }, { modRate, 6 }, { modDepth, 0.6f },
-            { reverbOn, 1 }, { reverbSize, 0.7f }, { reverbTone, 7 }, { reverbMix, 0.4f } }),
+            { reverbOn, 1 }, { reverbType, spring }, { reverbSize, 0.7f }, { reverbTone, 7 }, { reverbMix, 0.4f } }),
 
         make ("Jet Flanger", D, 1, "Modulation,Drive", {
             { driveOn, 1 }, { driveGain, 3 },
@@ -88,7 +90,7 @@ std::vector<Rig> makeFactoryRigs()
         make ("Leslie Spin", D, 2, "Modulation,Clean", {
             { compOn, 1 }, { compThreshold, -20 }, { compRatio, 3 },
             { modOn, 1 }, { modType, rotary }, { modRate, 6.5f }, { modDepth, 0.7f }, { modMix, 0.85f },
-            { reverbOn, 1 }, { reverbSize, 0.4f }, { reverbMix, 0.2f } }),
+            { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.4f }, { reverbMix, 0.2f } }),
 
         make ("Machine Gun Vibe", D, 3, "Modulation,Drive,Lead", {
             { driveOn, 1 }, { driveGain, 6 }, { driveTone, 5 }, { driveLevel, 3 },
@@ -103,7 +105,7 @@ std::vector<Rig> makeFactoryRigs()
 
         make ("Warble Vibrato", D, 5, "Modulation,Lo-Fi", {
             { modOn, 1 }, { modType, vibrato }, { modRate, 5.5f }, { modDepth, 0.35f },
-            { reverbOn, 1 }, { reverbSize, 0.5f }, { reverbTone, 4 }, { reverbMix, 0.3f } }),
+            { reverbOn, 1 }, { reverbType, spring }, { reverbSize, 0.5f }, { reverbTone, 4 }, { reverbMix, 0.3f } }),
 
         make ("Octave Lead", B, 3, "Lead,Pitch,Drive", {
             { compOn, 1 }, { compThreshold, -20 }, { compRatio, 3 },
@@ -120,18 +122,18 @@ std::vector<Rig> makeFactoryRigs()
         make ("Funk Envelope", C, 6, "Funk,Filter,Clean", {
             { compOn, 1 }, { compThreshold, -26 }, { compRatio, 4 }, { compLevel, 4 },
             { fpOn, 1 }, { fpType, autoWah }, { fpSensitivity, 6 }, { fpResonance, 6 }, { fpMix, 1 },
-            { reverbOn, 1 }, { reverbSize, 0.3f }, { reverbMix, 0.15f } }),
+            { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.3f }, { reverbMix, 0.15f } }),
 
         make ("Wide Doubler", D, 6, "Rhythm,Modulation", {
             { driveOn, 1 }, { driveGain, 3 }, { driveTone, 5 },
             { modOn, 1 }, { modType, doubler }, { modRate, 0.8f }, { modDepth, 0.4f }, { modMix, 0.7f },
-            { reverbOn, 1 }, { reverbSize, 0.35f }, { reverbMix, 0.15f } }),
+            { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.35f }, { reverbMix, 0.15f } }),
 
         // LO-FI: for intros and breakdowns. Assign the expression pedal to
         // LO-FI to sweep from the full band (heel) into the effect (toe).
         make ("Phone Intro", B, 5, "Lo-Fi,Clean", {
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 },
-            { reverbOn, 1 }, { reverbSize, 0.35f }, { reverbMix, 0.2f },
+            { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.35f }, { reverbMix, 0.2f },
             { lofiOn, 1 }, { lofiType, telephone }, { lofiAmount, 6 }, { lofiNoise, 3 }, { lofiLevel, 2 } }),
 
         make ("Megaphone Verse", B, 6, "Lo-Fi,Drive", {
@@ -140,29 +142,35 @@ std::vector<Rig> makeFactoryRigs()
 
         make ("Old Radio", C, 7, "Lo-Fi,Vintage", {
             { modOn, 1 }, { modType, tremolo }, { modRate, 4.5f }, { modDepth, 0.3f },
-            { reverbOn, 1 }, { reverbSize, 0.5f }, { reverbMix, 0.3f },
+            { reverbOn, 1 }, { reverbType, spring }, { reverbSize, 0.5f }, { reverbMix, 0.3f },
             { lofiOn, 1 }, { lofiType, amRadio }, { lofiAmount, 5 }, { lofiNoise, 5 }, { lofiLevel, 1 } }),
 
         make ("Cassette Dreams", D, 7, "Lo-Fi,Ambient", {
             { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 },
             { modOn, 1 }, { modType, chorus }, { modRate, 0.4f }, { modDepth, 0.4f }, { modMix, 0.35f },
             { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.35f }, { delayMix, 0.25f },
-            { reverbOn, 1 }, { reverbSize, 0.8f }, { reverbMix, 0.35f },
+            { reverbOn, 1 }, { reverbType, digital }, { reverbSize, 0.8f }, { reverbMix, 0.35f },
             { lofiOn, 1 }, { lofiType, cassette }, { lofiAmount, 5 }, { lofiNoise, 4 } }),
 
         make ("8-Bit Crunch", D, 8, "Lo-Fi,Drive", {
             { driveOn, 1 }, { driveGain, 3 },
             { lofiOn, 1 }, { lofiType, bitcrusher }, { lofiAmount, 6 }, { lofiNoise, 0 }, { lofiMix, 0.8f } }),
 
+        // A reverse reverb: each note swells up out of nowhere.
+        make ("Reverse Swell", C, 8, "Ambient,Reverb", {
+            { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 },
+            { delayOn, 1 }, { delaySync, quarter }, { delayFeedback, 0.3f }, { delayMix, 0.15f },
+            { reverbOn, 1 }, { reverbType, reverse }, { reverbSize, 0.5f }, { reverbMix, 0.55f }, { reverbPreDelay, 0 } }),
+
         // These two follow the tempo (tapped, or the DAW's).
         make ("Brownface Trem", C, 4, "Modulation,Clean,Vintage", {
             { modOn, 1 }, { modType, harmonicTremolo }, { modSync, eighth }, { modDepth, 0.7f },
-            { reverbOn, 1 }, { reverbSize, 0.55f }, { reverbTone, 6 }, { reverbMix, 0.3f } }),
+            { reverbOn, 1 }, { reverbType, spring }, { reverbSize, 0.55f }, { reverbTone, 6 }, { reverbMix, 0.3f } }),
 
         make ("Wide Pan", C, 5, "Modulation,Ambient", {
             { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 },
             { modOn, 1 }, { modType, autoPan }, { modSync, quarter }, { modDepth, 0.8f },
             { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.35f }, { delayMix, 0.2f },
-            { reverbOn, 1 }, { reverbSize, 0.8f }, { reverbMix, 0.35f } }),
+            { reverbOn, 1 }, { reverbType, cathedral }, { reverbSize, 0.8f }, { reverbMix, 0.35f } }),
     };
 }

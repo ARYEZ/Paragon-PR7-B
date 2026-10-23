@@ -7,6 +7,7 @@
 #include "dsp/effects/LoFi.h"
 #include "dsp/effects/GraphicEq.h"
 #include "dsp/effects/Modulation.h"
+#include "dsp/effects/Reverb.h"
 
 namespace
 {
@@ -173,5 +174,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::lofiNoise, "Lo-Fi Noise", { 0.0f, 10.0f, 0.1f }, 3.0f, v12, asKnob));
     layout.add (makeFloat (ParamIDs::lofiMix, "Lo-Fi Mix", { 0.0f, 1.0f, 0.01f }, 1.0f, v12, asPercent));
     layout.add (makeFloat (ParamIDs::lofiLevel, "Lo-Fi Level", { -12.0f, 12.0f, 0.1f }, 0.0f, v12, asDb));
+
+    // Added in plugin version 15: reverb types and pre-delay. New rigs get
+    // HALL; projects and rigs saved before it existed load as CLASSIC, the
+    // original reverb (see setStateInformation and Rig::fromXml), so they
+    // sound as they did.
+    constexpr int v15 = 15;
+    layout.add (makeChoice (ParamIDs::reverbType, "Reverb Type", v15, effects::Reverb::typeNames, (int) effects::Reverb::Type::hall));
+    layout.add (makeFloat (ParamIDs::reverbPreDelay, "Reverb Pre-Delay", { 0.0f, effects::Reverb::maxPreDelayMs, 1.0f }, 20.0f, v15, asMs));
     return layout;
 }

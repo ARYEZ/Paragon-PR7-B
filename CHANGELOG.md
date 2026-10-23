@@ -2,6 +2,33 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.15.0
+
+**Eight reverb types, and PRE-DELAY.**
+
+The REVERB block has a TYPE setting and a new **PRE-DELAY** knob (0 to 250 ms: the gap before the reverb starts, which keeps your notes clear in front of a big space).
+
+- **Room:** a small room. Strong early reflections (the first echoes off nearby walls) and a short tail: space without wash.
+- **Hall:** a concert hall. A smooth, long, warm tail.
+- **Cathedral:** a huge stone space. A very long, darker tail.
+- **Plate:** the classic studio plate. No early reflections; dense and bright from the first moment.
+- **Spring:** an amp's spring tank. Each echo arrives as a falling "drip", band-limited like a real tank, with the boing when you hit it hard.
+- **Digital:** an 80s rack reverb. Clean and bright, with a lush, chorused tail.
+- **Reverse:** the reverb played backwards, so it swells up into each note. SIZE sets how long each swell is.
+- **Classic:** the original Paragon reverb.
+
+**How it's built:** Room, Hall, Cathedral, Plate, Digital and Reverse use a new engine, a feedback delay network: eight delay lines feeding back into each other through a mixing matrix, the design behind most good studio reverbs. It builds a dense, smooth tail without the metallic ringing of the original. Each type has its own room size, early reflections, diffusion, damping and gentle tail modulation. SIZE sets how long the tail lasts, from about a third of a second (a small room) to 12 seconds (a cathedral).
+
+**Your existing sounds:** projects and rigs saved before this version load with **Classic**, so they sound exactly as they did. New rigs start on Hall.
+
+**Factory rigs:** the factory rigs now use fitting types:
+- Spring on Surf Tremolo, Slapback, Brownface Trem, Old Radio and Warble Vibrato.
+- Plate on the studio cleans and Lead Boost.
+- Cathedral on Ambient Swells and Wide Pan.
+- Room on Edge of Breakup and others.
+
+There's also a new **Reverse Swell** rig (bank C).
+
 ## 0.14.1
 
 - The knob on the unit that was labelled **OUTPUT LEVEL** is now **RIG LEVEL**, so it isn't confused with the master **OUTPUT** knob on the right. It works as before: it's each rig's own volume, saved with the rig for balancing rigs against each other, and it adds to OUTPUT, the overall volume that stays put when you switch rigs. Hover over it for a reminder.
