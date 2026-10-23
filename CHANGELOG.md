@@ -2,6 +2,16 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.18.0
+
+- **EXPRESSION screen.** The expression pedal's assign buttons on the unit are now a small LCD screen: a little sibling of the main display, with the same chrome frame, black bezel and orange-lit glass.
+  - "EXPRESSION" is shown on the screen itself, above a menu of the five targets: VOLUME, WAH / FILTER, MORPH / FX, PITCH / WHAMMY and LO-FI.
+  - The chosen target is highlighted as a solid orange bar and the others dim. With nothing assigned, all five show normally.
+  - Along the bottom, a segmented bar and a percentage show where the pedal is, live as you rock it. It stays dark while the pedal isn't assigned.
+  - Click a line to assign the pedal, and click the highlighted line again to unassign it. Or scroll over the screen to step through the list.
+  - It's the same height as the AMP, CABINET and RIG windows and lines up with them as a fourth window in the row.
+  - EXPRESSION ASSIGN in the dock works as before.
+
 ## 0.17.2
 
 - **Pearl white expression pedal.** The treadle now matches the chassis: the same bright pearl white satin finish with its fine speckle, mica flecks and rose-peach-lilac shimmer, in place of brushed chrome.

@@ -2,12 +2,15 @@
 
 #include "Parameters.h"
 #include "ui/ParagonLookAndFeel.h"
+#include "ui/LedDisplay.h"
 #include "ui/SlotWindow.h"
 
 
 namespace
 {
     const Icons::Type targetIcons[] = { Icons::Type::volume, Icons::Type::wah, Icons::Type::rig, Icons::Type::filterPitch, Icons::Type::loFi };
+    constexpr float screenSize = 7.0f / 11.0f;   // the assign screen's frame and bezel, relative to the main screen's
+
     const char* pedalNames[] = { "VOLUME", "WAH / FILTER", "MORPH / FX", "PITCH / WHAMMY", "LO-FI" };
 
     juce::RangedAudioParameter& parameter (juce::AudioProcessorValueTreeState& state, const char* id)
@@ -78,31 +81,28 @@ ExpressionAssign::ExpressionAssign (juce::AudioProcessorValueTreeState& stateToU
           repaint();
       })
 {
-    for (int target = ExpressionTargets::volume; target <= ExpressionTargets::loFi; ++target)
+    if (style == Style::pedal)
     {
-        const auto index = (size_t) (target - 1);
-        std::unique_ptr<juce::Button> button;
-
-        if (style == Style::list)
+        // The screen draws its own menu; it has no buttons.
+        setTooltip ("Expression pedal assign. Click a line (or scroll) to choose what the pedal controls; "
+                    "click the highlighted line again to unassign it.");
+        setMouseCursor (juce::MouseCursor::PointingHandCursor);
+        startTimerHz (30);   // follows the pedal's position
+    }
+    else
+    {
+        for (int target = ExpressionTargets::volume; target <= ExpressionTargets::loFi; ++target)
         {
-            auto iconButton = std::make_unique<IconButton> (ExpressionTargets::names[target], targetIcons[index],
-                                                            pedalNames[index],
-                                                            juce::Justification::centredLeft);
-            iconButton->setOutlined (true);
-            button = std::move (iconButton);
+            const auto index = (size_t) (target - 1);
+            auto button = std::make_unique<IconButton> (ExpressionTargets::names[target], targetIcons[index],
+                                                        pedalNames[index], juce::Justification::centredLeft);
+            button->setOutlined (true);
+            button->setTooltip ("Assign the expression pedal to " + ExpressionTargets::names[target]
+                                + ". Click again to unassign it.");
+            button->onClick = [this, target] { select (target); };
+            addAndMakeVisible (*button);
+            buttons.push_back (std::move (button));
         }
-        else
-        {
-            auto textButton = std::make_unique<juce::TextButton> (pedalNames[index]);
-            textButton->getProperties().set (ParagonLookAndFeel::outlinedButtonProperty, true);
-            button = std::move (textButton);
-        }
-
-        button->setTooltip ("Assign the expression pedal to " + ExpressionTargets::names[target]
-                            + ". Click again to unassign it.");
-        button->onClick = [this, target] { select (target); };
-        addAndMakeVisible (*button);
-        buttons.push_back (std::move (button));
     }
 
     attachment.sendInitialUpdate();
@@ -136,43 +136,129 @@ void ExpressionAssign::select (int target)
     attachment.setValueAsCompleteGesture ((float) newTarget);
 }
 
+void ExpressionAssign::timerCallback()
+{
+    // Repaint only when the position on the screen would change.
+    if (juce::roundToInt (state.getRawParameterValue (ParamIDs::expression)->load() * 100.0f) != shownPercent)
+        repaint();
+}
+
+juce::Rectangle<float> ExpressionAssign::screenGlass() const
+{
+    return getLocalBounds().toFloat().reduced (11.0f * screenSize);   // where LedDisplay::paintScreen puts the glass
+}
+
+std::array<juce::Rectangle<float>, 5> ExpressionAssign::screenRows() const
+{
+    // Inside the glass: the EXPRESSION heading and a rule, the five lines,
+    // then the position bar along the bottom.
+    auto content = screenGlass().reduced (5.0f, 4.0f);
+    content.removeFromTop (17.0f);
+    content.removeFromBottom (12.0f);
+    std::array<juce::Rectangle<float>, 5> rows;
+    const auto rowHeight = content.getHeight() / (float) rows.size();
+    for (auto& row : rows)
+        row = content.removeFromTop (rowHeight).reduced (0.0f, 1.0f);
+    return rows;
+}
+
 void ExpressionAssign::paint (juce::Graphics& g)
 {
     if (style != Style::pedal)
         return;
 
-    // "EXPRESSION / ASSIGN" printed on the metal, with a ring LED that
-    // lights while the pedal is assigned to something.
-    auto title = getLocalBounds().removeFromTop (30).toFloat();
-    g.setColour (ParagonColours::ink);
-    g.setFont (juce::FontOptions (11.5f, juce::Font::bold));
-    g.drawText ("EXPRESSION", title.removeFromTop (15.0f), juce::Justification::centred, false);
-    g.setColour (ParagonColours::ink.withAlpha (0.3f));
-    g.drawHorizontalLine ((int) title.getY(), title.getX() + 8.0f, title.getRight() - 8.0f);
+    // A small version of the main screen: the same chrome frame, bezel and
+    // orange-lit glass, showing a menu of what the pedal can control.
+    const auto glass = LedDisplay::paintScreen (g, getLocalBounds().toFloat(), screenSize);
+    const auto orange = LedDisplay::ledOrange;
+    const auto assigned = currentTarget != ExpressionTargets::off;
+    shownPercent = juce::roundToInt (state.getRawParameterValue (ParamIDs::expression)->load() * 100.0f);
+    const auto position = shownPercent;
 
-    g.setColour (ParagonColours::inkDim);
-    g.setFont (juce::FontOptions (9.5f, juce::Font::bold));
-    g.drawText ("ASSIGN", title, juce::Justification::centred, false);
-    SlotWindow::drawRingLed (g, { title.getCentreX() + 30.0f, title.getCentreY() }, currentTarget != ExpressionTargets::off);
+    auto content = glass.reduced (5.0f, 4.0f);
+    auto header = content.removeFromTop (13.0f);
+    g.setColour (orange);
+    g.setFont (juce::FontOptions (10.0f, juce::Font::bold));
+    g.drawFittedText ("EXPRESSION", header.toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
+    g.setColour (orange.withAlpha (0.35f));
+    g.fillRect (content.removeFromTop (1.0f));
+
+    // The menu: the chosen line inverted (a solid orange bar, dark text),
+    // the others dimmed so the choice stands out. With nothing chosen, all
+    // of them show normally.
+    const auto rows = screenRows();
+    g.setFont (juce::FontOptions (9.0f, juce::Font::bold));
+    for (size_t i = 0; i < rows.size(); ++i)
+    {
+        const auto selected = currentTarget == (int) i + 1;
+        if (selected)
+        {
+            g.setColour (orange);
+            g.fillRoundedRectangle (rows[i], 2.0f);
+            g.setColour (juce::Colour (0xff1c0b06));
+        }
+        else
+        {
+            g.setColour (orange.withAlpha (assigned ? 0.5f : 0.85f));
+        }
+        g.drawFittedText (pedalNames[i], rows[i].reduced (4.0f, 0.0f).toNearestInt(), juce::Justification::centredLeft, 1, 0.7f);
+    }
+
+    // The pedal's position: a segmented bar like a level meter, and the
+    // percentage beside it. Dark while the pedal isn't assigned, so it's
+    // clear at a glance whether the pedal is doing anything.
+    auto bar = content.removeFromBottom (8.0f);
+    g.setColour (orange.withAlpha (assigned ? 0.85f : 0.3f));
+    g.setFont (juce::FontOptions (8.5f, juce::Font::bold));
+    g.drawText (juce::String (position) + "%", bar.removeFromRight (24.0f), juce::Justification::centredRight, false);
+    bar.removeFromRight (3.0f);
+    constexpr int segments = 10;
+    const auto segmentWidth = bar.getWidth() / (float) segments;
+    for (int i = 0; i < segments; ++i)
+    {
+        const auto lit = assigned && (float) i < (float) position / 100.0f * (float) segments - 0.001f;
+        g.setColour (orange.withAlpha (lit ? 1.0f : 0.14f));
+        g.fillRect (juce::Rectangle<float> (bar.getX() + (float) i * segmentWidth + 0.6f, bar.getY() + 1.0f, segmentWidth - 1.2f, bar.getHeight() - 2.0f));
+    }
+
+    LedDisplay::paintGlassOverlay (g, glass, screenSize);
 }
 
 void ExpressionAssign::resized()
 {
     auto area = getLocalBounds();
-    if (style == Style::pedal)
-    {
-        area.removeFromTop (36);
-        const auto rowHeight = area.getHeight() / (int) buttons.size();
-        for (auto& button : buttons)
-            button->setBounds (area.removeFromTop (rowHeight).withSizeKeepingCentre (juce::jmin (82, area.getWidth()),
-                                                                                     juce::jmin (20, rowHeight - 3)));
-    }
-    else
-    {
-        const auto rowHeight = area.getHeight() / (int) buttons.size();
-        for (auto& button : buttons)
-            button->setBounds (area.removeFromTop (rowHeight).reduced (0, 2));
-    }
+    const auto rowHeight = area.getHeight() / juce::jmax (1, (int) buttons.size());
+    for (auto& button : buttons)
+        button->setBounds (area.removeFromTop (rowHeight).reduced (0, 2));
+}
+
+void ExpressionAssign::mouseUp (const juce::MouseEvent& event)
+{
+    if (style != Style::pedal || ! event.mouseWasClicked())
+        return;
+
+    const auto rows = screenRows();
+    for (size_t i = 0; i < rows.size(); ++i)
+        if (rows[i].withX (screenGlass().getX()).withWidth (screenGlass().getWidth()).contains (event.position))
+            select ((int) i + 1);
+}
+
+void ExpressionAssign::mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails& wheel)
+{
+    // Scroll to step through the menu: down moves down the list.
+    if (style != Style::pedal)
+        return;
+
+    wheelTravel -= wheel.isReversed ? -wheel.deltaY : wheel.deltaY;
+    if (std::abs (wheelTravel) < 0.15f)
+        return;
+
+    const auto step = wheelTravel > 0.0f ? 1 : -1;
+    wheelTravel = 0.0f;
+    const auto next = juce::jlimit ((int) ExpressionTargets::volume, (int) ExpressionTargets::loFi,
+                                    currentTarget == ExpressionTargets::off ? (int) ExpressionTargets::volume : currentTarget + step);
+    if (next != currentTarget)
+        select (next);
 }
 
 namespace

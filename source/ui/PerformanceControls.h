@@ -63,11 +63,14 @@ private:
 };
 
 //==============================================================================
-// VOLUME / WAH-FILTER / MORPH-FX / PITCH-WHAMMY: what the expression pedal controls. Click
-// one to assign the pedal to it, or click the lit one again to switch the
-// pedal off. Comes in two looks: the pedal face's small buttons, and the
-// dock's list with icons.
-class ExpressionAssign final : public juce::Component
+// VOLUME / WAH-FILTER / MORPH-FX / PITCH-WHAMMY / LO-FI: what the expression
+// pedal controls. Click one to assign the pedal to it, or click the lit one
+// again to switch the pedal off. Comes in two looks: a small LCD screen on
+// the unit's face (a menu with the choice highlighted, the pedal's position
+// underneath), and the dock's list of buttons with icons.
+class ExpressionAssign final : public juce::Component,
+                               public juce::SettableTooltipClient,
+                               private juce::Timer
 {
 public:
     enum class Style { pedal, list };
@@ -76,15 +79,22 @@ public:
 
     void paint (juce::Graphics&) override;
     void resized() override;
+    void mouseUp (const juce::MouseEvent&) override;
+    void mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails&) override;
 
 private:
     void select (int target);
+    void timerCallback() override;
+    juce::Rectangle<float> screenGlass() const;
+    std::array<juce::Rectangle<float>, 5> screenRows() const;   // the menu's lines, one per target
 
     Style style;
     juce::AudioProcessorValueTreeState& state;
-    std::vector<std::unique_ptr<juce::Button>> buttons;   // one per target, in order (not "Off")
+    std::vector<std::unique_ptr<juce::Button>> buttons;   // the list's buttons, one per target, in order (not "Off")
     juce::ParameterAttachment attachment;
     int currentTarget = 0;
+    int shownPercent = -1;   // the pedal position last drawn on the screen, so it repaints only when that changes
+    float wheelTravel = 0.0f;
 };
 
 //==============================================================================

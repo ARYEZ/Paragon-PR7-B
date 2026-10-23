@@ -4,6 +4,7 @@
 #include "Parameters.h"
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
+#include "ui/PerformanceControls.h"
 
 using Catch::Matchers::WithinAbs;
 
@@ -200,4 +201,55 @@ TEST_CASE ("BYPASS is global: rigs don't change it and it doesn't mark them modi
     processor.loadRig (*processor.getRigLibrary().findFactory ("Slapback"));
     CHECK (processor.getParameters().getRawParameterValue (ParamIDs::bypass)->load() > 0.5f);
     folder.deleteRecursively();
+}
+
+TEST_CASE ("The expression screen: click a line to assign the pedal, again to unassign; scroll to step", "[ui]")
+{
+    ParagonX1AudioProcessor processor;
+    auto& state = processor.getParameters();
+    ExpressionAssign screen (state, ExpressionAssign::Style::pedal);
+    screen.setBounds (0, 0, 88, 101);   // about its size on the unit
+
+    const auto target = [&] { return juce::roundToInt (state.getRawParameterValue (ParamIDs::expressionTarget)->load()); };
+    const auto rowCentre = [&] (int line)
+    {
+        // The glass's content: the heading at the top, the position bar at
+        // the bottom, the five lines evenly between (as the screen lays them out).
+        const auto glass = screen.getLocalBounds().toFloat().reduced (7.0f).reduced (5.0f, 4.0f);
+        const auto top = glass.getY() + 17.0f, height = (glass.getHeight() - 29.0f) / 5.0f;
+        return juce::Point<float> (glass.getCentreX(), top + height * ((float) line + 0.5f));
+    };
+    const auto click = [&] (int line)
+    {
+        const auto position = rowCentre (line);
+        const auto now = juce::Time::getCurrentTime();
+        screen.mouseUp (juce::MouseEvent (juce::Desktop::getInstance().getMainMouseSource(), position, {}, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                          &screen, &screen, now, position, now, 1, false));
+    };
+    const auto scroll = [&] (float deltaY)
+    {
+        juce::MouseWheelDetails wheel {};
+        wheel.deltaY = deltaY;
+        const auto now = juce::Time::getCurrentTime();
+        screen.mouseWheelMove (juce::MouseEvent (juce::Desktop::getInstance().getMainMouseSource(), {}, {}, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                                 &screen, &screen, now, {}, now, 0, false), wheel);
+    };
+
+    REQUIRE (target() == ExpressionTargets::off);
+
+    click (1);
+    CHECK (target() == ExpressionTargets::wah);
+    click (4);
+    CHECK (target() == ExpressionTargets::loFi);
+    click (4);
+    CHECK (target() == ExpressionTargets::off);
+
+    // Scrolling down from unassigned starts at the top, then steps down; it stops at the ends.
+    scroll (-1.0f);
+    CHECK (target() == ExpressionTargets::volume);
+    scroll (-1.0f);
+    CHECK (target() == ExpressionTargets::wah);
+    scroll (1.0f);
+    scroll (1.0f);
+    CHECK (target() == ExpressionTargets::volume);
 }

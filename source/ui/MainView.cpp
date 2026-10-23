@@ -655,7 +655,7 @@ void MainView::resized()
     ampSlot.setBounds (mock (253, 250, 512, 382));
     cabSlot.setBounds (mock (578, 250, 820, 382));
     rigSlot.setBounds (mock (870, 250, 1148, 382));
-    pedalAssign.setBounds (mock (1204, 250, 1314, 386));
+    pedalAssign.setBounds (mock (1196, 250, 1310, 382));   // level with the AMP / CABINET / RIG panels, as a fourth window
     heelIndicator.setBounds (mock (1262, 407, 1314, 423));
 
     for (size_t i = 0; i < footswitches.size(); ++i)

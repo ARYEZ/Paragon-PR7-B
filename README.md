@@ -69,7 +69,8 @@ A guitar multi-effects VST3 plugin built around [Neural Amp Modeler](https://git
   (Cmd on a Mac). Each knob move, switch, file or rig load is one step. INPUT, OUTPUT and the
   pedal's position aren't undone.
 - **Expression pedal** (right of the unit): drag it, use the mouse wheel, or send MIDI CC 11 (or the CC chosen in SETTINGS) from a
-  real expression pedal (route your MIDI track to the plugin). Assign it with EXPRESSION ASSIGN to
+  real expression pedal (route your MIDI track to the plugin). Assign it on the small EXPRESSION screen beside it (click a line, or scroll; it also shows the
+  pedal's position) or with EXPRESSION ASSIGN in the dock, to
   **VOLUME**, **WAH / FILTER** (a wah before the drive), **MORPH / FX** (fades modulation, delay and
   reverb in from the heel), **PITCH / WHAMMY** (bends the pitch shifter from no shift at the heel to its
   INTERVAL at the toe) or **LO-FI** (fades the lo-fi effect in: full band at the heel, lo-fi at the toe). MIN and MAX set where the heel and toe land. The assignment and range
