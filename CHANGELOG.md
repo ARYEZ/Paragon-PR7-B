@@ -2,6 +2,11 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.12.5
+
+- **Expression pedal corners:** the treadle's body under its face was drawn as a square box, so its corners poked out past the face's rounded corners as little points. The body now follows the face's rounded corners all the way down.
+- The PR7 mark is no longer on the expression pedal: the treadle is plain brushed chrome at the heel. PR7 stays on the unit's badge and in the header.
+
 ## 0.12.4
 
 - **A new expression pedal, drawn square and true.** The mockup's pedal artwork was drawn at a slight angle, so its right edge leaned. Stretched to cover the base and rocked in 3D, that showed up as a crooked treadle, a warped right side and odd bands at the ends. The pedal is now drawn in vector graphics, with no picture to bend:

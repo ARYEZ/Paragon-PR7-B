@@ -1,7 +1,6 @@
 #include "PerformanceControls.h"
 
 #include "Parameters.h"
-#include "ui/Logo.h"
 #include "ui/ParagonLookAndFeel.h"
 #include "ui/SlotWindow.h"
 
@@ -278,12 +277,6 @@ namespace
         addPad ({ { margin, margin }, { fw - margin, margin }, { fw - margin, fh * 0.2f }, { margin, fh * 0.47f } });
         addPad ({ { fw - margin, fh * 0.28f }, { fw - margin, fh * 0.865f }, { margin, fh * 0.865f }, { margin, fh * 0.55f } });
 
-        // The PR7 mark engraved on the plate at the heel.
-        const auto markHeight = fh * 0.04f;
-        Logo::drawPR7 (g, juce::Rectangle<float> (Logo::widthFor (markHeight), markHeight).withCentre ({ fw * 0.5f, fh * 0.928f }),
-                       juce::Justification::centred,
-                       { juce::Colour (0xfff7f3f5), juce::Colour (0xfff7f3f5), juce::Colours::white.withAlpha (0.6f),
-                         juce::Colour (0xff3a3236), 1.6f });
         return face;
     }
 }
@@ -402,6 +395,33 @@ void ExpressionPedal::paint (juce::Graphics& g)
     // The treadle's outline (0-1 across and along it): square and true.
     const std::array<juce::Point<float>, 4> outline { juce::Point<float> { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f } };
 
+    // The same outline with the face's rounded corners, at height `z`, as
+    // the camera sees it. The body under the face follows it too, so no
+    // square corner pokes out past the rounded face.
+    const auto roundedOutline = [&] (float z)
+    {
+        const auto ru = treadleCorner / treadleInHousing.getWidth(), rv = treadleCorner / treadleInHousing.getHeight();
+        const std::array<std::pair<juce::Point<float>, float>, 4> corners { std::pair { juce::Point<float> { 1.0f - ru, rv }, -90.0f },
+                                                                            { { 1.0f - ru, 1.0f - rv }, 0.0f },
+                                                                            { { ru, 1.0f - rv }, 90.0f },
+                                                                            { { ru, rv }, 180.0f } };
+        juce::Path path;
+        auto first = true;
+        for (const auto& [centreUv, startDegrees] : corners)
+            for (int step = 0; step <= 8; ++step)
+            {
+                const auto angle = juce::degreesToRadians (startDegrees + 90.0f * (float) step / 8.0f);
+                const auto point = corner (centreUv.x + ru * std::cos (angle), centreUv.y + rv * std::sin (angle), z);
+                if (first)
+                    path.startNewSubPath (point);
+                else
+                    path.lineTo (point);
+                first = false;
+            }
+        path.closeSubPath();
+        return path;
+    };
+
     {
         juce::Graphics::ScopedSaveState clipToBase (g);
         g.reduceClipRegion (base);
@@ -421,19 +441,15 @@ void ExpressionPedal::paint (juce::Graphics& g)
             juce::DropShadow (juce::Colours::black, 14, {}).drawForPath (g, shadow);
         }
 
-        // The treadle's sides (its thickness): chrome, lit along the top.
-        for (size_t i = 0; i < outline.size(); ++i)
+        // The treadle's body under its face (its thickness): chrome, dark at
+        // the bottom and lit towards the top, built up in layers so its sides
+        // follow the face's rounded corners.
+        constexpr int layers = 8;
+        for (int layer = 0; layer < layers; ++layer)
         {
-            const auto a = outline[i], b = outline[(i + 1) % outline.size()];
-            juce::Path wall;
-            wall.startNewSubPath (corner (a.x, a.y, topZ));
-            wall.lineTo (corner (b.x, b.y, topZ));
-            wall.lineTo (corner (b.x, b.y, topZ - thickness));
-            wall.lineTo (corner (a.x, a.y, topZ - thickness));
-            wall.closeSubPath();
-            g.setGradientFill (juce::ColourGradient (juce::Colour (0xffcdb6c1), corner (a.x, a.y, topZ),
-                                                     juce::Colour (0xff3e3037), corner (a.x, a.y, topZ - thickness), false));
-            g.fillPath (wall);
+            const auto t = (float) layer / (float) (layers - 1);
+            g.setColour (juce::Colour (0xff3e3037).interpolatedWith (juce::Colour (0xffcdb6c1), t));
+            g.fillPath (roundedOutline (topZ - thickness * (1.0f - t)));
         }
 
         // Its face, drawn in thin horizontal slices: each slice is
@@ -457,18 +473,14 @@ void ExpressionPedal::paint (juce::Graphics& g)
         // Light from above and in front: the end tipped up towards it
         // brightens and the end tipped away darkens, along the treadle.
         {
-            juce::Path face;
-            face.startNewSubPath (corner (outline[0].x, outline[0].y, topZ));
-            for (size_t i = 1; i < outline.size(); ++i)
-                face.lineTo (corner (outline[i].x, outline[i].y, topZ));
-            face.closeSubPath();
+            const auto face = roundedOutline (topZ);
             const auto amount = tilt / maxTilt;   // +1 toe down (heel up), -1 heel down (toe up)
             const auto toeEnd = corner (0.5f, 0.0f, topZ), heelEnd = corner (0.5f, 1.0f, topZ);
             const auto lit = juce::Colours::white.withAlpha (0.10f * std::abs (amount));
             const auto shaded = juce::Colours::black.withAlpha (0.35f * std::abs (amount));
             g.setGradientFill (juce::ColourGradient (amount < 0.0f ? lit : shaded, toeEnd,
                                                      amount < 0.0f ? shaded : lit, heelEnd, false));
-            g.fillPath (face.createPathWithRoundedCorners (treadleCorner * scale));
+            g.fillPath (face);
         }
     }
 
