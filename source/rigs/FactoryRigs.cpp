@@ -289,7 +289,7 @@ std::vector<Rig> makeFactoryRigs()
         // an SVT 8x10 cabinet IR, and an amp capture or the amp off.
         make ("Absolomb (Periphery)", E, 9, "Song,Bass,Distortion,Metal", {
             { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 },
-            { driveOn, 1 }, { driveGain, 5.8f }, { dualBlend, 5.5f }, { dualLevel, 4 }, { dualMod, 7 },
+            { driveOn, 1 }, { driveType, 0 }, { driveGain, 5.8f }, { dualBlend, 5.5f }, { dualLevel, 4 }, { dualMod, 7 },
             { dualBass, 5 }, { dualMid, 5.8f }, { dualTreble, 7.5f }, { dualGrowl, 0 }, { dualBite, 1 } }),
 
         make ("Phone Intro", B, 5, "Lo-Fi,Clean", {

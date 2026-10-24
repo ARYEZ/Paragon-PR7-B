@@ -57,10 +57,6 @@ namespace effects
         void reset() noexcept;
         void process (juce::dsp::AudioBlock<float> monoBlock, const Settings&) noexcept;
 
-        // An op-amp output pushed towards its supply: straight through, then
-        // levelling off smoothly at `rail` volts either way.
-        static double opAmpClip (double volts, double rail) noexcept;
-
         // How the MOD, LEVEL and BLEND pots mix the two engines and the clean
         // signal (their loading on each other included): out = alpha * a +
         // omega * o + clean * c. Knobs 0 to 10.

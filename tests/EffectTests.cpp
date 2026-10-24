@@ -5,6 +5,8 @@
 #include "Parameters.h"
 #include "PluginProcessor.h"
 #include "dsp/effects/Circuit.h"
+#include "dsp/effects/Drive.h"
+#include "dsp/effects/Gotham.h"
 #include "dsp/effects/Modulation.h"
 #include "dsp/effects/Delay.h"
 #include "dsp/effects/Reverb.h"
@@ -522,6 +524,94 @@ TEST_CASE ("OBSIDIAN: the bass distortion follows the pedal's circuit", "[effect
             const auto output = rig.runMono (sine (41.2, 1.0f, 0.5));   // a low E, flat out
             REQUIRE (allFinite (output));
             CHECK (*std::max_element (output.begin(), output.end()) < 4.0f);   // the EQ op-amps' rails
+        }
+    }
+}
+
+TEST_CASE ("GOTHAM: the bass preamp follows the Bass Driver DI's circuit", "[effects][drive]")
+{
+    // As for the OBSIDIAN: a tone's level through the plugin, relative to its
+    // input, with GOTHAM chosen and set up by `setUp`; at -80 dBFS nothing clips.
+    const auto gainAt = [] (double hz, const std::function<void (EffectRig&)>& setUp, float amplitude = 1.0e-4f)
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::driveOn, 1.0f);
+        rig.set (ParamIDs::driveType, (float) effects::Drive::Model::gotham);
+        setUp (rig);
+        const auto input = sine (hz, amplitude, 0.6);
+        const auto output = rig.runMono (input);
+        REQUIRE (allFinite (output));
+        return dB (levelAt (output, hz, 0.3) / levelAt (input, hz, 0.3));
+    };
+    const auto wet = [] (EffectRig& rig) { rig.set (ParamIDs::gothamBlend, 10.0f); };
+    const auto clean = [] (EffectRig& rig) { rig.set (ParamIDs::gothamBlend, 0.0f); };
+
+    SECTION ("BLEND all the way clean: LEVEL at full is the x2.2 stage (+6.8 dB), the EQ's input cap trimming the lows a little")
+    {
+        const auto full = [&] (EffectRig& r) { clean (r); r.set (ParamIDs::gothamLevel, 10.0f); };
+        CHECK_THAT (gainAt (100.0, full), WithinAbs (4.3, 0.5));
+        CHECK_THAT (gainAt (3000.0, full), WithinAbs (6.5, 0.5));
+        CHECK_THAT (juce::Decibels::gainToDecibels (std::abs (effects::Gotham::levelGain (10.0f))), WithinAbs (6.85, 0.05));
+        CHECK (std::abs (effects::Gotham::levelGain (5.0f)) < 0.2 * std::abs (effects::Gotham::levelGain (10.0f)));   // a volume taper
+        CHECK (juce::exactlyEqual (effects::Gotham::levelGain (0.0f), 0.0));
+    }
+
+    SECTION ("It distorts: a loud low note comes out full of harmonics")
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::driveOn, 1.0f);
+        rig.set (ParamIDs::driveType, (float) effects::Drive::Model::gotham);
+        rig.set (ParamIDs::gothamBlend, 10.0f);
+        rig.set (ParamIDs::gothamDrive, 9.0f);
+        const auto output = rig.runMono (sine (110.0, 0.3f, 0.6));
+        REQUIRE (allFinite (output));
+        CHECK (dB (levelAt (output, 330.0, 0.3) / levelAt (output, 110.0, 0.3)) > -25.0f);
+    }
+
+    SECTION ("The drive path scoops the mids: 800 Hz far below 100 Hz")
+    {
+        CHECK (gainAt (100.0, wet) - gainAt (800.0, wet) > 15.0f);
+    }
+
+    SECTION ("PRESENCE: about +23 dB at 4 kHz from 0 to 10, the lows untouched")
+    {
+        const auto at = [&] (double hz, float presence) { return gainAt (hz, [&] (EffectRig& r) { wet (r); r.set (ParamIDs::gothamPresence, presence); }); };
+        CHECK_THAT (at (4000.0, 10.0f) - at (4000.0, 0.0f), WithinAbs (23.0, 1.5));
+        CHECK (std::abs (at (100.0, 10.0f) - at (100.0, 0.0f)) < 1.0f);
+    }
+
+    SECTION ("DRIVE: +23 dB from noon to full, most of its range at the top")
+    {
+        const auto at = [&] (float drive) { return gainAt (100.0, [&] (EffectRig& r) { wet (r); r.set (ParamIDs::gothamDrive, drive); }); };
+        CHECK_THAT (at (10.0f) - at (5.0f), WithinAbs (23.0, 1.0));
+        CHECK_THAT (at (5.0f) - at (0.0f), WithinAbs (4.6, 1.0));
+    }
+
+    SECTION ("BASS and TREBLE: +10 / -13 dB at 80 Hz, +15 dB at 5 kHz (Tech 21 says about +-12)")
+    {
+        const auto at = [&] (double hz, const juce::String& id, float value)
+        {
+            return gainAt (hz, [&] (EffectRig& r) { clean (r); r.set (id.toRawUTF8(), value); });
+        };
+        const auto flatAt = [&] (double hz) { return gainAt (hz, clean); };
+        CHECK_THAT (at (80.0, ParamIDs::gothamBass, 10.0f) - flatAt (80.0), WithinAbs (9.6, 1.0));
+        CHECK_THAT (at (80.0, ParamIDs::gothamBass, 0.0f) - flatAt (80.0), WithinAbs (-12.9, 1.0));
+        CHECK_THAT (at (5000.0, ParamIDs::gothamTreble, 10.0f) - flatAt (5000.0), WithinAbs (15.0, 1.0));
+    }
+
+    SECTION ("Every knob at its extreme, played hard: stable and bounded")
+    {
+        for (const auto extreme : { 0.0f, 10.0f })
+        {
+            EffectRig rig;
+            rig.set (ParamIDs::driveOn, 1.0f);
+            rig.set (ParamIDs::driveType, (float) effects::Drive::Model::gotham);
+            for (const auto* id : { ParamIDs::gothamLevel, ParamIDs::gothamBlend, ParamIDs::gothamTreble, ParamIDs::gothamBass,
+                                    ParamIDs::gothamDrive, ParamIDs::gothamPresence })
+                rig.set (id, extreme);
+            const auto output = rig.runMono (sine (41.2, 1.0f, 0.5));
+            REQUIRE (allFinite (output));
+            CHECK (*std::max_element (output.begin(), output.end()) < 4.0f);
         }
     }
 }

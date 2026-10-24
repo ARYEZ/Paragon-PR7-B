@@ -66,7 +66,12 @@ so the guide below still describes the guitar version's effects.
     toe: the interval, as far as six octaves down) and eight harmonies (your note plus a voice the pedal moves between two intervals);
     or a **Talk Box**: the amp's sound, after the cab, shaped into vowels (oo to ee) by the expression pedal (TALK BOX),
     with RESONANCE and MIX.
-  - **2 OD / Distortion: OBSIDIAN**, a bass preamp/distortion modelled on the Darkglass Alpha·Omega, built from a
+  - **2 OD / Distortion:** two bass preamps/distortions, each built from a trace of the pedal's circuit with its real
+    component values. Pick one with MODEL.
+  - **GOTHAM**, modelled on the Tech 21 SansAmp Bass Driver DI (Version 1), from madbeanpedals' SludgeHammer schematic:
+    an amp-and-cabinet imitation with the classic 800 Hz scoop. LEVEL, BLEND (clean against drive), TREBLE and BASS
+    (about ±12 dB), DRIVE (up to 40 dB, most of it in the top half) and PRESENCE (the top going into the distortion).
+  - **OBSIDIAN**, a bass preamp/distortion modelled on the Darkglass Alpha·Omega, built from a
     trace of its circuit (Aion FX's) with the real component values. BLEND mixes the clean bass (full range) with the
     distortion; LEVEL sets the distortion's volume; DRIVE its gain. MOD moves between two voicings of the same
     op-amp distortion: 0 is ALPHA (tight and refined: a deep 520 Hz scoop, the top rolled off), 10 is OMEGA (raw: a

@@ -6,6 +6,15 @@
 
 namespace effects
 {
+    // An op-amp output pushed towards its supply: straight through, then
+    // levelling off smoothly at `rail` volts either way. Firm but rounded:
+    // an op-amp stays clean almost to its rail, then flattens.
+    inline double opAmpClip (double volts, double rail) noexcept
+    {
+        constexpr double hardness = 5.0;
+        return volts / std::pow (1.0 + std::pow (std::abs (volts) / rail, hardness), 1.0 / hardness);
+    }
+
     // A small linear circuit (resistors, capacitors and ideal op-amps, one
     // input and one output) turned into a digital filter that behaves like
     // it. Used to model pedal stages from their schematics: each stage is

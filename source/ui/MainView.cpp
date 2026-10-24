@@ -243,7 +243,9 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     footswitches[1] = std::make_unique<Footswitch> (2, "OD / DISTORTION", state, juce::StringArray { ParamIDs::driveOn });
     footswitches[1]->describe = [this]
     {
-        return "Obsidian  Drive " + valueText (ParamIDs::driveGain) + "  Blend " + valueText (ParamIDs::dualBlend);
+        const auto gotham = juce::roundToInt (rawValue (ParamIDs::driveType)) == (int) effects::Drive::Model::gotham;
+        return gotham ? "Gotham  Drive " + valueText (ParamIDs::gothamDrive) + "  Blend " + valueText (ParamIDs::gothamBlend)
+                      : "Obsidian  Drive " + valueText (ParamIDs::driveGain) + "  Blend " + valueText (ParamIDs::dualBlend);
     };
     footswitches[2] = std::make_unique<Footswitch> (3, "MODULATION", state, juce::StringArray { ParamIDs::modOn });
     footswitches[2]->describe = [this]
@@ -313,12 +315,20 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                               { ParamIDs::fpInterval, "INTERVAL", fpIs (effects::FilterPitch::Type::pitchShifter) },
                               { ParamIDs::fpXpProgram, "PROGRAM", fpIs (effects::FilterPitch::Type::whammyWah) },
                               { ParamIDs::fpMix, "MIX" } } } });
-    // The OBSIDIAN's knobs, in the order of the pedal it's modelled on.
+    // Each model's knobs, in the order of the pedal it's modelled on; OUTPUT is shared.
+    const auto isGotham = [this] { return juce::roundToInt (rawValue (ParamIDs::driveType)) == (int) effects::Drive::Model::gotham; };
+    const auto isObsidian = [this] { return juce::roundToInt (rawValue (ParamIDs::driveType)) != (int) effects::Drive::Model::gotham; };
     panels[driveBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
-        { "OBSIDIAN", { { ParamIDs::driveOn, "ON" }, { ParamIDs::dualBlend, "BLEND" }, { ParamIDs::dualLevel, "LEVEL" },
-                           { ParamIDs::driveGain, "DRIVE" }, { ParamIDs::dualMod, "MOD" },
-                           { ParamIDs::dualBass, "BASS" }, { ParamIDs::dualMid, "MID" }, { ParamIDs::dualTreble, "TREBLE" },
-                           { ParamIDs::dualGrowl, "GROWL" }, { ParamIDs::dualBite, "BITE" }, { ParamIDs::driveLevel, "OUTPUT" } } } });
+        { "OD / DISTORTION", { { ParamIDs::driveOn, "ON" }, { ParamIDs::driveType, "MODEL" },
+                               { ParamIDs::dualBlend, "BLEND", isObsidian, true }, { ParamIDs::dualLevel, "LEVEL", isObsidian, true },
+                               { ParamIDs::driveGain, "DRIVE", isObsidian, true }, { ParamIDs::dualMod, "MOD", isObsidian, true },
+                               { ParamIDs::dualBass, "BASS", isObsidian, true }, { ParamIDs::dualMid, "MID", isObsidian, true },
+                               { ParamIDs::dualTreble, "TREBLE", isObsidian, true },
+                               { ParamIDs::dualGrowl, "GROWL", isObsidian, true }, { ParamIDs::dualBite, "BITE", isObsidian, true },
+                               { ParamIDs::gothamLevel, "LEVEL", isGotham, true }, { ParamIDs::gothamBlend, "BLEND", isGotham, true },
+                               { ParamIDs::gothamTreble, "TREBLE", isGotham, true }, { ParamIDs::gothamBass, "BASS", isGotham, true },
+                               { ParamIDs::gothamDrive, "DRIVE", isGotham, true }, { ParamIDs::gothamPresence, "PRESENCE", isGotham, true },
+                               { ParamIDs::driveLevel, "OUTPUT" } } } });
     panels[ampBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "AMP (NAM)", { { ParamIDs::ampOn, "ON" }, { ParamIDs::ampNormalise, "NORMALISE" }, { ParamIDs::presence, "PRESENCE" },
                          { ParamIDs::rigLevel, "RIG LEVEL" } } } });

@@ -252,5 +252,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::dualTreble, "Obsidian Treble", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
     layout.add (makeSwitch (ParamIDs::dualGrowl, "Obsidian Growl", v26, false));
     layout.add (makeSwitch (ParamIDs::dualBite, "Obsidian Bite", v26, false));
+
+    // Added in PR7-B 0.5.0: the drive's MODEL (OBSIDIAN first, so projects
+    // and rigs from 0.4.0 keep it) and the GOTHAM's knobs (0 to 10, EQ flat at 5).
+    constexpr int v27 = 27;
+    layout.add (makeChoice (ParamIDs::driveType, "Drive Model", v27, effects::Drive::modelNames, (int) effects::Drive::Model::obsidian));
+    layout.add (makeFloat (ParamIDs::gothamLevel, "Gotham Level", { 0.0f, 10.0f, 0.1f }, 5.0f, v27, asKnob));
+    layout.add (makeFloat (ParamIDs::gothamBlend, "Gotham Blend", { 0.0f, 10.0f, 0.1f }, 5.0f, v27, asKnob));
+    layout.add (makeFloat (ParamIDs::gothamTreble, "Gotham Treble", { 0.0f, 10.0f, 0.1f }, 5.0f, v27, asKnob));
+    layout.add (makeFloat (ParamIDs::gothamBass, "Gotham Bass", { 0.0f, 10.0f, 0.1f }, 5.0f, v27, asKnob));
+    layout.add (makeFloat (ParamIDs::gothamDrive, "Gotham Drive", { 0.0f, 10.0f, 0.1f }, 5.0f, v27, asKnob));
+    layout.add (makeFloat (ParamIDs::gothamPresence, "Gotham Presence", { 0.0f, 10.0f, 0.1f }, 5.0f, v27, asKnob));
     return layout;
 }

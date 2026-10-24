@@ -4,7 +4,19 @@ Each version's notes appear on its GitHub Release page.
 
 ## 0.5.0
 
+- **GOTHAM, a new bass preamp modelled on the Tech 21 SansAmp Bass Driver DI** (the original, Version 1). OD / DISTORTION now has a **MODEL** menu: OBSIDIAN or GOTHAM.
+  - **Built from the circuit**, like the OBSIDIAN: every stage follows the schematic of madbeanpedals' SludgeHammer, a clone of the pedal, with its real component values.
+  - **What it does, as the pedal does:** it imitates an amp and cabinet. A filter scoops about 800 Hz before the gain (the classic SansAmp mid scoop). The drive stages clip like op-amps on 9 V. The filters after them keep the lows big and roll the top off like a speaker.
+  - **The knobs, as on the pedal:**
+    - **LEVEL:** the volume.
+    - **BLEND:** the clean bass against the drive.
+    - **TREBLE and BASS:** about ±12 dB at 5 kHz and 80 Hz.
+    - **DRIVE:** up to 40 dB of gain, most of it in the top half of the knob, as on the pedal.
+    - **PRESENCE:** lifts the top going into the distortion, up to +27 dB around 4–5 kHz.
+    - **OUTPUT:** our trim into the amp, shared with OBSIDIAN.
+  - **One place we chose:** the SludgeHammer puts LEVEL straight into the EQ, which would make LEVEL tilt the tone and halve the EQ's boost. An analysis of the original pedal (Bass21) puts LEVEL before the last gain stage instead, which matches Tech 21's ±12 dB EQ spec. We followed the original.
 - **DUAL ENGINE is now called OBSIDIAN.** Same sound and settings; rigs and projects saved with 0.4.0 load as before.
+- **The OBSIDIAN's panel uses two rows**, now that the MODEL menu is there too, so its twelve controls keep good-sized knobs and readable values.
 
 ## 0.4.0
 

@@ -295,17 +295,26 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
 
     effects::Drive::Settings driveSettings;
     driveSettings.on = isOn (ParamIDs::driveOn);
-    auto& engine = driveSettings.engine;
-    engine.drive = param (ParamIDs::driveGain);
-    engine.mod = param (ParamIDs::dualMod);
-    engine.level = param (ParamIDs::dualLevel);
-    engine.blend = param (ParamIDs::dualBlend);
-    engine.bass = param (ParamIDs::dualBass);
-    engine.mid = param (ParamIDs::dualMid);
-    engine.treble = param (ParamIDs::dualTreble);
-    engine.growl = isOn (ParamIDs::dualGrowl);
-    engine.bite = isOn (ParamIDs::dualBite);
-    engine.outputDb = param (ParamIDs::driveLevel);
+    driveSettings.model = (effects::Drive::Model) juce::roundToInt (param (ParamIDs::driveType));
+    auto& obsidian = driveSettings.obsidian;
+    obsidian.drive = param (ParamIDs::driveGain);
+    obsidian.mod = param (ParamIDs::dualMod);
+    obsidian.level = param (ParamIDs::dualLevel);
+    obsidian.blend = param (ParamIDs::dualBlend);
+    obsidian.bass = param (ParamIDs::dualBass);
+    obsidian.mid = param (ParamIDs::dualMid);
+    obsidian.treble = param (ParamIDs::dualTreble);
+    obsidian.growl = isOn (ParamIDs::dualGrowl);
+    obsidian.bite = isOn (ParamIDs::dualBite);
+    obsidian.outputDb = param (ParamIDs::driveLevel);
+    auto& gotham = driveSettings.gotham;
+    gotham.level = param (ParamIDs::gothamLevel);
+    gotham.blend = param (ParamIDs::gothamBlend);
+    gotham.treble = param (ParamIDs::gothamTreble);
+    gotham.bass = param (ParamIDs::gothamBass);
+    gotham.drive = param (ParamIDs::gothamDrive);
+    gotham.presence = param (ParamIDs::gothamPresence);
+    gotham.outputDb = param (ParamIDs::driveLevel);
     drive.process (monoBlock, driveSettings);
 
     amp.process (mono, numSamples, ampOn->load() > 0.5f, ampNormalise->load() > 0.5f);

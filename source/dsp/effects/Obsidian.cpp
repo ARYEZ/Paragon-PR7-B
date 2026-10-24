@@ -140,13 +140,6 @@ namespace effects
         }
     }
 
-    double Obsidian::opAmpClip (double volts, double rail) noexcept
-    {
-        // Firm but rounded: an op-amp stays clean almost to its rail, then flattens.
-        constexpr double hardness = 5.0;
-        return volts / std::pow (1.0 + std::pow (std::abs (volts) / rail, hardness), 1.0 / hardness);
-    }
-
     Obsidian::Mix Obsidian::mixWeights (float modKnob, float levelKnob, float blendKnob) noexcept
     {
         // MOD (100k linear) runs from ALPHA (pin 1) to OMEGA (pin 3); its

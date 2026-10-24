@@ -27,6 +27,14 @@ namespace ParamIDs
 
     // The OBSIDIAN's other knobs (its DRIVE is driveGain, and driveLevel is its OUTPUT trim).
     // "dual" is from its first name, DUAL ENGINE (0.4.0): IDs are saved, so they stay.
+    // driveType chooses the model: OBSIDIAN or GOTHAM, whose knobs follow.
+    inline constexpr auto driveType       = "driveType";
+    inline constexpr auto gothamLevel     = "gothamLevel";
+    inline constexpr auto gothamBlend     = "gothamBlend";
+    inline constexpr auto gothamTreble    = "gothamTreble";
+    inline constexpr auto gothamBass      = "gothamBass";
+    inline constexpr auto gothamDrive     = "gothamDrive";
+    inline constexpr auto gothamPresence  = "gothamPresence";
     inline constexpr auto dualMod    = "dualMod";
     inline constexpr auto dualLevel  = "dualLevel";
     inline constexpr auto dualBlend  = "dualBlend";

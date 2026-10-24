@@ -52,17 +52,27 @@ struct EffectPanel::Control
             // Double-click a knob to reset it.
             slider->setDoubleClickReturnValue (true, parameter->convertFrom0to1 (parameter->getDefaultValue()));
             isKnob = true;
+            // The widest value it shows (its ends, e.g. "-24.0 dB"), for laying cards out side by side.
+            for (const auto end : { 0.0f, 1.0f })
+                valueWidth = juce::jmax (valueWidth, juce::GlyphArrangement::getStringWidthInt (juce::FontOptions (15.0f), parameter->getText (end, 32)) + 6);
             widget = std::move (slider);
         }
     }
 
-    void setBounds (juce::Rectangle<int> area)
+    // `wide`: a short, wide card (a panel on two rows), where a knob's value
+    // goes beside it rather than below, so the knob can be a good size.
+    void setBounds (juce::Rectangle<int> area, bool wide = false)
     {
         // Label at the top of the card, the control filling the rest.
         label.setBounds (area.removeFromTop (22));
-        area.removeFromTop (4);
+        area.removeFromTop (wide ? 0 : 4);
         if (isKnob)
+        {
+            if (auto* slider = dynamic_cast<juce::Slider*> (widget.get()))
+                slider->setTextBoxStyle (wide ? juce::Slider::TextBoxRight : juce::Slider::TextBoxBelow, false,
+                                         wide ? juce::jmin (valueWidth, area.getWidth() / 2) : maxTileWidth, 22);
             widget->setBounds (area.reduced (2, 0));
+        }
         else if (buttonAttachment != nullptr)
             widget->setBounds (area.withSizeKeepingCentre (26, 26));   // LED in the middle of its card
         else
@@ -95,6 +105,7 @@ struct EffectPanel::Control
     std::unique_ptr<juce::Component> widget;
     bool isKnob = false;
     int longestChoice = 0;   // a list's longest entry, in characters
+    int valueWidth = 0;      // a knob's widest value, in pixels
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> sliderAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> comboAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> buttonAttachment;
@@ -283,6 +294,44 @@ void EffectPanel::resized()
             return 1.5f;   // a short list (GLITCH's Post / Pre) needs less room than a long one
         return juce::jmax (listWeight, listWeight * (float) control.longestChoice / 16.0f);
     };
+    // A crowded panel with one part (the OBSIDIAN's twelve controls) wraps
+    // onto two rows, each laid out like a row of its own, so the knobs
+    // stay a good size and the lists' entries read in full.
+    if (groups.size() == 1 && numControls > 10)
+    {
+        // On a wide card a knob's value sits beside it: a long one ("-24.0 dB") needs a wider card.
+        const auto wideWeight = [&weight] (const Control& control)
+        {
+            return control.isKnob ? juce::jmax (1.0f, (float) control.valueWidth / 40.0f) : weight (control);
+        };
+        tiles.clear();
+        groups[0].area = area;
+        const auto rowHeight = (area.getHeight() - tileGap) / 2;
+        const auto split = shown[0].begin() + (numControls + 1) / 2;
+        for (const auto& [first, last] : { std::pair { shown[0].begin(), split }, std::pair { split, shown[0].end() } })
+        {
+            auto rowArea = area.removeFromTop (rowHeight);
+            area.removeFromTop (tileGap);
+            float rowWeight = 0.0f;
+            for (auto it = first; it != last; ++it)
+                rowWeight += wideWeight (**it);
+            const auto rowGaps = tileGap * (int) (std::distance (first, last) - 1);
+            const auto rowUnit = juce::jmin ((float) maxTileWidth, (float) (rowArea.getWidth() - rowGaps) / juce::jmax (1.0f, rowWeight));
+            auto rowWidth = rowGaps;
+            for (auto it = first; it != last; ++it)
+                rowWidth += juce::roundToInt (rowUnit * wideWeight (**it));
+            rowArea = rowArea.withSizeKeepingCentre (rowWidth, rowArea.getHeight());
+            for (auto it = first; it != last; ++it)
+            {
+                const auto tile = rowArea.removeFromLeft (juce::roundToInt (rowUnit * wideWeight (**it)));
+                rowArea.removeFromLeft (tileGap);
+                tiles.push_back (tile);
+                (*it)->setBounds (tile.reduced (4, 6), true);
+            }
+        }
+        return;
+    }
+
     float totalWeight = 0.0f;
     for (const auto& groupControls : shown)
         for (const auto* control : groupControls)
