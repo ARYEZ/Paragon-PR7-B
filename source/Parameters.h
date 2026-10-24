@@ -25,7 +25,8 @@ namespace ParamIDs
     inline constexpr auto driveGain      = "driveGain";
     inline constexpr auto driveLevel     = "driveLevel";
 
-    // The DUAL ENGINE's other knobs (its DRIVE is driveGain, and driveLevel is its OUTPUT trim).
+    // The OBSIDIAN's other knobs (its DRIVE is driveGain, and driveLevel is its OUTPUT trim).
+    // "dual" is from its first name, DUAL ENGINE (0.4.0): IDs are saved, so they stay.
     inline constexpr auto dualMod    = "dualMod";
     inline constexpr auto dualLevel  = "dualLevel";
     inline constexpr auto dualBlend  = "dualBlend";

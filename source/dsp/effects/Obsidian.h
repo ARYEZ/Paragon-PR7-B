@@ -5,7 +5,7 @@
 
 namespace effects
 {
-    // DUAL ENGINE: a bass preamp/distortion modelled on the Darkglass
+    // OBSIDIAN: a bass preamp/distortion modelled on the Darkglass
     // Alpha·Omega, built from Aion FX's trace of its circuit (their Empyrean
     // Deluxe documentation and Alpha Omicron schematic), with the real
     // component values. Our model of that circuit, not Darkglass's code:
@@ -36,7 +36,7 @@ namespace effects
     // says 500 Hz). The EQ's op-amps clip too, if big boosts push them to
     // their rails. What isn't modelled: the op-amps' speed limits and exact
     // clipping curve (a smooth limit at each stage's rail is used).
-    class DualEngine
+    class Obsidian
     {
     public:
         struct Settings
@@ -52,7 +52,7 @@ namespace effects
         // plugin's INPUT knob moves where the distortion starts.
         static constexpr double voltsPerUnit = 1.0;
 
-        DualEngine();
+        Obsidian();
         void prepare (double sampleRate, int maxBlockSize);
         void reset() noexcept;
         void process (juce::dsp::AudioBlock<float> monoBlock, const Settings&) noexcept;

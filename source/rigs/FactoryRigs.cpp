@@ -281,7 +281,7 @@ std::vector<Rig> makeFactoryRigs()
             { driveOn, 1 }, { driveGain, 3 }, { driveLevel, 2 },
             { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.2f } }),
 
-        // Periphery, "Absolomb" (Nolly on bass): the DUAL ENGINE at the
+        // Periphery, "Absolomb" (Nolly on bass): the OBSIDIAN at the
         // settings seen on the pedal in Nolly's Darkglass demo, which plays
         // the song. GROWL and BITE weren't readable there: these are our
         // guess (GROWL off keeps the lows tight, BITE on for the clank).

@@ -412,7 +412,7 @@ TEST_CASE ("The circuit solver behaves like the circuit: an RC low-pass", "[effe
     CHECK_THAT (gainAt (20.0), WithinAbs (0.0, 0.1));
 }
 
-TEST_CASE ("DUAL ENGINE: the bass distortion follows the pedal's circuit", "[effects][drive]")
+TEST_CASE ("OBSIDIAN: the bass distortion follows the pedal's circuit", "[effects][drive]")
 {
     // The level of a tone at `hz` through the plugin, relative to its input,
     // with the drive on and set up by `setUp`. At the default -80 dBFS

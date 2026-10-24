@@ -241,16 +241,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeSwitch (ParamIDs::eqUltraLo, "EQ Ultra Lo", v25, false));
     layout.add (makeSwitch (ParamIDs::eqUltraHi, "EQ Ultra Hi", v25, false));
 
-    // Added in PR7-B 0.4.0: the DUAL ENGINE's knobs, as on the pedal it's
+    // Added in PR7-B 0.4.0: the OBSIDIAN's knobs, as on the pedal it's
     // modelled on (0 to 10, EQ flat at 5).
     constexpr int v26 = 26;
-    layout.add (makeFloat (ParamIDs::dualMod, "Dual Engine Mod", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
-    layout.add (makeFloat (ParamIDs::dualLevel, "Dual Engine Level", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
-    layout.add (makeFloat (ParamIDs::dualBlend, "Dual Engine Blend", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
-    layout.add (makeFloat (ParamIDs::dualBass, "Dual Engine Bass", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
-    layout.add (makeFloat (ParamIDs::dualMid, "Dual Engine Mid", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
-    layout.add (makeFloat (ParamIDs::dualTreble, "Dual Engine Treble", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
-    layout.add (makeSwitch (ParamIDs::dualGrowl, "Dual Engine Growl", v26, false));
-    layout.add (makeSwitch (ParamIDs::dualBite, "Dual Engine Bite", v26, false));
+    layout.add (makeFloat (ParamIDs::dualMod, "Obsidian Mod", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeFloat (ParamIDs::dualLevel, "Obsidian Level", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeFloat (ParamIDs::dualBlend, "Obsidian Blend", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeFloat (ParamIDs::dualBass, "Obsidian Bass", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeFloat (ParamIDs::dualMid, "Obsidian Mid", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeFloat (ParamIDs::dualTreble, "Obsidian Treble", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeSwitch (ParamIDs::dualGrowl, "Obsidian Growl", v26, false));
+    layout.add (makeSwitch (ParamIDs::dualBite, "Obsidian Bite", v26, false));
     return layout;
 }

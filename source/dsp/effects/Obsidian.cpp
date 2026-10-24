@@ -1,4 +1,4 @@
-#include "DualEngine.h"
+#include "Obsidian.h"
 
 namespace effects
 {
@@ -29,7 +29,7 @@ namespace effects
         }
     }
 
-    DualEngine::DualEngine()
+    Obsidian::Obsidian()
         : oversampling (2, 3, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true)   // 8x, like the other drives
     {
         // The parts lists below follow the Empyrean Deluxe schematic (Aion
@@ -140,14 +140,14 @@ namespace effects
         }
     }
 
-    double DualEngine::opAmpClip (double volts, double rail) noexcept
+    double Obsidian::opAmpClip (double volts, double rail) noexcept
     {
         // Firm but rounded: an op-amp stays clean almost to its rail, then flattens.
         constexpr double hardness = 5.0;
         return volts / std::pow (1.0 + std::pow (std::abs (volts) / rail, hardness), 1.0 / hardness);
     }
 
-    DualEngine::Mix DualEngine::mixWeights (float modKnob, float levelKnob, float blendKnob) noexcept
+    Obsidian::Mix Obsidian::mixWeights (float modKnob, float levelKnob, float blendKnob) noexcept
     {
         // MOD (100k linear) runs from ALPHA (pin 1) to OMEGA (pin 3); its
         // wiper feeds LEVEL (100k audio, pin 1 to ground), whose wiper feeds
@@ -166,7 +166,7 @@ namespace effects
         return { b * wetAlpha, b * wetOmega, (1.0 - b) + b * wetClean };
     }
 
-    void DualEngine::prepare (double newSampleRate, int maxBlockSize)
+    void Obsidian::prepare (double newSampleRate, int maxBlockSize)
     {
         sampleRate = newSampleRate;
         oversampling.initProcessing ((size_t) maxBlockSize);
@@ -185,14 +185,14 @@ namespace effects
         reset();
     }
 
-    void DualEngine::reset() noexcept
+    void Obsidian::reset() noexcept
     {
         oversampling.reset();
         for (auto* c : { &toneStage, &driveStage, &alpha, &omega, &notch, &bassTreble, &midStage })
             c->reset();
     }
 
-    void DualEngine::updateCircuits (const Settings& settings, bool force) noexcept
+    void Obsidian::updateCircuits (const Settings& settings, bool force) noexcept
     {
         const auto switches = (settings.growl ? 1 : 0) | (settings.bite ? 2 : 0);
         if (force || switches != appliedSwitches)
@@ -230,7 +230,7 @@ namespace effects
         }
     }
 
-    void DualEngine::process (juce::dsp::AudioBlock<float> monoBlock, const Settings& settings) noexcept
+    void Obsidian::process (juce::dsp::AudioBlock<float> monoBlock, const Settings& settings) noexcept
     {
         drive.setTargetValue (settings.drive);
         mod.setTargetValue (settings.mod);
@@ -247,7 +247,7 @@ namespace effects
             processChunk (samples + start, juce::jmin (chunkSize, numSamples - start), settings);
     }
 
-    void DualEngine::processChunk (float* samples, int numSamples, const Settings& settings) noexcept
+    void Obsidian::processChunk (float* samples, int numSamples, const Settings& settings) noexcept
     {
         updateCircuits (settings, appliedSwitches < 0);
 

@@ -55,7 +55,7 @@ target_sources(ParagonX1
         source/dsp/effects/CompGate.cpp
         source/dsp/effects/Delay.cpp
         source/dsp/effects/Drive.cpp
-        source/dsp/effects/DualEngine.cpp
+        source/dsp/effects/Obsidian.cpp
         source/dsp/effects/FilterPitch.cpp
         source/dsp/effects/GraphicEq.cpp
         source/dsp/effects/LoFi.cpp
