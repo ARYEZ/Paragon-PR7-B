@@ -306,8 +306,29 @@ TEST_CASE ("EQ PRESETS: choosing one sets the faders and switches the EQ on; mov
     CHECK (value (ParamIDs::eqOn) > 0.5f);
     CHECK (menu->getText() == juce::String (scoop.name));
 
-    // Nudge 1 kHz: it's no longer the preset, so the menu says PRESETS again.
+    // Nudge 500 Hz: it's no longer the preset, so the menu says PRESETS again.
     auto* band = state.getParameter (ParamIDs::eqBands[4]);
     band->setValueNotifyingHost (band->convertTo0to1 (0.0f));
     CHECK (menu->getSelectedItemIndex() == -1);
+
+    // A preset that uses the amp's ULTRA LO / ULTRA HI switches them on; one
+    // that doesn't switches them off again, so each preset sounds the same
+    // whatever was set before.
+    const auto withUltra = (int) std::distance (EqPresets::all.begin(),
+                                                std::find_if (EqPresets::all.begin(), EqPresets::all.end(),
+                                                              [] (const auto& preset) { return preset.ultraLo && preset.ultraHi; }));
+    REQUIRE (withUltra < (int) EqPresets::all.size());
+    menu->setSelectedItemIndex (withUltra, juce::sendNotificationSync);
+    CHECK (value (ParamIDs::eqUltraLo) > 0.5f);
+    CHECK (value (ParamIDs::eqUltraHi) > 0.5f);
+    CHECK (menu->getSelectedItemIndex() == withUltra);
+
+    // Switching ULTRA HI off by hand makes it your own curve.
+    auto* ultraHi = state.getParameter (ParamIDs::eqUltraHi);
+    ultraHi->setValueNotifyingHost (0.0f);
+    CHECK (menu->getSelectedItemIndex() == -1);
+
+    menu->setSelectedItemIndex (0, juce::sendNotificationSync);
+    CHECK (value (ParamIDs::eqUltraLo) < 0.5f);
+    CHECK (value (ParamIDs::eqUltraHi) < 0.5f);
 }

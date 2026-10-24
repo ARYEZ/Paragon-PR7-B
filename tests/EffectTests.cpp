@@ -1538,9 +1538,57 @@ TEST_CASE ("EQ presets: in range, named once each, and loudness-matched by LEVEL
         auto power = 0.0;
         auto count = 0;
         for (auto frequency = 40.0f; frequency <= 5000.0f; frequency *= std::pow (2.0f, 1.0f / 24.0f), ++count)
-            power += std::pow (10.0, effects::GraphicEq::responseDb (preset.gainsDb, frequency) / 10.0);
+            power += std::pow (10.0, effects::GraphicEq::responseDb (preset.gainsDb, frequency, 48000.0, preset.ultraLo, preset.ultraHi) / 10.0);
         const auto changeDb = 10.0 * std::log10 (power / count) + preset.levelDb;
         CHECK (std::abs (changeDb) <= 0.5);
+    }
+}
+
+TEST_CASE ("EQ presets sound as drawn: the plugin's output follows each preset's curve", "[effects][eq]")
+{
+    // A steady tone's level through the plugin with `preset` loaded (or the
+    // EQ off), at the bass's punch, its low-mid mud, and its clank.
+    const auto levelOf = [] (float frequency, const EqPresets::Preset* preset)
+    {
+        EffectRig rig;
+        if (preset != nullptr)
+        {
+            rig.set (ParamIDs::eqOn, 1.0f);
+            for (int band = 0; band < effects::GraphicEq::numBands; ++band)
+                rig.set (ParamIDs::eqBands[band].toRawUTF8(), preset->gainsDb[(size_t) band]);
+            rig.set (ParamIDs::eqLevel, preset->levelDb);
+            rig.set (ParamIDs::eqUltraLo, preset->ultraLo ? 1.0f : 0.0f);
+            rig.set (ParamIDs::eqUltraHi, preset->ultraHi ? 1.0f : 0.0f);
+        }
+        std::vector<float> tone ((size_t) (sampleRate * 0.4));
+        for (size_t i = 0; i < tone.size(); ++i)
+            tone[i] = 0.1f * (float) std::sin (juce::MathConstants<double>::twoPi * frequency * (double) i / sampleRate);
+        const auto out = rig.run (tone)[0];
+        return *std::max_element (out.end() - 4800, out.end());
+    };
+
+    for (const auto frequency : { 80.0f, 300.0f, 2000.0f })
+    {
+        const auto dry = levelOf (frequency, nullptr);
+        for (const auto& preset : EqPresets::all)
+        {
+            INFO (preset.name << " at " << frequency << " Hz");
+            const auto expected = effects::GraphicEq::responseDb (preset.gainsDb, frequency, sampleRate, preset.ultraLo, preset.ultraHi)
+                                + preset.levelDb;
+            CHECK_THAT (juce::Decibels::gainToDecibels (levelOf (frequency, &preset) / dry), WithinAbs (expected, 0.5));
+        }
+    }
+
+    // And the metal presets do what they say: the clank (2 kHz) is lifted
+    // over the low-mid mud (300 Hz) by a good margin.
+    for (const auto* name : { "Modern Metal Clank", "Djent Growl", "Grind Through the Guitars" })
+    {
+        INFO (name);
+        const auto& preset = *std::find_if (EqPresets::all.begin(), EqPresets::all.end(),
+                                            [name] (const auto& p) { return juce::String (p.name) == name; });
+        const auto clank = levelOf (2000.0f, &preset) / levelOf (2000.0f, nullptr);
+        const auto mud = levelOf (300.0f, &preset) / levelOf (300.0f, nullptr);
+        CHECK (juce::Decibels::gainToDecibels (clank / mud) > 6.0f);
     }
 }
 

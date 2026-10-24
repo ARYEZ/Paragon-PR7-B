@@ -82,9 +82,11 @@ so the guide below still describes the guitar version's effects.
 - **Graphic EQ:** a bass amp's 9 bands (33, 80, 150, 300, 500, 900 Hz, 2K, 5K and 9K, as on an Ampeg SVT-3 PRO; ±12 dB)
   and a level, after the cabinet, with the amp's **ULTRA LO** (-10 dB at 500 Hz, +2 dB at 40 Hz) and **ULTRA HI**
   (+9 dB at 8 kHz) switches, which work with the faders on or off. Open it from the
-  **EQ** block in the signal chain; the curve shows the EQ's actual response. FLAT resets it. **PRESETS** has twelve
-  common starting curves (Metal Scoop, Tight Low End, Mud Cut, Fizz Tamer, Lead Mid Boost, Cut Through the Mix,
-  Fat Rhythm, British Crunch, Bright Clean, Funk Scoop, Warm Jazz, Radio), each loudness-matched with LEVEL.
+  **EQ** block in the signal chain; the curve shows the EQ's actual response. FLAT resets it. **PRESETS** has sixteen
+  bass starting curves, most for modern metal (Modern Metal Clank, Djent Growl, Tight Low End, Drop-Tuned Weight, Grind
+  Through the Guitars, Thrash Pick Attack, Classic Metal Scoop, Doom Fuzz, Fizz Tamer, Mud Cut) and the rest for other
+  styles (Clean DI Polish, Slap Funk, Motown Thump, Fingerstyle Growl, Fretless Mwah, Radio). Some also set ULTRA LO / ULTRA HI.
+  Each is loudness-matched with LEVEL.
 - All effects start switched off, so projects made with earlier versions sound the same.
 - **Rigs:** SAVE in the header saves the current sound as a rig; **<** and **>** step through rigs; a
   `*` after the name means it's changed since loading. The **PRESETS** tab browses, searches, files

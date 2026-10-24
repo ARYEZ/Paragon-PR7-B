@@ -57,7 +57,7 @@ GraphicEqPanel::GraphicEqPanel (juce::AudioProcessorValueTreeState& state)
     for (auto* button : { &ultraLo, &ultraHi })
     {
         button->setColour (juce::ToggleButton::textColourId, ParagonColours::text);
-        button->onStateChange = [this] { repaint(); };
+        button->onStateChange = [this] { repaint(); showMatchingPreset(); };
         addAndMakeVisible (*button);
     }
 
@@ -107,6 +107,8 @@ void GraphicEqPanel::applyPreset (int index)
     for (int band = 0; band < effects::GraphicEq::numBands; ++band)
         set (ParamIDs::eqBands[band], preset.gainsDb[(size_t) band]);
     set (ParamIDs::eqLevel, preset.levelDb);
+    set (ParamIDs::eqUltraLo, preset.ultraLo ? 1.0f : 0.0f);
+    set (ParamIDs::eqUltraHi, preset.ultraHi ? 1.0f : 0.0f);
     set (ParamIDs::eqOn, 1.0f);   // so you hear it straight away
 }
 
@@ -121,7 +123,8 @@ void GraphicEqPanel::showMatchingPreset()
         for (size_t band = 0; band < faders.size(); ++band)
             if (std::abs ((float) faders[band].getValue() - preset.gainsDb[band]) > 0.05f)
                 return false;
-        return std::abs ((float) level.getValue() - preset.levelDb) <= 0.05f;
+        return std::abs ((float) level.getValue() - preset.levelDb) <= 0.05f
+            && ultraLo.getToggleState() == preset.ultraLo && ultraHi.getToggleState() == preset.ultraHi;
     };
 
     auto match = -1;
