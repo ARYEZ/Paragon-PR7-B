@@ -23,11 +23,12 @@ namespace
         label.setColour (juce::Label::textColourId, ParagonColours::textDim);
     }
 
-    // One line describing what a rig switches on, e.g. "Drive, Delay, Reverb".
+    // One line describing what a rig switches on, e.g. "Drive, EQ, Delay".
     juce::String describeBlocks (const Rig& rig)
     {
         const std::pair<const char*, const char*> blocks[] = {
-            { ParamIDs::compOn, "Comp" }, { ParamIDs::driveOn, "Drive" }, { ParamIDs::modOn, "Mod" },
+            { ParamIDs::octOn, "Octaver" }, { ParamIDs::compOn, "Comp" }, { ParamIDs::fpOn, "Filter" },
+            { ParamIDs::driveOn, "Drive" }, { ParamIDs::eqOn, "EQ" }, { ParamIDs::modOn, "Mod" },
             { ParamIDs::delayOn, "Delay" }, { ParamIDs::reverbOn, "Reverb" } };
 
         juce::StringArray on;
@@ -286,10 +287,14 @@ void RigBrowser::showDetails()
         const auto& rig = entry->rig;
         text << describeBlocks (rig) << "\n";
         if (rig.keepAmpAndCab)
-            text << "Keeps your current amp and cabinet\n\nFactory rigs can't be changed: load it, then save a copy.";
+            text << "Keeps your current amp and cabinet";
         else
             text << "Amp: " << (rig.ampModelPath.isEmpty() ? juce::String ("none") : juce::File (rig.ampModelPath).getFileNameWithoutExtension())
                  << "\nCab: " << (rig.cabIrPath.isEmpty() ? juce::String ("none") : juce::File (rig.cabIrPath).getFileNameWithoutExtension());
+        if (rig.notes.isNotEmpty())
+            text << "\n\n" << rig.notes;
+        if (entry->isFactory)
+            text << "\n\nFactory rigs can't be changed: load it, then save a copy.";
     }
     else
     {

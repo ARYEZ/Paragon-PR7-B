@@ -49,6 +49,23 @@ namespace
 }
 
 //==============================================================================
+InkArrowButton::InkArrowButton (const juce::String& name, float direction) : juce::Button (name)
+{
+    path.addTriangle (0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.5f);
+    path.applyTransform (juce::AffineTransform::rotation (juce::MathConstants<float>::twoPi * direction, 0.5f, 0.5f));
+}
+
+void InkArrowButton::paintButton (juce::Graphics& g, bool, bool down)
+{
+    auto p = path;
+    const auto offset = down ? 1.0f : 0.0f;
+    p.applyTransform (path.getTransformToScaleToFit (offset, offset, (float) getWidth() - 3.0f, (float) getHeight() - 3.0f, false));
+    juce::DropShadow (juce::Colours::black.withAlpha (0.3f), down ? 2 : 4, {}).drawForPath (g, p);
+    g.setColour (Finish::ink());
+    g.fillPath (p);
+}
+
+//==============================================================================
 GainColumn::GainColumn (const juce::String& title, juce::AudioProcessorValueTreeState& parameters,
                         const juce::String& parameterId, LevelMeterSource& meterSource)
     : attachment (parameters, parameterId, knob),
@@ -99,7 +116,6 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                processorToShow.getParameters(), ParamIDs::ampOn),
       cabSlot ("CABINET", "*.wav;*.aif;*.aiff;*.flac", "Load / Edit IR",
                processorToShow.getParameters(), ParamIDs::cabOn),
-      pedalAssign (processorToShow.getParameters(), ExpressionAssign::Style::pedal),
       expressionPedal (processorToShow),
       heelIndicator (processorToShow),
       tunerReader (processorToShow),
@@ -113,7 +129,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
           { "OD / DIST", Icons::Type::drive, ParagonColours::drive, ParamIDs::driveOn },
           { "NAMP", Icons::Type::amp, ParagonColours::amp, ParamIDs::ampOn },
           { "CABINET IR", Icons::Type::cabinet, ParagonColours::cab, ParamIDs::cabOn },
-          { "EQ", Icons::Type::eq, ParagonColours::eq, ParamIDs::eqOn },
+          { "EQ", Icons::Type::eq, ParagonColours::eq, juce::String (ParamIDs::eqOn) + "," + ParamIDs::eqUltraLo + "," + ParamIDs::eqUltraHi },
           { "GLITCH", Icons::Type::glitch, ParagonColours::glitch, ParamIDs::glitchOn },
           { "MOD", Icons::Type::modulation, ParagonColours::modulation, ParamIDs::modOn },   // MODULATION: short, to fit twelve blocks
           { "DELAY", Icons::Type::delay, ParagonColours::delay, ParamIDs::delayOn },
@@ -243,8 +259,9 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     footswitches[1] = std::make_unique<Footswitch> (2, "OD / DISTORTION", state, juce::StringArray { ParamIDs::driveOn });
     footswitches[1]->describe = [this]
     {
-        const auto screamer = juce::roundToInt (rawValue (ParamIDs::driveModel)) == (int) effects::Drive::Model::screamer;
-        return juce::String (screamer ? "Screamer" : "Classic") + "  Drive " + valueText (ParamIDs::driveGain);
+        const auto gotham = juce::roundToInt (rawValue (ParamIDs::driveType)) == (int) effects::Drive::Model::gotham;
+        return gotham ? "Gotham  Drive " + valueText (ParamIDs::gothamDrive) + "  Blend " + valueText (ParamIDs::gothamBlend)
+                      : "Obsidian  Drive " + valueText (ParamIDs::driveGain) + "  Blend " + valueText (ParamIDs::dualBlend);
     };
     footswitches[2] = std::make_unique<Footswitch> (3, "MODULATION", state, juce::StringArray { ParamIDs::modOn });
     footswitches[2]->describe = [this]
@@ -270,7 +287,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                       &undoPedal, &redoPedal, &tunerPedal, &mutePedal, &tapPedal,
                       &undoLabel, &redoLabel, &bypassLabel, &tunerLabel, &muteLabel, &tapLabel, &holdLabel,
                       &rigLevelKnob, &presenceKnob, &rigLevelLabel, &presenceLabel,
-                      &ampSlot, &cabSlot, &rigSlot, &pedalAssign, &expressionPedal, &heelIndicator,
+                      &ampSlot, &cabSlot, &rigSlot, &expressionPedal, &heelIndicator,
                       &rigNavigator, &selectedRig, &expressionPanel };
     for (auto& footswitch : footswitches)
         processorPage.push_back (footswitch.get());
@@ -314,9 +331,20 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                               { ParamIDs::fpInterval, "INTERVAL", fpIs (effects::FilterPitch::Type::pitchShifter) },
                               { ParamIDs::fpXpProgram, "PROGRAM", fpIs (effects::FilterPitch::Type::whammyWah) },
                               { ParamIDs::fpMix, "MIX" } } } });
+    // Each model's knobs, in the order of the pedal it's modelled on; OUTPUT is shared.
+    const auto isGotham = [this] { return juce::roundToInt (rawValue (ParamIDs::driveType)) == (int) effects::Drive::Model::gotham; };
+    const auto isObsidian = [this] { return juce::roundToInt (rawValue (ParamIDs::driveType)) != (int) effects::Drive::Model::gotham; };
     panels[driveBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
-        { "OVERDRIVE", { { ParamIDs::driveOn, "ON" }, { ParamIDs::driveModel, "MODEL" }, { ParamIDs::driveGain, "DRIVE" }, { ParamIDs::driveTone, "TONE" },
-                         { ParamIDs::driveLevel, "LEVEL" } } } });
+        { "OD / DISTORTION", { { ParamIDs::driveOn, "ON" }, { ParamIDs::driveType, "MODEL" },
+                               { ParamIDs::dualBlend, "BLEND", isObsidian, true }, { ParamIDs::dualLevel, "LEVEL", isObsidian, true },
+                               { ParamIDs::driveGain, "DRIVE", isObsidian, true }, { ParamIDs::dualMod, "MOD", isObsidian, true },
+                               { ParamIDs::dualBass, "BASS", isObsidian, true }, { ParamIDs::dualMid, "MID", isObsidian, true },
+                               { ParamIDs::dualTreble, "TREBLE", isObsidian, true },
+                               { ParamIDs::dualGrowl, "GROWL", isObsidian, true }, { ParamIDs::dualBite, "BITE", isObsidian, true },
+                               { ParamIDs::gothamLevel, "LEVEL", isGotham, true }, { ParamIDs::gothamBlend, "BLEND", isGotham, true },
+                               { ParamIDs::gothamTreble, "TREBLE", isGotham, true }, { ParamIDs::gothamBass, "BASS", isGotham, true },
+                               { ParamIDs::gothamDrive, "DRIVE", isGotham, true }, { ParamIDs::gothamPresence, "PRESENCE", isGotham, true },
+                               { ParamIDs::driveLevel, "OUTPUT" } } } });
     panels[ampBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "AMP (NAM)", { { ParamIDs::ampOn, "ON" }, { ParamIDs::ampNormalise, "NORMALISE" }, { ParamIDs::presence, "PRESENCE" },
                          { ParamIDs::rigLevel, "RIG LEVEL" } } } });
@@ -390,6 +418,8 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     audioProcessor.rigBroadcaster.addChangeListener (this);
     audioProcessor.statusBroadcaster.addChangeListener (this);
     changeListenerCallback (nullptr);
+    Finish::changes().addChangeListener (this);
+    applyFinish();
 
     // The modified marker, tempo and undo state can change from the audio
     // thread or the host, so poll them. 30 Hz for the TAP light's flash.
@@ -401,6 +431,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
 
 MainView::~MainView()
 {
+    Finish::changes().removeChangeListener (this);
     audioProcessor.statusBroadcaster.removeChangeListener (this);
     audioProcessor.rigBroadcaster.removeChangeListener (this);
 }
@@ -561,8 +592,29 @@ void MainView::saveRig()
     refreshRig();
 }
 
-void MainView::changeListenerCallback (juce::ChangeBroadcaster*)
+void MainView::applyFinish()
 {
+    for (auto* label : { &rigLevelLabel, &presenceLabel })
+        label->setColour (juce::Label::textColourId, Finish::ink());
+    // The cluster's names: red over black keys; over neon keys red was
+    // hard to read, so they're printed in the unit's ink (white on pearl
+    // black, dark on pearl white). HOLD TO TUNER stays red.
+    for (auto* label : { &undoLabel, &redoLabel, &bypassLabel, &tunerLabel, &muteLabel, &tapLabel })
+        label->setColour (juce::Label::textColourId, Finish::neonKeys() ? Finish::ink() : Finish::printedRed());
+    holdLabel.setColour (juce::Label::textColourId, Finish::printedRed());
+    pedal.refinish();
+    expressionPedal.refinish();
+    repaint();
+}
+
+void MainView::changeListenerCallback (juce::ChangeBroadcaster* source)
+{
+    if (source == &Finish::changes())
+    {
+        applyFinish();
+        return;
+    }
+
     refreshRig();
     ampSlot.setStatus (audioProcessor.getAmpStatus());
     cabSlot.setStatus (audioProcessor.getCabStatus());
@@ -644,7 +696,7 @@ void MainView::resized()
     geometry.face = local (mockF (164, 94, 1338, 534));
     geometry.pedalBay = local (mockF (1347, 86, 1535, 547));
     geometry.sections = { local (mockF (174, 240, 1325, 388)), local (mockF (174, 396, 1325, 524)) };
-    geometry.insets = { local (mockF (253, 250, 512, 382)), local (mockF (578, 250, 820, 382)), local (mockF (870, 250, 1148, 382)) };
+    geometry.insets = { local (mockF (253, 250, 572, 382)), local (mockF (622, 250, 941, 382)), local (mockF (991, 250, 1310, 382)) };
     geometry.badge = local (mockF (212, 117, 410, 207));
 
     // Printed lines: SAVE ... SAVE AS, and the bracket tying TUNER and
@@ -685,10 +737,11 @@ void MainView::resized()
     presenceKnob.setBounds (mock (1203, 98, 1317, 212));
     presenceLabel.setBounds (mock (1200, 196, 1320, 214));
 
-    ampSlot.setBounds (mock (253, 250, 512, 382));
-    cabSlot.setBounds (mock (578, 250, 820, 382));
-    rigSlot.setBounds (mock (870, 250, 1148, 382));
-    pedalAssign.setBounds (mock (1196, 250, 1310, 382));   // level with the AMP / CABINET / RIG panels, as a fourth window
+    // AMP, CABINET and RIG share the row equally (the small EXPRESSION
+    // screen that sat at its right end went in 0.7.0; the dock's is the one).
+    ampSlot.setBounds (mock (253, 250, 572, 382));
+    cabSlot.setBounds (mock (622, 250, 941, 382));
+    rigSlot.setBounds (mock (991, 250, 1310, 382));
     heelIndicator.setBounds (mock (1262, 407, 1314, 423));
 
     for (size_t i = 0; i < footswitches.size(); ++i)

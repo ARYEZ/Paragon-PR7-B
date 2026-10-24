@@ -7,7 +7,7 @@
 
 namespace
 {
-    constexpr float lowestHz = 40.0f, highestHz = 20000.0f;
+    constexpr float lowestHz = 20.0f, highestHz = 20000.0f;
     constexpr auto faderPadding = (float) ParagonLookAndFeel::eqFaderThumbRadius;   // the faders' travel is inset by this much
 
     void styleFader (juce::Slider& fader)
@@ -23,7 +23,9 @@ namespace
 
 GraphicEqPanel::GraphicEqPanel (juce::AudioProcessorValueTreeState& state)
     : parameters (state),
-      onAttachment (state, ParamIDs::eqOn, onButton)
+      onAttachment (state, ParamIDs::eqOn, onButton),
+      ultraLoAttachment (state, ParamIDs::eqUltraLo, ultraLo),
+      ultraHiAttachment (state, ParamIDs::eqUltraHi, ultraHi)
 {
     for (int band = 0; band < effects::GraphicEq::numBands; ++band)
     {
@@ -46,6 +48,18 @@ GraphicEqPanel::GraphicEqPanel (juce::AudioProcessorValueTreeState& state)
     onButton.setTooltip ("Switch the EQ on or off");
     onButton.onStateChange = [this] { repaint(); };
     addAndMakeVisible (onButton);
+
+    // The bass amp's tone switches: they work whether the faders are on or not.
+    ultraLo.setTooltip ("ULTRA LO: a little more deep low end and a deep scoop in the low mids "
+                        "(+2 dB at 40 Hz, -10 dB at 500 Hz). Works with the EQ on or off.");
+    ultraHi.setTooltip ("ULTRA HI: a big lift in the highs for slap and pick attack (+9 dB at 8 kHz). "
+                        "Works with the EQ on or off.");
+    for (auto* button : { &ultraLo, &ultraHi })
+    {
+        button->setColour (juce::ToggleButton::textColourId, ParagonColours::text);
+        button->onStateChange = [this] { repaint(); showMatchingPreset(); };
+        addAndMakeVisible (*button);
+    }
 
     for (size_t i = 0; i < EqPresets::all.size(); ++i)
         presets.addItem (EqPresets::all[i].name, (int) i + 1);
@@ -93,6 +107,8 @@ void GraphicEqPanel::applyPreset (int index)
     for (int band = 0; band < effects::GraphicEq::numBands; ++band)
         set (ParamIDs::eqBands[band], preset.gainsDb[(size_t) band]);
     set (ParamIDs::eqLevel, preset.levelDb);
+    set (ParamIDs::eqUltraLo, preset.ultraLo ? 1.0f : 0.0f);
+    set (ParamIDs::eqUltraHi, preset.ultraHi ? 1.0f : 0.0f);
     set (ParamIDs::eqOn, 1.0f);   // so you hear it straight away
 }
 
@@ -107,7 +123,8 @@ void GraphicEqPanel::showMatchingPreset()
         for (size_t band = 0; band < faders.size(); ++band)
             if (std::abs ((float) faders[band].getValue() - preset.gainsDb[band]) > 0.05f)
                 return false;
-        return std::abs ((float) level.getValue() - preset.levelDb) <= 0.05f;
+        return std::abs ((float) level.getValue() - preset.levelDb) <= 0.05f
+            && ultraLo.getToggleState() == preset.ultraLo && ultraHi.getToggleState() == preset.ultraHi;
     };
 
     auto match = -1;
@@ -140,8 +157,11 @@ void GraphicEqPanel::resized()
     header.removeFromLeft (34);   // icon
     header.removeFromLeft (juce::GlyphArrangement::getStringWidthInt (juce::FontOptions (14.0f, juce::Font::bold), "GRAPHIC EQ") + 18);
     onButton.setBounds (header.removeFromLeft (60));
-    flat.setBounds (header.withX (header.getRight() - 130 - 70).withWidth (62).withSizeKeepingCentre (62, 22));
-    presets.setBounds (flat.getBounds().withX (flat.getX() - 10 - 190).withWidth (190));   // just left of FLAT
+    ultraLo.setBounds (header.removeFromLeft (88));
+    ultraHi.setBounds (header.removeFromLeft (88));
+    flat.setBounds (header.removeFromRight (62).withSizeKeepingCentre (62, 22));
+    header.removeFromRight (10);
+    presets.setBounds (header.withSizeKeepingCentre (header.getWidth(), 22));   // the rest, up to FLAT
     area.removeFromTop (10);
 
     // LEVEL on the right, the graph and band faders across the rest.
@@ -194,6 +214,7 @@ void GraphicEqPanel::paint (juce::Graphics& g)
     std::array<float, effects::GraphicEq::numBands> gains {};
     for (int band = 0; band < effects::GraphicEq::numBands; ++band)
         gains[(size_t) band] = (float) faders[(size_t) band].getValue();
+    const auto ultraLoOn = ultraLo.getToggleState(), ultraHiOn = ultraHi.getToggleState();
 
     juce::Path curve, fill;
     const auto zeroY = yForDb (0.0f);
@@ -202,7 +223,7 @@ void GraphicEqPanel::paint (juce::Graphics& g)
     {
         const auto x = graph.getX() + (float) step * 2.0f;
         const auto frequency = lowestHz * std::pow (highestHz / lowestHz, (x - graph.getX()) / graph.getWidth());
-        const auto y = yForDb (juce::jlimit (-15.0f, 15.0f, effects::GraphicEq::responseDb (gains, frequency)));
+        const auto y = yForDb (juce::jlimit (-15.0f, 15.0f, effects::GraphicEq::responseDb (gains, frequency, 48000.0, ultraLoOn, ultraHiOn)));
         if (step == 0)
             curve.startNewSubPath (x, y);
         else
@@ -212,7 +233,7 @@ void GraphicEqPanel::paint (juce::Graphics& g)
     fill.lineTo (graph.getRight(), zeroY);
     fill.closeSubPath();
 
-    const auto colour = on ? ParagonColours::eq : ParagonColours::textDim;
+    const auto colour = (on || ultraLoOn || ultraHiOn) ? ParagonColours::eq : ParagonColours::textDim;
     g.setGradientFill (juce::ColourGradient (colour.withAlpha (0.28f), 0.0f, yForDb (12.0f),
                                              colour.withAlpha (0.04f), 0.0f, zeroY, false));
     g.fillPath (fill);
@@ -220,7 +241,7 @@ void GraphicEqPanel::paint (juce::Graphics& g)
     g.strokePath (curve, juce::PathStrokeType (5.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     g.setColour (colour);
     g.strokePath (curve, juce::PathStrokeType (1.8f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-    if (on)
+    if (on || ultraLoOn || ultraHiOn)
     {
         // A white-hot core, like the unit's neon LEDs.
         g.setColour (juce::Colour (0xffffe4dc).withAlpha (0.85f));

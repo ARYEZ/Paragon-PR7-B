@@ -23,8 +23,26 @@ namespace ParamIDs
 
     inline constexpr auto driveOn        = "driveOn";
     inline constexpr auto driveGain      = "driveGain";
-    inline constexpr auto driveTone      = "driveTone";
     inline constexpr auto driveLevel     = "driveLevel";
+
+    // The OBSIDIAN's other knobs (its DRIVE is driveGain, and driveLevel is its OUTPUT trim).
+    // "dual" is from its first name, DUAL ENGINE (0.4.0): IDs are saved, so they stay.
+    // driveType chooses the model: OBSIDIAN or GOTHAM, whose knobs follow.
+    inline constexpr auto driveType       = "driveType";
+    inline constexpr auto gothamLevel     = "gothamLevel";
+    inline constexpr auto gothamBlend     = "gothamBlend";
+    inline constexpr auto gothamTreble    = "gothamTreble";
+    inline constexpr auto gothamBass      = "gothamBass";
+    inline constexpr auto gothamDrive     = "gothamDrive";
+    inline constexpr auto gothamPresence  = "gothamPresence";
+    inline constexpr auto dualMod    = "dualMod";
+    inline constexpr auto dualLevel  = "dualLevel";
+    inline constexpr auto dualBlend  = "dualBlend";
+    inline constexpr auto dualBass   = "dualBass";
+    inline constexpr auto dualMid    = "dualMid";
+    inline constexpr auto dualTreble = "dualTreble";
+    inline constexpr auto dualGrowl  = "dualGrowl";
+    inline constexpr auto dualBite   = "dualBite";
 
     inline constexpr auto modOn          = "modOn";
     inline constexpr auto modType        = "modType";
@@ -62,15 +80,16 @@ namespace ParamIDs
     // Phase 8: the 9-band graphic EQ, one band per octave.
     inline constexpr auto eqOn    = "eqOn";
     inline constexpr auto eqLevel = "eqLevel";
-    inline const juce::StringArray eqBands { "eq63", "eq125", "eq250", "eq500", "eq1k", "eq2k", "eq4k", "eq8k", "eq16k" };
-    inline const juce::StringArray eqBandNames { "63", "125", "250", "500", "1K", "2K", "4K", "8K", "16K" };
+    // The bass EQ's bands (PR7-G's were 63 Hz to 16 kHz, with their own IDs).
+    inline const juce::StringArray eqBands { "eq33", "eq80", "eq150", "eq300", "eq500", "eq900", "eq2k", "eq5k", "eq9k" };
+    inline const juce::StringArray eqBandNames { "33", "80", "150", "300", "500", "900", "2K", "5K", "9K" };
+    inline constexpr auto eqUltraLo = "eqUltraLo";
+    inline constexpr auto eqUltraHi = "eqUltraHi";
 
     // Modulation tempo sync: Off, or a note length at the tapped or host tempo.
     inline constexpr auto modSync = "modSync";
 
-    // Version 10: the drive's model (Tube Screamer or the original), and
-    // the FILTER / PITCH block: auto-wah and pitch shifter.
-    inline constexpr auto driveModel    = "driveModel";
+    // Version 10: the FILTER / PITCH block: auto-wah and pitch shifter.
     inline constexpr auto fpOn          = "fpOn";
     inline constexpr auto fpType        = "fpType";
     inline constexpr auto fpSensitivity = "fpSensitivity";   // auto-wah

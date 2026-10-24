@@ -5,10 +5,11 @@
 namespace
 {
     Rig make (const juce::String& name, int bank, int number, const juce::String& tags,
-              std::initializer_list<std::pair<const char*, float>> changes)
+              std::initializer_list<std::pair<const char*, float>> changes, const juce::String& notes = {})
     {
         Rig rig;
         rig.name = name;
+        rig.notes = notes;
         rig.bank = bank;
         rig.number = number;
         rig.tags = juce::StringArray::fromTokens (tags, ",", {});
@@ -23,7 +24,7 @@ namespace
     // Delay sync choices (index into effects::Delay::syncNames).
     constexpr float syncOff = 0, quarter = 3, eighth = 6, dottedEighth = 7;
     // Modulation types (index into effects::Modulation::typeNames).
-    constexpr float chorus = 0, flanger = 1, tremolo = 3, dimension = 4, uniVibe = 5, rotary = 6, vibrato = 7,
+    constexpr float chorus = 0, flanger = 1, phaser = 2, tremolo = 3, dimension = 4, uniVibe = 5, rotary = 6, vibrato = 7,
                     harmonicTremolo = 8, autoPan = 9, doubler = 10;
     // FILTER / PITCH types.
     constexpr float autoWah = 0, pitchShifter = 1, whammyWah = 2, talkBoxType = 3;
@@ -34,7 +35,6 @@ namespace
     constexpr float pedalWah = 2;      // the expression pedal's WAH / FILTER setting
     constexpr float glitchKillswitch = 4;
     constexpr int E = 4;               // bank E: rigs inspired by particular songs
-    constexpr float muffFuzz = 2, faceFuzz = 3;   // OD / DISTORTION's MODEL
     constexpr float digitalDelay = 0;
     constexpr float xpCryWah = 1, xpUpOctave = 12, xpOctDownOctUp = 20, xpUp4thUp5th = 23;   // Whammy-Wah programs 02, 13, 21 and 24
     constexpr float pedalWhammyWah = 6;   // the expression pedal's WHAMMY-WAH setting
@@ -44,296 +44,410 @@ namespace
     constexpr float room = 1, hall = 2, cathedral = 3, plate = 4, spring = 5, digital = 6, reverse = 7;
     // LO-FI types.
     constexpr float telephone = 0, amRadio = 1, megaphone = 2, cassette = 3, bitcrusher = 4;
+    // The graphic EQ's bands, by their parameter IDs (ParamIDs::eqBands).
+    constexpr auto eq33 = "eq33", eq80 = "eq80", eq150 = "eq150", eq300 = "eq300", eq500 = "eq500",
+                   eq900 = "eq900", eq2k = "eq2k", eq5k = "eq5k", eq9k = "eq9k";
 }
 
 std::vector<Rig> makeFactoryRigs()
 {
     using namespace ParamIDs;
     constexpr int A = 0, B = 1, C = 2, D = 3;
+    constexpr float obsidian = 0, gotham = 1;   // OD / DISTORTION's MODEL
 
+    // The bass factory rigs (PR7-B 0.8.0; PR7-G's guitar rigs are gone).
+    // A: clean and basics. B: drive. C: effects. D: genres. E: songs.
+    //
+    // The song rigs follow what's documented about each recording (the
+    // research notes behind them are summarised in each rig's notes): the
+    // bassist's drive, EQ and effects, built from PR7-B's blocks. They're
+    // our interpretation, "inspired by", not copies. Each rig's notes say
+    // which amp capture and cabinet IR to load, since rigs can't ship them.
     return {
-        make ("Clean Slate", A, 1, "Clean", {}),
+        // ---- A: clean and basics -----------------------------------------
+        make ("Clean DI", A, 1, "Clean", {},
+              "Nothing on: your bass, amp and cab as they are. A starting point."),
 
-        make ("Studio Clean", A, 2, "Clean", {
-            { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 }, { compLevel, 3 },
-            { reverbOn, 1 }, { reverbType, plate }, { reverbSize, 0.4f }, { reverbMix, 0.2f } }),
+        make ("Studio Bass", A, 2, "Clean,Compressor", { { rigLevel, 1 },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 }, { compLevel, 3 },
+            { eqOn, 1 }, { eq33, -2 }, { eq80, 1 }, { eq300, -2 }, { eq900, 1 }, { eq2k, 1 }, { eq5k, 2 }, { eq9k, 1 }, { eqLevel, -0.5f } },
+            "An evened-out, polished clean bass for recording: 4:1 compression and the Clean DI Polish EQ.\n"
+            "Amp: a clean Ampeg SVT or B-15 capture, or none for a pure DI.\nCab: an 8x10 or 1x15 IR, or none."),
 
-        make ("Chorus Clean", A, 3, "Clean,Modulation", {
-            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 }, { compLevel, 2 },
-            { modOn, 1 }, { modType, chorus }, { modRate, 0.6f }, { modDepth, 0.5f }, { modMix, 0.5f },
-            { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.25f } }),
+        make ("Fingerstyle Round", A, 3, "Clean,Compressor", { { rigLevel, -2 },
+            { compOn, 1 }, { compType, daybreakComp }, { compAmount, 4 }, { compDetail, 6 },
+            { eqOn, 1 }, { eq80, 2 }, { eq300, -1 }, { eq500, 2 }, { eq900, 3 }, { eq2k, 1 }, { eq9k, -1 }, { eqLevel, -1.5f } },
+            "Warm lows and a woody growl for fingerstyle rock.\n"
+            "Amp: a clean Ampeg SVT capture.\nCab: an SVT 8x10 IR."),
 
-        make ("Edge of Breakup", A, 4, "Crunch,Drive", {
-            { driveOn, 1 }, { driveGain, 2 }, { driveTone, 6 }, { driveLevel, 4 },
-            { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.2f } }),
+        make ("Slap Funk", A, 4, "Clean,Funk,Compressor", {
+            { compOn, 1 }, { compThreshold, -26 }, { compRatio, 6 }, { compLevel, 4 },
+            { eqOn, 1 }, { eq33, 2 }, { eq80, 3 }, { eq150, -1 }, { eq300, -3 }, { eq500, -2 }, { eq2k, 1 }, { eq5k, 1 },
+            { eqLevel, -1 }, { eqUltraHi, 1 } },
+            "Full lows, scooped mids and sparkle for slap and pop.\n"
+            "Amp: a clean Gallien-Krueger or Ampeg capture.\nCab: a 4x10 IR with a tweeter."),
 
-        // Daybreak on a clean: smooth, even and sustaining, with half the dry
-        // guitar mixed back in so every pick attack still speaks.
-        make ("Daybreak Clean", A, 5, "Clean,Compressor", {
-            { compOn, 1 }, { compType, daybreakComp }, { compAmount, 6 }, { compDetail, 6 }, { compMix, 0.5f }, { compLevel, 1 },
-            { modOn, 1 }, { modType, chorus }, { modRate, 0.4f }, { modDepth, 0.3f }, { modMix, 0.25f },
-            { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.2f } }),
-
-        make ("Lead Boost", B, 1, "Lead,Drive", {
-            { compThreshold, -20 }, { gateThreshold, -60 }, { compOn, 1 }, { compRatio, 2 },
-            { driveOn, 1 }, { driveGain, 4 }, { driveTone, 6 }, { driveLevel, 6 },
-            { delayOn, 1 }, { delayType, analogDelay }, { delaySync, dottedEighth }, { delayFeedback, 0.3f }, { delayMix, 0.2f },
-            { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.25f }, { rigLevel, 2 } }),
-
-        // A low-gain overdrive in front of a high-gain amp tightens the bass
-        // and sharpens the attack: the classic metal "boost" trick.
-        make ("High Gain Tight", B, 2, "High Gain,Rhythm", {
-            { compOn, 1 }, { compThreshold, 0 }, { gateThreshold, -55 },
-            { driveOn, 1 }, { driveGain, 1 }, { driveTone, 6 }, { driveLevel, 8 },
-            { presence, 2 } }),
-
-        make ("Ambient Swells", C, 1, "Ambient,Clean", {
-            { compOn, 1 }, { compThreshold, -26 }, { compRatio, 4 }, { compLevel, 4 },
-            { modOn, 1 }, { modType, chorus }, { modRate, 0.25f }, { modDepth, 0.6f }, { modMix, 0.35f },
-            { delayOn, 1 }, { delayType, shimmer }, { delaySync, quarter }, { delayFeedback, 0.6f }, { delayMix, 0.35f },
-            { delayTone, 5 }, { delayPingPong, 1 },
-            { reverbOn, 1 }, { reverbType, cathedral }, { reverbSize, 0.9f }, { reverbTone, 5 }, { reverbMix, 0.45f } }),
-
-        make ("Slapback", C, 2, "Rockabilly,Delay", {
-            { delayOn, 1 }, { delayType, tapeDelay }, { delaySync, syncOff }, { delayTime, 110 }, { delayFeedback, 0.1f },
-            { delayMix, 0.3f }, { delayTone, 5 },
-            { reverbOn, 1 }, { reverbType, spring }, { reverbSize, 0.25f }, { reverbMix, 0.15f } }),
-
-        make ("Surf Tremolo", C, 3, "Surf,Modulation", {
-            { modOn, 1 }, { modType, tremolo }, { modRate, 6 }, { modDepth, 0.6f },
-            { reverbOn, 1 }, { reverbType, spring }, { reverbSize, 0.7f }, { reverbTone, 7 }, { reverbMix, 0.4f } }),
-
-        make ("Jet Flanger", D, 1, "Modulation,Drive", {
-            { driveOn, 1 }, { driveGain, 3 },
-            { modOn, 1 }, { modType, flanger }, { modRate, 0.2f }, { modDepth, 0.8f }, { modMix, 0.5f } }),
-
-        make ("Leslie Spin", D, 2, "Modulation,Clean", {
+        make ("Motown Thump", A, 5, "Clean,Vintage", {
             { compOn, 1 }, { compThreshold, -20 }, { compRatio, 3 },
-            { modOn, 1 }, { modType, rotary }, { modRate, 6.5f }, { modDepth, 0.7f }, { modMix, 0.85f },
-            { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.4f }, { reverbMix, 0.2f } }),
+            { eqOn, 1 }, { eq33, 1 }, { eq80, 4 }, { eq150, 2 }, { eq500, -1 }, { eq900, -2 }, { eq2k, -4 }, { eq5k, -6 }, { eq9k, -8 },
+            { eqLevel, -0.5f } },
+            "Round, warm and dark, like flatwound strings: the highs rolled right off.\n"
+            "Amp: an Ampeg B-15 capture, or none.\nCab: a 1x15 IR, or none."),
 
-        make ("Machine Gun Vibe", D, 3, "Modulation,Drive,Lead", {
-            { driveOn, 1 }, { driveGain, 6 }, { driveTone, 5 }, { driveLevel, 3 },
-            { modOn, 1 }, { modType, uniVibe }, { modRate, 1.2f }, { modDepth, 0.75f }, { modMix, 0.5f },
-            { reverbOn, 1 }, { reverbMix, 0.18f } }),
+        make ("Fretless Mwah", A, 6, "Clean,Modulation", { { rigLevel, 5 },
+            { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 }, { compLevel, 2 },
+            { eqOn, 1 }, { eq33, -1 }, { eq80, 1 }, { eq300, -1 }, { eq500, 2 }, { eq900, 3 }, { eq2k, 2 }, { eq9k, -2 }, { eqLevel, -1.5f },
+            { modOn, 1 }, { modType, chorus }, { modRate, 0.6f }, { modDepth, 0.3f }, { modMix, 0.25f } },
+            "Lifts the vocal 500 Hz to 2 kHz range that makes a fretless sing, with a touch of chorus.\n"
+            "Amp: a clean Ampeg or Mesa capture.\nCab: a 4x10 or 8x10 IR."),
 
-        make ("Dimension Clean", D, 4, "Clean,Modulation", {
-            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 }, { compLevel, 2 },
-            { modOn, 1 }, { modType, dimension }, { modRate, 0.4f }, { modDepth, 0.5f }, { modMix, 0.5f },
-            { delayOn, 1 }, { delayType, modDelay }, { delaySync, dottedEighth }, { delayFeedback, 0.25f }, { delayMix, 0.15f },
-            { reverbOn, 1 }, { reverbSize, 0.6f }, { reverbMix, 0.25f } }),
+        // ---- B: drive -----------------------------------------------------
+        make ("Gotham Grit", B, 1, "Drive", { { rigLevel, 7 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 6 }, { gothamDrive, 4 }, { gothamPresence, 5 } },
+            "The GOTHAM (modelled on the SansAmp Bass Driver DI) at a gentle grit, half blended with the clean bass.\n"
+            "Amp: none, or a clean amp capture.\nCab: an 8x10 or 4x10 IR, or none (it imitates an amp and cab itself)."),
 
-        make ("Warble Vibrato", D, 5, "Modulation,Lo-Fi", {
-            { modOn, 1 }, { modType, vibrato }, { modRate, 5.5f }, { modDepth, 0.35f },
-            { reverbOn, 1 }, { reverbType, spring }, { reverbSize, 0.5f }, { reverbTone, 4 }, { reverbMix, 0.3f } }),
+        make ("Gotham Cranked", B, 2, "Drive,Rock", { { rigLevel, -7.5f },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 4 }, { gothamBlend, 8 }, { gothamDrive, 10 }, { gothamPresence, 6 },
+            { gothamBass, 6 } },
+            "The GOTHAM flat out: the classic cranked SansAmp snarl.\n"
+            "Amp: none, or a clean amp capture.\nCab: an 8x10 IR."),
 
-        make ("Octave Lead", B, 3, "Lead,Pitch,Drive", {
-            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 3 },
-            { fpOn, 1 }, { fpType, pitchShifter }, { fpInterval, 12 }, { fpMix, 0.45f },
-            { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 }, { driveLevel, 2 },
-            { delayOn, 1 }, { delayType, ducking }, { delaySync, dottedEighth }, { delayFeedback, 0.3f }, { delayMix, 0.2f },
-            { reverbOn, 1 }, { reverbMix, 0.2f } }),
+        make ("Obsidian Tight", B, 3, "Drive,Metal", { { rigLevel, 5 },
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 6 }, { dualMod, 0 }, { dualBlend, 5 }, { dualLevel, 4.5f }, { dualBite, 1 } },
+            "The OBSIDIAN (modelled on the Darkglass Alpha·Omega) on its ALPHA side: tight, focused grind, clean lows blended under.\n"
+            "Amp: a clean Ampeg SVT capture, or none.\nCab: an SVT 8x10 IR."),
 
-        make ("Harmony Fifths", B, 4, "Lead,Pitch", {
-            { fpOn, 1 }, { fpType, pitchShifter }, { fpInterval, 7 }, { fpMix, 0.4f },
-            { driveOn, 1 }, { driveGain, 4 }, { driveTone, 5 },
-            { reverbOn, 1 }, { reverbSize, 0.6f }, { reverbMix, 0.25f } }),
+        make ("Obsidian Raw", B, 4, "Drive,Metal", { { rigLevel, 2 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 7 }, { dualMod, 10 }, { dualBlend, 6 }, { dualLevel, 4 }, { dualGrowl, 1 } },
+            "The OBSIDIAN on its OMEGA side with GROWL: raw, brutal and fat.\n"
+            "Amp: a clean Ampeg SVT capture, or none.\nCab: an SVT 8x10 IR."),
 
-        make ("Funk Envelope", C, 6, "Funk,Filter,Clean", {
-            { compOn, 1 }, { compThreshold, -26 }, { compRatio, 4 }, { compLevel, 4 },
-            { fpOn, 1 }, { fpType, autoWah }, { fpSensitivity, 6 }, { fpResonance, 6 }, { fpMix, 1 },
-            { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.3f }, { reverbMix, 0.15f } }),
+        make ("Modern Metal Clank", B, 5, "Drive,Metal", { { rigLevel, 9.5f },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 6.5f }, { dualMod, 5 }, { dualBlend, 5 }, { dualLevel, 4 }, { dualBite, 1 },
+            { eqOn, 1 }, { eq33, -3 }, { eq80, 3 }, { eq300, -3 }, { eq500, -2 }, { eq900, 2 }, { eq2k, 5 }, { eq5k, 4 }, { eq9k, -2 },
+            { eqLevel, -2 } },
+            "Tight lows, the low-mid mud cut and a bright 2-5 kHz clank: heard under heavy guitars.\n"
+            "Amp: a clean Ampeg SVT capture.\nCab: an SVT 8x10 IR (MD421 style)."),
 
-        make ("Wide Doubler", D, 6, "Rhythm,Modulation", {
-            { driveOn, 1 }, { driveGain, 3 }, { driveTone, 5 },
-            { modOn, 1 }, { modType, doubler }, { modRate, 0.8f }, { modDepth, 0.4f }, { modMix, 0.7f },
-            { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.35f }, { reverbMix, 0.15f } }),
+        make ("Doom Fuzz", B, 6, "Drive,Fuzz", { { rigLevel, 1 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 9 }, { dualMod, 10 }, { dualBlend, 7 }, { dualLevel, 3.5f }, { dualGrowl, 1 },
+            { dualTreble, 3.5f },
+            { eqOn, 1 }, { eq33, 3 }, { eq80, 4 }, { eq150, 3 }, { eq300, 2 }, { eq900, -1 }, { eq2k, -2 }, { eq5k, -4 }, { eq9k, -6 },
+            { eqLevel, -2 } },
+            "Thick, dark and heavy for doom and sludge: OMEGA side, GROWL, the top rolled off.\n"
+            "Amp: an Orange or Ampeg capture.\nCab: an 8x10 or 4x12 IR."),
 
-        // LO-FI: for intros and breakdowns. Assign the expression pedal to
-        // LO-FI to sweep from the full band (heel) into the effect (toe).
-        make ("Whammy Lead", B, 7, "Lead,Pitch,Drive,Expression", {
-            { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpUpOctave }, { fpMix, 1 },
-            { expressionTarget, pedalWhammyWah },
-            { driveOn, 1 }, { driveGain, 6 }, { driveTone, 6 }, { driveLevel, 3 },
-            { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.25f }, { delayMix, 0.18f },
-            { reverbOn, 1 }, { reverbMix, 0.2f } }),
+        // ---- C: effects ---------------------------------------------------
+        make ("Envelope Funk", C, 1, "Funk,Filter", { { rigLevel, 6.5f },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 }, { compLevel, 8 },
+            { fpOn, 1 }, { fpType, autoWah }, { fpSensitivity, 6 }, { fpResonance, 6 }, { fpMix, 0.75f } },
+            "An envelope filter that opens as you dig in: classic funk quack.\n"
+            "Amp: a clean Ampeg or GK capture.\nCab: a 4x10 IR."),
 
-        make ("XP Wah Crunch", B, 8, "Wah,Drive,Expression", {
-            { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpCryWah }, { fpMix, 1 },
-            { expressionTarget, pedalWhammyWah },
-            { driveOn, 1 }, { driveGain, 4 }, { driveTone, 5 }, { driveLevel, 4 },
-            { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.3f }, { reverbMix, 0.15f } }),
+        make ("Synth Octave", C, 2, "Synth,Filter,Octave", { { rigLevel, 7.5f },
+            { octOn, 1 }, { octSubOne, 0.8f }, { octDry, 0.6f },
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 }, { compLevel, 8 },
+            { fpOn, 1 }, { fpType, autoWah }, { fpSensitivity, 7 }, { fpResonance, 7 }, { fpMix, 0.7f },
+            { driveOn, 1 }, { driveType, gotham }, { gothamDrive, 5 }, { gothamBlend, 4 }, { driveLevel, 8 } },
+            "Octave down into a resonant envelope filter, with a little grit: a synth-bass sound. Play one note at a time.\n"
+            "Amp: a clean amp capture, or none.\nCab: an 8x10 IR, or none."),
 
-        make ("Harmony Bends", B, 9, "Lead,Pitch,Expression", {
-            { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpUp4thUp5th }, { fpMix, 0.8f },
-            { expressionTarget, pedalWhammyWah },
-            { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 },
-            { delayOn, 1 }, { delaySync, quarter }, { delayFeedback, 0.3f }, { delayMix, 0.2f },
-            { reverbOn, 1 }, { reverbSize, 0.6f }, { reverbMix, 0.25f } }),
+        make ("Sub Octave", C, 3, "Octave", { { rigLevel, 1 },
+            { octOn, 1 }, { octSubOne, 0.7f }, { octDry, 1 },
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 3 } },
+            "A sub-octave under your notes for weight. Play one note at a time.\n"
+            "Amp: a clean Ampeg SVT capture.\nCab: an 8x10 IR."),
 
-        // The late-'90s nu-metal screech: the XP-100's program 21 (an octave
-        // down and an octave up, blended with the guitar), rocked while a
-        // high note rings, into a tight Screamer boost and a high-gain amp
-        // (load a Rectifier-style capture). The EQ is the Tight Low End
-        // preset, so the octave-down voice doesn't turn to mud.
-        make ("Nu-Metal Screech", B, 10, "High Gain,Pitch,Expression", {
-            { compOn, 1 }, { compThreshold, 0 }, { gateThreshold, -55 },
-            { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpOctDownOctUp }, { fpMix, 0.85f },
-            { expressionTarget, pedalWhammyWah },
-            { driveOn, 1 }, { driveGain, 1 }, { driveTone, 6 }, { driveLevel, 8 },
-            { presence, 2 },
-            { eqOn, 1 }, { "eq63", -6 }, { "eq125", -4 }, { "eq250", -1 }, { "eq1k", 1 }, { "eq2k", 2 }, { "eq4k", 2 }, { "eq8k", 1 },
-            { eqLevel, -0.5f },
-            { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.25f }, { reverbMix, 0.1f } }),
-
-        // Tempo-locked stutters on a crunch, faded in with the pedal: rock
-        // forward on a transition or the end of a riff.
-        make ("Stutter Edit", C, 10, "Glitch,Drive,Expression", {
-            { glitchOn, 1 }, { glitchMode, glitchSequence }, { glitchSync, 1 }, { glitchDivision, glitchSixteenth },
-            { glitchDensity, 6 }, { glitchChaos, 2 }, { glitchMix, 1 },
-            { expressionTarget, pedalGlitch },
-            { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 }, { driveLevel, 4 },
-            { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.12f } }),
-
-        // A slow cloud of grains under a clean tone: chords smear into a pad.
-        make ("Grain Cloud", D, 10, "Glitch,Ambient,Clean", {
-            { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 },
-            { glitchOn, 1 }, { glitchMode, glitchTexturizer }, { glitchSync, 0 }, { glitchTime, 250 },
-            { glitchDensity, 4 }, { glitchChaos, 5 }, { glitchMix, 0.45f },
-            { delayOn, 1 }, { delaySync, quarter }, { delayFeedback, 0.4f }, { delayMix, 0.25f },
-            { reverbOn, 1 }, { reverbType, hall }, { reverbSize, 0.8f }, { reverbMix, 0.35f } }),
-
-        //======================================================================
-        // Bank E: inspired by particular songs. Our settings for the sound,
-        // not the artists' own (which are their own gear, played their way).
-
-        // Rage Against the Machine, "Killing in the Name" solo: a Whammy an
-        // octave up, rocked to the toe for the squeal, into a cranked crunch
-        // with no reverb. (For a higher squeal, PROGRAM 14 Up 2 Octaves.)
-        make ("Killing Solo (RATM)", E, 1, "Song,Lead,Pitch,Expression", {
-            { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpUpOctave }, { fpMix, 1 },
-            { expressionTarget, pedalWhammyWah },
-            { driveOn, 1 }, { driveGain, 3 }, { driveTone, 6 }, { driveLevel, 6 },
-            { presence, 1 } }),
-
-        // Rage Against the Machine, "Bulls on Parade" scratch: a wah on the
-        // pedal, rocked as you rub the muted strings over the pickup, and
-        // the toggle-switch chop (GLITCH Killswitch, 1/16, on the song's
-        // grid when the DAW plays).
-        make ("Bulls Scratch (RATM)", E, 2, "Song,Wah,Glitch,Expression", {
-            { expressionTarget, pedalWah },
-            { glitchOn, 1 }, { glitchMode, glitchKillswitch }, { glitchSync, 1 }, { glitchDivision, glitchSixteenth },
-            { glitchDensity, 5 }, { glitchChaos, 0 }, { glitchMix, 1 },
-            { driveOn, 1 }, { driveGain, 4 }, { driveTone, 6 }, { driveLevel, 5 },
-            { presence, 1 } }),
-
-        // Pink Floyd. David Gilmour's sounds as his gear guides describe them;
-        // the rest is in his hands (vibrato, bends, note choice).
-
-        // "Comfortably Numb" solos: a Big Muff-style fuzz (sustain about 70%,
-        // tone 30-40%) into a delay of about 370 ms, through a subtly mixed
-        // rotating speaker (his Yamaha RA-200), with studio reverb.
-        make ("Numb Solo (Floyd)", E, 3, "Song,Lead,Fuzz", {
-            { driveOn, 1 }, { driveModel, muffFuzz }, { driveGain, 7 }, { driveTone, 3.5f }, { driveLevel, 1 },
-            { modOn, 1 }, { modType, rotary }, { modRate, 0.9f }, { modDepth, 0.5f }, { modMix, 0.3f },
-            { delayOn, 1 }, { delayType, digitalDelay }, { delaySync, syncOff }, { delayTime, 370 }, { delayFeedback, 0.3f }, { delayMix, 0.25f },
-            { reverbOn, 1 }, { reverbType, hall }, { reverbSize, 0.6f }, { reverbMix, 0.18f } }),
-
-        // "Us and Them": the neck pickup, clean, through a slow rotating
-        // speaker (a Leslie dominated it; a Uni-Vibe is close too), with echo.
-        // For the louder chorus, stomp footswitch 2: a Fuzz Face-style fuzz
-        // is set up and waiting, as Gilmour kicked his in.
-        make ("Us and Them (Floyd)", E, 4, "Song,Clean,Modulation,Fuzz", {
-            { driveOn, 0 }, { driveModel, faceFuzz }, { driveGain, 6 }, { driveTone, 6 }, { driveLevel, 0 },
-            { modOn, 1 }, { modType, rotary }, { modRate, 0.7f }, { modDepth, 0.6f }, { modMix, 0.6f },
-            { delayOn, 1 }, { delayType, tapeDelay }, { delaySync, syncOff }, { delayTime, 420 }, { delayFeedback, 0.25f }, { delayMix, 0.2f },
-            { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.25f } }),
-
-        // "Run Like Hell": muted eighths into a long, clean delay (about
-        // 380 ms, five or six repeats) that makes the gallop, with flanging
-        // and light compression.
-        make ("Run Like Hell (Floyd)", E, 5, "Song,Clean,Delay,Modulation", {
-            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 }, { compLevel, 2 },
-            { modOn, 1 }, { modType, flanger }, { modRate, 0.3f }, { modDepth, 0.5f }, { modMix, 0.4f },
-            { delayOn, 1 }, { delayType, digitalDelay }, { delaySync, syncOff }, { delayTime, 380 }, { delayFeedback, 0.55f }, { delayMix, 0.3f },
-            { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.12f } }),
-
-        // "Money" solos: the bridge pickup into a Fuzz Face-style fuzz, with
-        // a multi-head echo in the spirit of his Binson Echorec.
-        make ("Money Solo (Floyd)", E, 6, "Song,Lead,Fuzz,Delay", {
-            { driveOn, 1 }, { driveModel, faceFuzz }, { driveGain, 7 }, { driveTone, 7 }, { driveLevel, 1 },
-            { delayOn, 1 }, { delayType, multiTap }, { delaySync, syncOff }, { delayTime, 330 }, { delayFeedback, 0.3f }, { delayMix, 0.22f },
-            { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.15f } }),
-
-        // Tool, "Jambi" solo: a talk box on a tight, heavy tone. Load a
-        // high-gain amp capture; the pedal opens the "mouth" from oo to ee.
-        make ("Jambi Talk Box (Tool)", E, 7, "Song,Lead,Talk Box,Expression", {
-            { fpOn, 1 }, { fpType, talkBoxType }, { fpResonance, 6 }, { fpMix, 1 },
-            { expressionTarget, pedalTalkBox },
-            { driveOn, 1 }, { driveGain, 3 }, { driveTone, 6 }, { driveLevel, 6 },
-            { delayOn, 1 }, { delayType, digitalDelay }, { delaySync, eighth }, { delayFeedback, 0.2f }, { delayMix, 0.12f },
-            { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.1f } }),
-
-        // Peter Frampton, "Show Me the Way": the talk box on a warm, lightly
-        // driven tone, the most famous talk box sound there is.
-        make ("Show Me the Way (Frampton)", E, 8, "Song,Lead,Talk Box,Expression", {
-            { fpOn, 1 }, { fpType, talkBoxType }, { fpResonance, 5 }, { fpMix, 1 },
-            { expressionTarget, pedalTalkBox },
-            { driveOn, 1 }, { driveModel, 0 }, { driveGain, 3 }, { driveTone, 5 }, { driveLevel, 2 },
-            { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.2f } }),
-
-        make ("Phone Intro", B, 5, "Lo-Fi,Clean", {
+        make ("Chorus Bass", C, 4, "Modulation", { { rigLevel, 6 },
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 },
-            { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.35f }, { reverbMix, 0.2f },
-            { lofiOn, 1 }, { lofiType, telephone }, { lofiAmount, 6 }, { lofiNoise, 3 }, { lofiLevel, 2 } }),
+            { modOn, 1 }, { modType, chorus }, { modRate, 0.7f }, { modDepth, 0.45f }, { modMix, 0.4f } },
+            "A shimmering bass chorus for clean, melodic parts.\n"
+            "Amp: a clean amp capture.\nCab: a 4x10 IR."),
 
-        make ("Megaphone Verse", B, 6, "Lo-Fi,Drive", {
-            { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 },
-            { lofiOn, 1 }, { lofiType, megaphone }, { lofiAmount, 6 }, { lofiNoise, 2 } }),
+        make ("Flanged Bass", C, 5, "Modulation", { { rigLevel, 3 },
+            { modOn, 1 }, { modType, flanger }, { modRate, 0.25f }, { modDepth, 0.6f }, { modMix, 0.5f } },
+            "A slow jet-plane flanger sweep.\n"
+            "Amp: a clean amp capture.\nCab: a 4x10 or 8x10 IR."),
 
-        make ("Old Radio", C, 7, "Lo-Fi,Vintage", {
-            { modOn, 1 }, { modType, tremolo }, { modRate, 4.5f }, { modDepth, 0.3f },
-            { reverbOn, 1 }, { reverbType, spring }, { reverbSize, 0.5f }, { reverbMix, 0.3f },
-            { lofiOn, 1 }, { lofiType, amRadio }, { lofiAmount, 5 }, { lofiNoise, 5 }, { lofiLevel, 1 } }),
+        make ("Dub Delay", C, 6, "Delay,Reggae", { { rigLevel, 2 },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 },
+            { eqOn, 1 }, { eq80, 3 }, { eq150, 2 }, { eq2k, -3 }, { eq5k, -6 }, { eq9k, -8 }, { eqLevel, -1 },
+            { delayOn, 1 }, { delayType, analogDelay }, { delaySync, dottedEighth }, { delayFeedback, 0.4f }, { delayMix, 0.3f }, { delayTone, 4 } },
+            "Deep, round dub bass with dark echoes in time (tap the tempo, or follow the DAW's).\n"
+            "Amp: an Ampeg B-15 or SVT capture.\nCab: a 1x15 or 8x10 IR."),
 
-        make ("Cassette Dreams", D, 7, "Lo-Fi,Ambient", {
-            { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 },
-            { modOn, 1 }, { modType, chorus }, { modRate, 0.4f }, { modDepth, 0.4f }, { modMix, 0.35f },
-            { delayOn, 1 }, { delayType, tapeDelay }, { delaySync, dottedEighth }, { delayFeedback, 0.35f }, { delayMix, 0.25f },
-            { reverbOn, 1 }, { reverbType, digital }, { reverbSize, 0.8f }, { reverbMix, 0.35f },
-            { lofiOn, 1 }, { lofiType, cassette }, { lofiAmount, 5 }, { lofiNoise, 4 } }),
+        make ("Tremolo Pulse", C, 7, "Modulation", { { rigLevel, 3 },
+            { modOn, 1 }, { modType, tremolo }, { modSync, eighth }, { modDepth, 0.7f } },
+            "Tremolo in time with the song: chopping eighth notes.\n"
+            "Amp: a clean amp capture.\nCab: a 4x10 IR."),
 
-        make ("8-Bit Crunch", D, 8, "Lo-Fi,Drive", {
-            { driveOn, 1 }, { driveGain, 3 },
-            { lofiOn, 1 }, { lofiType, bitcrusher }, { lofiAmount, 6 }, { lofiNoise, 0 }, { lofiMix, 0.8f } }),
+        // ---- D: genres ----------------------------------------------------
+        // Each genre's typical bass sound, as it's commonly played, recorded
+        // and mixed: our interpretation of the style, not any one player's rig.
+        make ("Metalcore", D, 1, "Genre,Metal,Drive", { { rigLevel, 10 },
+            { compOn, 1 }, { compThreshold, -24 }, { compRatio, 5 }, { gateThreshold, -62 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 6.5f }, { dualMod, 3 }, { dualBlend, 5 }, { dualLevel, 4 }, { dualBite, 1 },
+            { eqOn, 1 }, { eq33, -3 }, { eq80, 3 }, { eq300, -3 }, { eq500, -1 }, { eq900, 2 }, { eq2k, 4 }, { eq5k, 3 }, { eq9k, -2 },
+            { eqLevel, -2 } },
+            "Tight, compressed and clanky: a bright, gritty top over a clean, solid low end that locks with the kick through "
+            "breakdowns.\n"
+            "Amp: a clean Ampeg SVT capture.\nCab: an SVT 8x10 IR.\n"
+            "Play: with a pick, drop C or drop B."),
 
-        // A reverse reverb: each note swells up out of nowhere.
-        make ("Reverse Swell", C, 8, "Ambient,Reverb", {
-            { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 },
-            { delayOn, 1 }, { delaySync, quarter }, { delayFeedback, 0.3f }, { delayMix, 0.15f },
-            { reverbOn, 1 }, { reverbType, reverse }, { reverbSize, 0.5f }, { reverbMix, 0.55f }, { reverbPreDelay, 0 } }),
+        make ("Nu Metal", D, 2, "Genre,Metal", { { rigLevel, 9.5f },
+            { compOn, 1 }, { compThreshold, -26 }, { compRatio, 6 }, { compLevel, 3 }, { gateThreshold, -60 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 3 }, { gothamDrive, 4 }, { gothamPresence, 7 },
+            { gothamTreble, 7 },
+            { eqOn, 1 }, { eq33, 1 }, { eq80, 3 }, { eq150, -4 }, { eq300, -6 }, { eq500, -4 }, { eq2k, 3 }, { eq5k, 5 }, { eq9k, 3 },
+            { eqLevel, 1.5f }, { eqUltraHi, 1 } },
+            "Late-'90s down-tuned clank: a percussive, bright attack, hollowed-out mids and boom underneath, with just a little "
+            "grit. Dig in hard.\n"
+            "Amp: a clean Mesa bass capture.\nCab: a 4x10 IR with a tweeter.\n"
+            "Play: slapped or picked hard on a 5-string tuned down (B, A or drop A)."),
 
-        // Delays to try: a rising shimmer pad, and reverse echoes.
-        make ("Shimmer Pad", D, 9, "Ambient,Delay,Clean", {
-            { compOn, 1 }, { compThreshold, -26 }, { compRatio, 4 }, { compLevel, 3 },
-            { delayOn, 1 }, { delayType, shimmer }, { delaySync, quarter }, { delayFeedback, 0.65f }, { delayMix, 0.4f },
-            { delayTone, 6 }, { delayPingPong, 1 },
-            { reverbOn, 1 }, { reverbType, cathedral }, { reverbSize, 0.7f }, { reverbMix, 0.4f } }),
+        make ("Thrash Metal", D, 3, "Genre,Metal,Drive", { { rigLevel, 8 },
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 5 }, { gothamBlend, 6 }, { gothamDrive, 6.5f }, { gothamPresence, 6.5f },
+            { gothamTreble, 6 },
+            { eqOn, 1 }, { eq33, -2 }, { eq80, 2 }, { eq300, -1 }, { eq900, 3 }, { eq2k, 3 }, { eq5k, 2 }, { eqLevel, -1.5f } },
+            "Picked, bright and gritty with plenty of mids, so fast riffs stay defined against the guitars.\n"
+            "Amp: an Ampeg SVT capture with a little hair.\nCab: an SVT 8x10 IR.\n"
+            "Play: fast down-picking, E or E-flat standard."),
 
-        make ("Backwards Echo", C, 9, "Psychedelic,Delay", {
-            { driveOn, 1 }, { driveGain, 3 },
-            { delayOn, 1 }, { delayType, reverseDelay }, { delaySync, eighth }, { delayFeedback, 0.4f }, { delayMix, 0.5f },
-            { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.2f } }),
+        make ("Pop Punk", D, 4, "Genre,Punk,Drive", { { rigLevel, 9.5f },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 }, { compLevel, 2 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 4 }, { gothamDrive, 4.5f }, { gothamPresence, 5 },
+            { eqOn, 1 }, { eq80, 2 }, { eq300, 1 }, { eq500, 2 }, { eq900, 2 }, { eq2k, 1 }, { eq9k, -2 }, { eqLevel, -2 } },
+            "A picked P-bass with a fat midrange and light overdrive: driving eighth notes that glue the band together.\n"
+            "Amp: an Ampeg SVT capture.\nCab: an SVT 8x10 IR.\n"
+            "Play: with a pick, steady eighth notes, E or E-flat standard."),
 
-        // These two follow the tempo (tapped, or the DAW's).
-        make ("Brownface Trem", C, 4, "Modulation,Clean,Vintage", {
-            { modOn, 1 }, { modType, harmonicTremolo }, { modSync, eighth }, { modDepth, 0.7f },
-            { reverbOn, 1 }, { reverbType, spring }, { reverbSize, 0.55f }, { reverbTone, 6 }, { reverbMix, 0.3f } }),
+        make ("Djent", D, 5, "Genre,Metal,Drive", { { rigLevel, 11 },
+            { compOn, 1 }, { compThreshold, -28 }, { compRatio, 8 }, { gateThreshold, -58 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 7 }, { dualMod, 5 }, { dualBlend, 4.5f }, { dualLevel, 4 }, { dualBite, 1 }, { driveLevel, 4 },
+            { eqOn, 1 }, { eq33, -4 }, { eq80, 2 }, { eq150, -1 }, { eq300, -4 }, { eq900, 4 }, { eq2k, 6 }, { eq5k, 2 }, { eq9k, -4 },
+            { eqLevel, -2.5f } },
+            "Heavily compressed and surgical: a tight low end, a deep low-mid scoop and a gnarly 900 Hz-2 kHz growl, gated "
+            "between stabs.\n"
+            "Amp: a clean Ampeg SVT capture, or none.\nCab: an SVT 8x10 IR.\n"
+            "Play: with a pick on a 5- or 6-string in a low drop tuning (drop A, drop F#)."),
 
-        make ("Wide Pan", C, 5, "Modulation,Ambient", {
-            { compOn, 1 }, { compThreshold, -24 }, { compRatio, 3 },
-            { modOn, 1 }, { modType, autoPan }, { modSync, quarter }, { modDepth, 0.8f },
-            { delayOn, 1 }, { delayType, multiTap }, { delaySync, dottedEighth }, { delayFeedback, 0.35f }, { delayMix, 0.2f },
-            { reverbOn, 1 }, { reverbType, cathedral }, { reverbSize, 0.8f }, { reverbMix, 0.35f } }),
+        make ("Death Metal", D, 6, "Genre,Metal,Drive", { { rigLevel, 9 },
+            { compOn, 1 }, { compThreshold, -24 }, { compRatio, 5 }, { gateThreshold, -60 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 5.5f }, { dualMod, 2 }, { dualBlend, 4 }, { dualLevel, 4.5f }, { dualBite, 1 },
+            { dualTreble, 6.5f },
+            { eqOn, 1 }, { eq80, 2 }, { eq300, -2 }, { eq500, 1 }, { eq900, 3 }, { eq2k, 4 }, { eq5k, 4 }, { eqLevel, -2.5f } },
+            "Trebly, articulate clank that cuts through tremolo-picked guitars and blast beats, with just enough grit.\n"
+            "Amp: a clean Ampeg SVT or Mesa capture.\nCab: an 8x10 or 4x10 IR.\n"
+            "Play: fingers or pick, fast; D standard or lower."),
+
+        make ("Stoner Rock", D, 7, "Genre,Fuzz,Drive", { { rigLevel, 3 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 8.5f }, { dualMod, 9 }, { dualBlend, 6 }, { dualLevel, 3.5f }, { dualGrowl, 1 },
+            { dualTreble, 4 },
+            { eqOn, 1 }, { eq33, 2 }, { eq80, 4 }, { eq150, 2 }, { eq300, 1 }, { eq2k, -1 }, { eq5k, -3 }, { eq9k, -5 }, { eqLevel, -2 },
+            { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.3f }, { reverbMix, 0.08f } },
+            "Warm, fat fuzz with huge lows and the fizz rolled off: big, slow riffs in the desert.\n"
+            "Amp: an Orange or Sunn-style bass capture.\nCab: an 8x10 or 4x15 IR.\n"
+            "Play: fingers or pick, C or D standard, let notes ring."),
+
+        make ("Hardcore Punk", D, 8, "Genre,Punk,Drive", { { rigLevel, 3.5f },
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 4.5f }, { gothamBlend, 7 }, { gothamDrive, 8 }, { gothamPresence, 5 },
+            { eqOn, 1 }, { eq80, 2 }, { eq500, 2 }, { eq900, 3 }, { eq2k, 1 }, { eq9k, -3 }, { eqLevel, -2 } },
+            "Raw, mid-pushed grit that's almost a second guitar: aggressive and in your face.\n"
+            "Amp: an Ampeg SVT capture.\nCab: an SVT 8x10 IR.\n"
+            "Play: fast down-picking, E or D standard."),
+
+        make ("Grunge", D, 9, "Genre,Rock,Drive", { { rigLevel, 6 },
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 3 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 5 }, { gothamBlend, 6 }, { gothamDrive, 6 }, { gothamPresence, 3.5f },
+            { gothamBass, 6 },
+            { eqOn, 1 }, { eq80, 3 }, { eq300, 1 }, { eq500, 2 }, { eq5k, -2 }, { eq9k, -4 }, { eqLevel, -2 } },
+            "A dirty, warm P-bass growl, a little dark: thick under loud, fuzzy guitars.\n"
+            "Amp: an Ampeg SVT capture.\nCab: an SVT 8x10 IR.\n"
+            "Play: with a pick or fingers, E or drop D."),
+
+        make ("Classic Rock", D, 10, "Genre,Rock,Vintage", { { rigLevel, 9.5f },
+            { compOn, 1 }, { compThreshold, -18 }, { compRatio, 3 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 3 }, { gothamDrive, 3 }, { gothamPresence, 4 },
+            { eqOn, 1 }, { eq80, 3 }, { eq150, 2 }, { eq500, 1 }, { eq2k, -1 }, { eq5k, -3 }, { eq9k, -5 }, { eqLevel, -1.5f } },
+            "Round and warm, like a tube amp pushed just to the edge of breakup.\n"
+            "Amp: an Ampeg B-15 or SVT capture.\nCab: a 1x15 or 8x10 IR.\n"
+            "Play: fingers, E standard."),
+
+        make ("Alt / Indie Rock", D, 11, "Genre,Rock,Modulation", { { rigLevel, 12 },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 3 }, { gothamDrive, 4 }, { gothamPresence, 6 }, { driveLevel, 4 },
+            { eqOn, 1 }, { eq33, -2 }, { eq500, 2 }, { eq900, 3 }, { eq2k, 2 }, { eq5k, 1 }, { eqLevel, -1.5f },
+            { modOn, 1 }, { modType, chorus }, { modRate, 0.7f }, { modDepth, 0.35f }, { modMix, 0.25f } },
+            "Picked and mid-forward with a little chorus shimmer: melodic lines that sit up front.\n"
+            "Amp: an Ampeg or Fender-style bass capture.\nCab: a 4x10 IR.\n"
+            "Play: with a pick, E standard."),
+
+        make ("Prog Metal", D, 12, "Genre,Metal,Prog", { { rigLevel, 6.5f },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 5.5f }, { dualMod, 4 }, { dualBlend, 3.5f }, { dualLevel, 5 }, { dualMid, 6 },
+            { dualBite, 1 },
+            { eqOn, 1 }, { eq80, 2 }, { eq300, -2 }, { eq900, 2 }, { eq2k, 3 }, { eq5k, 2 }, { eqLevel, -1.5f } },
+            "Articulate and mostly clean, with grind blended underneath: every note of a busy line heard.\n"
+            "Amp: a clean Ampeg SVT capture.\nCab: an SVT 8x10 IR.\n"
+            "Play: fingers or pick on a 5- or 6-string."),
+
+        make ("Post-Rock", D, 13, "Genre,Ambient,Clean", { { rigLevel, 2 },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 },
+            { eqOn, 1 }, { eq80, 2 }, { eq300, -1 }, { eq900, 1 }, { eq5k, -2 }, { eq9k, -3 }, { eqLevel, -0.5f },
+            { delayOn, 1 }, { delayType, analogDelay }, { delaySync, dottedEighth }, { delayFeedback, 0.35f }, { delayMix, 0.2f }, { delayTone, 4 },
+            { reverbOn, 1 }, { reverbType, hall }, { reverbSize, 0.7f }, { reverbMix, 0.25f } },
+            "Clean and round in a big space: dark echoes in time and a hall, for slow builds.\n"
+            "Amp: a clean Ampeg or Fender-style capture.\nCab: an 8x10 or 4x10 IR.\n"
+            "Play: fingers, let notes ring; tap the tempo for the echoes."),
+
+        make ("80s / Synthwave", D, 14, "Genre,Modulation,Clean", { { rigLevel, 7.5f },
+            { compOn, 1 }, { compThreshold, -26 }, { compRatio, 6 }, { compLevel, 4 },
+            { eqOn, 1 }, { eq33, -2 }, { eq80, 2 }, { eq300, -3 }, { eq900, 1 }, { eq2k, 3 }, { eq5k, 4 }, { eq9k, 3 }, { eqLevel, -1.5f },
+            { modOn, 1 }, { modType, chorus }, { modRate, 0.9f }, { modDepth, 0.55f }, { modMix, 0.45f } },
+            "Bright, tightly compressed and chorused: punchy eighth notes with a glossy '80s shine.\n"
+            "Amp: a clean, bright bass capture, or none.\nCab: a 4x10 IR, or none.\n"
+            "Play: with a pick, steady eighths, E standard."),
+
+        // ---- E: songs -----------------------------------------------------
+        // Muse, "Hysteria": producer Rich Costey described three amps at once,
+        // one clean, one through a Big Muff, one through a Japanese
+        // distortion; a synth reportedly doubles it. Fuzz over a clean low end.
+        make ("Hysteria (Muse)", E, 1, "Song,Fuzz,Drive", { { rigLevel, 5.5f },
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 8.5f }, { dualMod, 9 }, { dualBlend, 5 }, { dualLevel, 4 },
+            { dualGrowl, 1 }, { dualBite, 1 }, { dualMid, 6 },
+            { octOn, 1 }, { octSubOne, 0.25f }, { octDry, 1 },
+            { eqOn, 1 }, { eq300, -1 }, { eq900, 3 }, { eq2k, 3 }, { eq9k, -2 }, { eqLevel, -1.5f } },
+            "Chris Wolstenholme's fuzz: buzzy and mid-forward over a solid clean low end, with a hint of octave down for the synth "
+            "layer. The studio blended a clean amp with a Big Muff and a Japanese distortion (as producer Rich Costey described it).\n"
+            "Amp: a clean Ampeg SVT capture (Marshall bass captures are rare).\nCab: a 4x10 or 8x10 IR.\n"
+            "Play: with a pick, E standard, about 94 BPM."),
+
+        // Tool, "Forty Six & 2", the intro: the clean, picked riff with a
+        // flanger sweeping through it (the owner's ears; a Boss BF-2 flanger
+        // is on Justin Chancellor's board, though no source ties it to this
+        // song). The GOTHAM is set up for the heavy part but left off:
+        // footswitch 2 brings it in.
+        make ("Forty Six & 2 (Tool)", E, 2, "Song,Modulation,Clean", { { rigLevel, 8.5f },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 },
+            { eqOn, 1 }, { eq80, 1 }, { eq300, -1 }, { eq900, 3 }, { eq2k, 3 }, { eq5k, 1 }, { eqLevel, -1.5f },
+            { modOn, 1 }, { modType, flanger }, { modRate, 0.15f }, { modDepth, 0.7f }, { modMix, 0.5f },
+            { driveOn, 0 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 5 }, { gothamDrive, 5.5f }, { gothamPresence, 6 },
+            { gothamTreble, 6 } },
+            "The intro riff: Justin Chancellor's clean, picked, mid-forward Wal tone with a slow flanger sweeping through it. "
+            "For the heavy part, press footswitch 2: the GOTHAM is set up for his grit (a SansAmp is in his chain).\n"
+            "Amp: a Gallien-Krueger (2001RB style) capture.\nCab: a Mesa 8x10 IR.\n"
+            "Play: with a hard pick, drop D, about 80 BPM."),
+
+        // Korn, "Blind": Fieldy's percussive clank, an Ibanez 5-string tuned
+        // a step down, Mesa M-2000s, mids "all the way off" and treble up,
+        // no drive.
+        make ("Blind (Korn)", E, 3, "Song,Clean,Metal", { { rigLevel, -1 },
+            { compOn, 1 }, { compThreshold, -26 }, { compRatio, 6 }, { compLevel, 4 },
+            { gateThreshold, -60 },
+            { eqOn, 1 }, { eq33, 1 }, { eq80, 3 }, { eq150, -6 }, { eq300, -8 }, { eq500, -6 }, { eq900, -2 }, { eq2k, 3 }, { eq5k, 6 },
+            { eq9k, 4 }, { eqLevel, 2 }, { eqUltraHi, 1 } },
+            "Fieldy's clanky, percussive slap: bright attack, a hollow middle (he's said he turns the mids all the way off) and boom "
+            "underneath, no distortion.\n"
+            "Amp: a clean Mesa (M-2000 style) capture.\nCab: a 4x10 IR with a tweeter.\n"
+            "Play: slapped hard, 5-string tuned a whole step down (A D G C F)."),
+
+        // RATM, "Bulls on Parade": Tim Commerford, Fender Jazz with three
+        // fingers, two Ampeg SVTs, one always clean, the other switched in
+        // with a Marshall Guv'nor for dirt. Warm, mids kept in.
+        make ("Bulls on Parade (RATM)", E, 4, "Song,Drive,Rock", {
+            { compOn, 1 }, { compThreshold, -18 }, { compRatio, 3 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 5 }, { dualMod, 2 }, { dualBlend, 5 }, { dualLevel, 4.5f }, { dualGrowl, 1 },
+            { eqOn, 1 }, { eq80, 3 }, { eq150, 1 }, { eq500, 1 }, { eq900, 1 }, { eqLevel, -1.5f } },
+            "Tim Commerford's warm, round SVT tone that's always there, with crunchy dirt on top: on record, one amp stayed clean and "
+            "the other added a Guv'nor's distortion. The OBSIDIAN's blend does that split.\n"
+            "Amp: an Ampeg SVT capture.\nCab: an SVT 8x10 IR.\n"
+            "Play: fingers, E-flat standard (or TUNING -1), 83 BPM."),
+
+        // Live, "Lakini's Juice": Patrick Dahlheimer's '58 P-bass, "a little
+        // MXR overdrive" in line (his words, quoted). Thick, dark growl.
+        make ("Lakini's Juice (Live)", E, 5, "Song,Drive,Rock", { { rigLevel, 1 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 5 }, { gothamBlend, 7 }, { gothamDrive, 7 }, { gothamPresence, 4 },
+            { gothamBass, 6 },
+            { octOn, 1 }, { octSubOne, 0.15f }, { octDry, 1 },
+            { eqOn, 1 }, { eq80, 3 }, { eq500, 2 }, { eq5k, -3 }, { eq9k, -4 }, { eqLevel, -1.5f } },
+            "Patrick Dahlheimer's thick, dark overdriven P-bass with a strong low-mid push (he's quoted as having \"a little MXR "
+            "overdrive\" in line). The faint octave down is our addition, for weight.\n"
+            "Amp: a Trace Elliot or mildly driven Ampeg SVT capture.\nCab: a 4x10 or 8x10 IR.\n"
+            "Play: tuned a half step down with the low string dropped (Db Ab Db Gb), about 91 BPM."),
+
+        // Karnivool, "Simple Boy": Jon Stockman co-designed the Alpha·Omega
+        // to recreate his Sound Awake tone, so the OBSIDIAN is the direct
+        // match. Settings: our starting point (none published).
+        make ("Simple Boy (Karnivool)", E, 6, "Song,Drive,Prog", { { rigLevel, 5.5f },
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 6 }, { dualMod, 3 }, { dualBlend, 4 }, { dualLevel, 5 }, { dualMid, 6 },
+            { dualTreble, 4.5f }, { dualBite, 1 } },
+            "Jon Stockman's thick clean low end with a mid-forward grind on top. He co-designed the Alpha·Omega to recreate his Sound "
+            "Awake tone, so the OBSIDIAN is the direct match; no settings have been published, so these are our starting point.\n"
+            "Amp: a clean Ampeg SVT capture.\nCab: an SVT 8x10 IR.\n"
+            "Play: 6-string, roughly B F# B E G C (as fans report)."),
+
+        // Metallica, "Until It Sleeps": Jason Newsted's fretless 5-string Zon
+        // (sold with the studio settings still taped on), Ampeg and Mesa
+        // cabs, a tube DI. Warm fretless verses, driven layer for the heavy parts.
+        make ("Until It Sleeps (Metallica)", E, 7, "Song,Clean,Drive", { { rigLevel, 10 },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 }, { compLevel, 2 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 3 }, { gothamDrive, 3 }, { gothamPresence, 4 },
+            { eqOn, 1 }, { eq80, 2 }, { eq150, 2 }, { eq900, 2 }, { eq2k, 2 }, { eq9k, -2 }, { eqLevel, -1.5f } },
+            "Jason Newsted's warm, round fretless \"mwah\": mostly clean, with a little GOTHAM grit standing in for the tube DI. "
+            "For the heavy choruses, raise BLEND and DRIVE.\n"
+            "Amp: an Ampeg SVT capture (or a Mesa bass head).\nCab: an SVT 8x10 IR (or a 4x10).\n"
+            "Play: fretless if you have one, E-flat standard (or TUNING -1), about 90 BPM."),
+
+        // Periphery, "Absolomb" (Nolly on bass): the OBSIDIAN at the
+        // settings seen on the pedal in Nolly's Darkglass demo, which plays
+        // the song (the owner confirmed GROWL off and BITE on), after
+        // Nolly's own 4:1 compression.
+        make ("Absolomb (Periphery)", E, 8, "Song,Bass,Distortion,Metal", { { rigLevel, 7.5f },
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 5.8f }, { dualBlend, 5.5f }, { dualLevel, 4 }, { dualMod, 7 },
+            { dualBass, 5 }, { dualMid, 5.8f }, { dualTreble, 7.5f }, { dualGrowl, 0 }, { dualBite, 1 } },
+            "Nolly's Absolomb tone: the OBSIDIAN at the settings on the pedal in his Darkglass demo, after a gentle 4:1 compressor "
+            "(his own chain compresses before the drive).\n"
+            "Amp: a clean Ampeg SVT capture, or none.\nCab: an SVT 8x10 IR (MD421 at the cap edge, as he used).\n"
+            "Play: with a pick, on an extended-range bass (Nolly's Dingwall)."),
+
+        // RHCP, "Higher Ground": Flea's Spector with EMGs, a GK 800RB over
+        // Mesa cabs. Bright, scooped, snappy slap.
+        make ("Higher Ground (RHCP)", E, 9, "Song,Funk,Clean", {
+            { compOn, 1 }, { compThreshold, -26 }, { compRatio, 6 }, { compLevel, 4 },
+            { eqOn, 1 }, { eq33, 1 }, { eq80, 3 }, { eq300, -3 }, { eq500, -3 }, { eq900, -1 }, { eq2k, 2 }, { eq5k, 3 }, { eq9k, 2 },
+            { eqLevel, -0.5f } },
+            "Flea's bright, scooped, snappy slap.\n"
+            "Amp: a Gallien-Krueger 800RB style capture.\nCab: a 2x15 or 4x10 IR.\n"
+            "Play: slapped, E standard, about 140 BPM."),
+
+        // Marvin Gaye, "What's Going On": James Jamerson's Precision with
+        // heavy flatwounds and a foam mute. Warm, round, no treble.
+        make ("What's Going On (Jamerson)", E, 10, "Song,Clean,Vintage", { { rigLevel, -2 },
+            { compOn, 1 }, { compThreshold, -18 }, { compRatio, 2.5f },
+            { eqOn, 1 }, { eq80, 3 }, { eq150, 3 }, { eq300, 1 }, { eq900, -2 }, { eq2k, -5 }, { eq5k, -9 }, { eq9k, -11 }, { eqLevel, 0.5f } },
+            "James Jamerson's warm, round, thumpy Motown tone with no treble. His flatwound strings and foam mute can't be "
+            "modelled: a muted thumb or palm gets you closer.\n"
+            "Amp: an Ampeg B-15 capture, or none (it may have gone straight to the desk).\nCab: a 1x15 IR, or none.\n"
+            "Play: one finger, E standard, about 102 BPM."),
+
+        // Joy Division, "Love Will Tear Us Apart": Peter Hook's trebly,
+        // picked lead bass with chorus (an EHX Clone Theory, reported).
+        make ("Love Will Tear Us Apart (Joy Division)", E, 11, "Song,Modulation,Clean", { { rigLevel, 11 },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 3 }, { gothamDrive, 3 }, { gothamPresence, 6 },
+            { gothamTreble, 7 }, { driveLevel, 8 },
+            { eqOn, 1 }, { eq33, -3 }, { eq80, -1 }, { eq500, 2 }, { eq900, 3 }, { eq2k, 3 }, { eq5k, 2 }, { eqLevel, -1.5f },
+            { modOn, 1 }, { modType, chorus }, { modRate, 0.8f }, { modDepth, 0.5f }, { modMix, 0.45f } },
+            "Peter Hook's trebly, picked, melodic lead bass with chorus, played high on the neck.\n"
+            "Amp: a Hiwatt capture at the edge of breakup.\nCab: a 4x12 or 4x15 IR.\n"
+            "Play: with a pick, high on the neck, E standard, about 150 BPM."),
     };
 }

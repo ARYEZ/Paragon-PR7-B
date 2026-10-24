@@ -109,7 +109,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
 
     layout.add (makeSwitch (ParamIDs::driveOn, "Drive On", v3, false));
     layout.add (makeFloat (ParamIDs::driveGain, "Drive", { 0.0f, 10.0f, 0.1f }, 5.0f, v3, asKnob));
-    layout.add (makeFloat (ParamIDs::driveTone, "Drive Tone", { 0.0f, 10.0f, 0.1f }, 5.0f, v3, asKnob));
     layout.add (makeFloat (ParamIDs::driveLevel, "Drive Level", { -24.0f, 12.0f, 0.1f }, 0.0f, v3, asDb));
 
     layout.add (makeSwitch (ParamIDs::modOn, "Mod On", v3, false));
@@ -154,12 +153,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::expressionMax, "Expression Max", { 0.0f, 1.0f, 0.01f }, 1.0f, v6, asPercent));
 
     // Added in plugin version 8: the graphic EQ. Off by default, so existing
-    // projects and rigs sound the same.
-    constexpr int v8 = 8;
+    // projects and rigs sound the same. Its bands were moved to the bass
+    // EQ's in PR7-B 0.2.0, under new IDs (so version 25).
+    constexpr int v8 = 8, v25 = 25;
     layout.add (makeSwitch (ParamIDs::eqOn, "EQ On", v8, false));
     for (int band = 0; band < ParamIDs::eqBands.size(); ++band)
         layout.add (makeFloat (ParamIDs::eqBands[band].toRawUTF8(), "EQ " + ParamIDs::eqBandNames[band] + " Hz",
-                               { -effects::GraphicEq::maxGainDb, effects::GraphicEq::maxGainDb, 0.1f }, 0.0f, v8, asDb));
+                               { -effects::GraphicEq::maxGainDb, effects::GraphicEq::maxGainDb, 0.1f }, 0.0f, v25, asDb));
     layout.add (makeFloat (ParamIDs::eqLevel, "EQ Level", { -12.0f, 12.0f, 0.1f }, 0.0f, v8, asDb));
 
     // Added in plugin version 9: modulation tempo sync. Off by default, so
@@ -167,12 +167,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     // added to the end of Mod Type's list, so saved choices keep their meaning.)
     layout.add (makeChoice (ParamIDs::modSync, "Mod Sync", 9, effects::Delay::syncNames, 0));
 
-    // Added in plugin version 10. The drive defaults to the Tube Screamer
-    // model; projects and rigs saved before it existed are given the
-    // original model when they load (see ParagonX1AudioProcessor::setStateInformation
-    // and Rig::fromXml), so they sound as they did.
+    // Added in plugin version 10: the FILTER / PITCH block. (Version 10's
+    // drive MODEL and version 3's drive TONE were for PR7-G's guitar
+    // drives, removed in PR7-B 0.4.0.)
     constexpr int v10 = 10;
-    layout.add (makeChoice (ParamIDs::driveModel, "Drive Model", v10, effects::Drive::modelNames, (int) effects::Drive::Model::screamer));
     layout.add (makeSwitch (ParamIDs::fpOn, "Filter/Pitch On", v10, false));
     layout.add (makeChoice (ParamIDs::fpType, "Filter/Pitch Type", v10, effects::FilterPitch::typeNames, 0));
     layout.add (makeFloat (ParamIDs::fpSensitivity, "Auto-Wah Sensitivity", { 0.0f, 10.0f, 0.1f }, 5.0f, v10, asKnob));
@@ -238,5 +236,32 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::freezeLevel, "Freeze Level", { 0.0f, 1.0f, 0.01f }, 0.7f, v24, asPercent));
     layout.add (makeFloat (ParamIDs::freezeAttack, "Freeze Attack", skewed (10.0f, 5000.0f, 300.0f, 1.0f), 300.0f, v24, asTime));
     layout.add (makeFloat (ParamIDs::freezeRelease, "Freeze Release", skewed (50.0f, 8000.0f, 1500.0f, 1.0f), 1500.0f, v24, asTime));
+
+    // Added in PR7-B 0.2.0: the bass EQ's ULTRA LO and ULTRA HI switches. Off by default.
+    layout.add (makeSwitch (ParamIDs::eqUltraLo, "EQ Ultra Lo", v25, false));
+    layout.add (makeSwitch (ParamIDs::eqUltraHi, "EQ Ultra Hi", v25, false));
+
+    // Added in PR7-B 0.4.0: the OBSIDIAN's knobs, as on the pedal it's
+    // modelled on (0 to 10, EQ flat at 5).
+    constexpr int v26 = 26;
+    layout.add (makeFloat (ParamIDs::dualMod, "Obsidian Mod", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeFloat (ParamIDs::dualLevel, "Obsidian Level", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeFloat (ParamIDs::dualBlend, "Obsidian Blend", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeFloat (ParamIDs::dualBass, "Obsidian Bass", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeFloat (ParamIDs::dualMid, "Obsidian Mid", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeFloat (ParamIDs::dualTreble, "Obsidian Treble", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeSwitch (ParamIDs::dualGrowl, "Obsidian Growl", v26, false));
+    layout.add (makeSwitch (ParamIDs::dualBite, "Obsidian Bite", v26, false));
+
+    // Added in PR7-B 0.5.0: the drive's MODEL (OBSIDIAN first, so projects
+    // and rigs from 0.4.0 keep it) and the GOTHAM's knobs (0 to 10, EQ flat at 5).
+    constexpr int v27 = 27;
+    layout.add (makeChoice (ParamIDs::driveType, "Drive Model", v27, effects::Drive::modelNames, (int) effects::Drive::Model::obsidian));
+    layout.add (makeFloat (ParamIDs::gothamLevel, "Gotham Level", { 0.0f, 10.0f, 0.1f }, 5.0f, v27, asKnob));
+    layout.add (makeFloat (ParamIDs::gothamBlend, "Gotham Blend", { 0.0f, 10.0f, 0.1f }, 5.0f, v27, asKnob));
+    layout.add (makeFloat (ParamIDs::gothamTreble, "Gotham Treble", { 0.0f, 10.0f, 0.1f }, 5.0f, v27, asKnob));
+    layout.add (makeFloat (ParamIDs::gothamBass, "Gotham Bass", { 0.0f, 10.0f, 0.1f }, 5.0f, v27, asKnob));
+    layout.add (makeFloat (ParamIDs::gothamDrive, "Gotham Drive", { 0.0f, 10.0f, 0.1f }, 5.0f, v27, asKnob));
+    layout.add (makeFloat (ParamIDs::gothamPresence, "Gotham Presence", { 0.0f, 10.0f, 0.1f }, 5.0f, v27, asKnob));
     return layout;
 }

@@ -5,7 +5,7 @@
 // The PR7-B mark: heavy, wide, forward-slanted block letters with two "speed"
 // cuts through their lower half, in the spirit of late-'90s floor
 // processors. Drawn from vector outlines (not a font), so it's the same
-// shape everywhere: the header, the unit's badge and the expression pedal.
+// shape everywhere: the header and the unit's badge.
 namespace Logo
 {
     struct Style

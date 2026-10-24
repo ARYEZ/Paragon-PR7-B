@@ -111,36 +111,49 @@ TEST_CASE ("Every factory rig is valid", "[rigs]")
     CHECK (slots.size() == (int) makeFactoryRigs().size());   // no two in the same slot
 }
 
-TEST_CASE ("The Whammy-Wah factory rigs use the XP-100 programs they're named for", "[rigs]")
+TEST_CASE ("The factory rigs are PR7-B's bass rigs, each with notes; song rigs say which amp and cab to load", "[rigs]")
 {
     const auto rigs = makeFactoryRigs();
-    const auto find = [&] (const juce::String& name) -> const Rig&
+    for (const auto& rig : rigs)
     {
-        const auto found = std::find_if (rigs.begin(), rigs.end(), [&] (const Rig& rig) { return rig.name == name; });
-        REQUIRE (found != rigs.end());
-        return *found;
-    };
-    const auto programOf = [] (const Rig& rig)
-    {
-        return effects::FilterPitch::xpProgramNames()[juce::roundToInt (rig.parameters.at (ParamIDs::fpXpProgram))];
-    };
-
-    CHECK (programOf (find ("Nu-Metal Screech")) == "21 Down Oct / Up Oct");
-    CHECK (programOf (find ("Whammy Lead")) == "13 Up 1 Octave");
-    CHECK (programOf (find ("XP Wah Crunch")) == "02 Original Cry Wah");
-    CHECK (programOf (find ("Harmony Bends")) == "24 Up 4th / Up 5th");
-
-    // The screech's EQ is the Tight Low End preset (bands it leaves out are at 0 dB).
-    const auto& screech = find ("Nu-Metal Screech");
-    CHECK (juce::roundToInt (screech.parameters.at (ParamIDs::expressionTarget)) == ExpressionTargets::whammyWah);
-    const auto& tight = *std::find_if (EqPresets::all.begin(), EqPresets::all.end(),
-                                       [] (const auto& preset) { return juce::String (preset.name) == "Tight Low End"; });
-    for (int band = 0; band < ParamIDs::eqBands.size(); ++band)
-    {
-        const auto found = screech.parameters.find (ParamIDs::eqBands[band]);
-        CHECK_THAT (found != screech.parameters.end() ? found->second : 0.0f, Catch::Matchers::WithinAbs (tight.gainsDb[(size_t) band], 0.01));
+        INFO (rig.name);
+        CHECK (rig.notes.isNotEmpty());
+        if (rig.bank == 4)   // E: the song rigs
+        {
+            CHECK (rig.tags.contains ("Song"));
+            CHECK (rig.notes.contains ("Amp:"));
+            CHECK (rig.notes.contains ("Cab:"));
+            CHECK (rig.notes.contains ("Play:"));
+        }
     }
-    CHECK_THAT (screech.parameters.at (ParamIDs::eqLevel), Catch::Matchers::WithinAbs (tight.levelDb, 0.01));
+
+    // PR7-G's guitar rigs are gone.
+    for (const auto* guitarRig : { "Clean Slate", "Studio Clean", "Slapback", "Surf Tremolo", "Nu-Metal Screech", "Whammy Lead",
+                                   "Killing Solo (RATM)", "Numb Solo (Floyd)", "Jambi Talk Box (Tool)" })
+        CHECK (std::none_of (rigs.begin(), rigs.end(), [guitarRig] (const Rig& rig) { return rig.name == guitarRig; }));
+
+    // The songs asked for are all there.
+    for (const auto* song : { "Hysteria (Muse)", "Forty Six & 2 (Tool)", "Blind (Korn)", "Bulls on Parade (RATM)",
+                              "Lakini's Juice (Live)", "Simple Boy (Karnivool)", "Until It Sleeps (Metallica)", "Absolomb (Periphery)" })
+        CHECK (std::any_of (rigs.begin(), rigs.end(), [song] (const Rig& rig) { return rig.name == song; }));
+}
+
+TEST_CASE ("A rig's notes are saved with it and kept by Save As", "[rigs]")
+{
+    Rig rig;
+    rig.name = "Noted";
+    rig.notes = "Amp: an Ampeg SVT capture.\nCab: an SVT 8x10 IR.";
+    const auto loaded = Rig::fromXml (*rig.toXml());
+    REQUIRE (loaded.has_value());
+    CHECK (loaded->notes == rig.notes);
+
+    // Saving a copy of a factory song rig keeps its amp and cab advice.
+    RigRig r;
+    r.processor.loadRig (r.entryNamed ("Bulls on Parade (RATM)"));
+    REQUIRE (r.processor.saveCurrentRigAs ("My Bulls"));
+    const auto* saved = r.processor.getRigLibrary().find (r.processor.getCurrentRig().file);
+    REQUIRE (saved != nullptr);
+    CHECK (saved->rig.notes == r.entryNamed ("Bulls on Parade (RATM)").rig.notes);
 }
 
 TEST_CASE ("The rig library saves, finds, renames and deletes rigs", "[rigs]")
@@ -196,12 +209,12 @@ TEST_CASE ("Favourites stick, including on factory rigs", "[rigs]")
     TempRigFolder temp;
     {
         RigLibrary library (temp.folder);
-        library.setFavourite (*library.findFactory ("Slapback"), true);
+        library.setFavourite (*library.findFactory ("Dub Delay"), true);
     }
 
     RigLibrary reopened (temp.folder);
-    CHECK (reopened.findFactory ("Slapback")->rig.favourite);
-    CHECK_FALSE (reopened.findFactory ("Studio Clean")->rig.favourite);
+    CHECK (reopened.findFactory ("Dub Delay")->rig.favourite);
+    CHECK_FALSE (reopened.findFactory ("Studio Bass")->rig.favourite);
 }
 
 TEST_CASE ("Rigs are sorted by bank and number, and < > wrap round", "[rigs]")
@@ -224,7 +237,7 @@ TEST_CASE ("Rigs are sorted by bank and number, and < > wrap round", "[rigs]")
     CHECK (library.step (&entries.front(), -1) == &entries.back());
     CHECK (library.step (nullptr, 1) == &entries.front());
 
-    CHECK (library.nextFreeNumber (0) == 6);   // factory rigs fill A01-A05
+    CHECK (library.nextFreeNumber (0) == 7);   // factory rigs fill A01-A06
 }
 
 TEST_CASE ("Saving and loading a rig restores the sound but not the global knobs", "[rigs]")
@@ -296,10 +309,10 @@ TEST_CASE ("User rigs bring their amp and cab; factory rigs keep yours", "[rigs]
 
     SECTION ("Loading a factory rig keeps the current model")
     {
-        r.processor.loadRig (r.entryNamed ("Ambient Swells"));
+        r.processor.loadRig (r.entryNamed ("Chorus Bass"));
         REQUIRE (r.processor.waitForLoads (20000));
         CHECK (r.processor.getAmpStatus().file == lstm);
-        CHECK (r.get (ParamIDs::reverbOn) > 0.5f);
+        CHECK (r.get (ParamIDs::modOn) > 0.5f);   // its chorus, applied
     }
 
     SECTION ("A user rig saved with no amp unloads the amp")
@@ -318,7 +331,7 @@ TEST_CASE ("User rigs bring their amp and cab; factory rigs keep yours", "[rigs]
 TEST_CASE ("The modified marker tracks changes since loading or saving", "[rigs]")
 {
     RigRig r;
-    r.processor.loadRig (r.entryNamed ("Studio Clean"));
+    r.processor.loadRig (r.entryNamed ("Studio Bass"));
     CHECK_FALSE (r.processor.isRigModified());
 
     SECTION ("Turning a knob marks it modified")
@@ -356,18 +369,18 @@ TEST_CASE ("The modified marker tracks changes since loading or saving", "[rigs]
 TEST_CASE ("Factory rigs can't be saved over", "[rigs]")
 {
     RigRig r;
-    r.processor.loadRig (r.entryNamed ("Slapback"));
+    r.processor.loadRig (r.entryNamed ("Dub Delay"));
     r.set (ParamIDs::delayMix, 0.9f);
     CHECK_FALSE (r.processor.saveCurrentRig());   // the UI then asks for a new name
-    CHECK_THAT (r.entryNamed ("Slapback").rig.parameters.at (ParamIDs::delayMix), WithinAbs (0.3, 0.001));
+    CHECK_THAT (r.entryNamed ("Dub Delay").rig.parameters.at (ParamIDs::delayMix), WithinAbs (0.3, 0.001));
 }
 
 TEST_CASE ("< and > step through the rigs in order", "[rigs]")
 {
     RigRig r;
-    r.processor.loadRig (r.entryNamed ("Clean Slate"));
+    r.processor.loadRig (r.entryNamed ("Clean DI"));
     r.processor.stepRig (1);
-    CHECK (r.processor.getCurrentRig().name == "Studio Clean");
+    CHECK (r.processor.getCurrentRig().name == "Studio Bass");
     r.processor.stepRig (-1);
     r.processor.stepRig (-1);   // wraps round to the last rig
     CHECK (r.processor.getCurrentRig().name == r.processor.getRigLibrary().getEntries().back().rig.name);

@@ -293,8 +293,29 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     if (glitchPre)
         glitch.process (monoBlock, glitchSettings, getTempoBpm(), songBeats);
 
-    drive.process (monoBlock, { isOn (ParamIDs::driveOn), (effects::Drive::Model) (int) param (ParamIDs::driveModel),
-                                param (ParamIDs::driveGain), param (ParamIDs::driveTone), param (ParamIDs::driveLevel) });
+    effects::Drive::Settings driveSettings;
+    driveSettings.on = isOn (ParamIDs::driveOn);
+    driveSettings.model = (effects::Drive::Model) juce::roundToInt (param (ParamIDs::driveType));
+    auto& obsidian = driveSettings.obsidian;
+    obsidian.drive = param (ParamIDs::driveGain);
+    obsidian.mod = param (ParamIDs::dualMod);
+    obsidian.level = param (ParamIDs::dualLevel);
+    obsidian.blend = param (ParamIDs::dualBlend);
+    obsidian.bass = param (ParamIDs::dualBass);
+    obsidian.mid = param (ParamIDs::dualMid);
+    obsidian.treble = param (ParamIDs::dualTreble);
+    obsidian.growl = isOn (ParamIDs::dualGrowl);
+    obsidian.bite = isOn (ParamIDs::dualBite);
+    obsidian.outputDb = param (ParamIDs::driveLevel);
+    auto& gotham = driveSettings.gotham;
+    gotham.level = param (ParamIDs::gothamLevel);
+    gotham.blend = param (ParamIDs::gothamBlend);
+    gotham.treble = param (ParamIDs::gothamTreble);
+    gotham.bass = param (ParamIDs::gothamBass);
+    gotham.drive = param (ParamIDs::gothamDrive);
+    gotham.presence = param (ParamIDs::gothamPresence);
+    gotham.outputDb = param (ParamIDs::driveLevel);
+    drive.process (monoBlock, driveSettings);
 
     amp.process (mono, numSamples, ampOn->load() > 0.5f, ampNormalise->load() > 0.5f);
     cab.process (mono, numSamples, cabOn->load() > 0.5f);
@@ -310,6 +331,8 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     for (size_t band = 0; band < eq.gainsDb.size(); ++band)
         eq.gainsDb[band] = eqGainDb[band]->load();
     eq.levelDb = param (ParamIDs::eqLevel);
+    eq.ultraLo = isOn (ParamIDs::eqUltraLo);
+    eq.ultraHi = isOn (ParamIDs::eqUltraHi);
     graphicEq.process (monoBlock, eq);
     if (! glitchPre)
         glitch.process (monoBlock, glitchSettings, getTempoBpm(), songBeats);
@@ -727,6 +750,7 @@ bool ParagonX1AudioProcessor::saveCurrentRig()
     rig.number = entry->rig.number;
     rig.tags = entry->rig.tags;
     rig.favourite = entry->rig.favourite;
+    rig.notes = entry->rig.notes;
 
     const auto file = entry->file;
     if (! rigLibrary->overwrite (file, rig))
@@ -748,6 +772,7 @@ bool ParagonX1AudioProcessor::saveCurrentRigAs (const juce::String& name)
     {
         rig.bank = entry->rig.bank;
         rig.tags = entry->rig.tags;
+        rig.notes = entry->rig.notes;   // a copy of a song rig keeps its amp and cab advice
     }
     rig.number = rigLibrary->nextFreeNumber (rig.bank);
 
@@ -857,7 +882,6 @@ void ParagonX1AudioProcessor::setStateInformation (const void* data, int sizeInB
         parameter.setProperty ("value", value, nullptr);
         state.appendChild (parameter, nullptr);
     };
-    addIfMissing (ParamIDs::driveModel, (int) effects::Drive::Model::classic);    // before the drive had a MODEL
     addIfMissing (ParamIDs::reverbType, (int) effects::Reverb::Type::classic);    // before the reverb had a TYPE
     parameters.replaceState (state);
 

@@ -3,6 +3,7 @@
 #include "Parameters.h"
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
+#include "ui/Finish.h"
 
 namespace
 {
@@ -44,6 +45,11 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
     processor.prepareToPlay (48000.0, 256);
 
     const auto showPresets = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_PAGE", {}) == "presets";
+
+    // PARAGON_SNAPSHOT_FINISH=black or =neon: the pearl black unit, or pearl
+    // white with neon keys (not saved as the preference).
+    const auto finish = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_FINISH", {});
+    Finish::set (finish == "black" ? Finish::Type::pearlBlack : finish == "neon" ? Finish::Type::pearlWhiteNeon : Finish::Type::pearlWhite, false);
     const auto rigFolder = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("ParagonX1SnapshotRigs");
     rigFolder.deleteRecursively();
     processor.useRigFolder (rigFolder);
@@ -66,6 +72,11 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
         processor.loadRig (*processor.getRigLibrary().find (rigFolder.getChildFile (juce::String ("Cyber Drive") + Rig::fileExtension)));
         processor.getParameters().getParameter ("driveGain")->setValueNotifyingHost (0.8f);   // shows the * marker
     }
+
+    // PARAGON_SNAPSHOT_FACTORY=name: that factory rig loaded (and selected on the PRESETS page).
+    if (const auto factory = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_FACTORY", {}); factory.isNotEmpty())
+        if (const auto* entry = processor.getRigLibrary().findFactory (factory))
+            processor.loadRig (*entry);
 
     // PARAGON_SNAPSHOT_TUNER=1: the tuner on, hearing an A string 4 cents
     // sharp, and the expression pedal assigned to the wah.

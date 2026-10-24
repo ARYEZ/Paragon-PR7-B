@@ -66,10 +66,18 @@ so the guide below still describes the guitar version's effects.
     toe: the interval, as far as six octaves down) and eight harmonies (your note plus a voice the pedal moves between two intervals);
     or a **Talk Box**: the amp's sound, after the cab, shaped into vowels (oo to ee) by the expression pedal (TALK BOX),
     with RESONANCE and MIX.
-  - **2 OD / Distortion:** four models: **Screamer**, modelled on the Ibanez TS808 Tube Screamer's circuit;
-    **Classic**, Paragon's original overdrive; **Muff Fuzz**, following the Big Muff's two clipping stages and
-    mid-scooping tone stack (long, violin-like sustain); and **Face Fuzz**, following the silicon Fuzz Face's uneven
-    clipping (raspy and round, cleaning up with the guitar's volume). Drive, tone, level; 8x oversampled to avoid harsh aliasing.
+  - **2 OD / Distortion:** two bass preamps/distortions, each built from a trace of the pedal's circuit with its real
+    component values. Pick one with MODEL.
+  - **GOTHAM**, modelled on the Tech 21 SansAmp Bass Driver DI (Version 1), from madbeanpedals' SludgeHammer schematic:
+    an amp-and-cabinet imitation with the classic 800 Hz scoop. LEVEL, BLEND (clean against drive), TREBLE and BASS
+    (about ±12 dB), DRIVE (up to about 50 dB, most of it in the top half) and PRESENCE (the top going into the distortion).
+  - **OBSIDIAN**, a bass preamp/distortion modelled on the Darkglass Alpha·Omega, built from a
+    trace of its circuit (Aion FX's) with the real component values. BLEND mixes the clean bass (full range) with the
+    distortion; LEVEL sets the distortion's volume; DRIVE its gain. MOD moves between two voicings of the same
+    op-amp distortion: 0 is ALPHA (tight and refined: a deep 520 Hz scoop, the top rolled off), 10 is OMEGA (raw: a
+    gentler 780 Hz scoop, more top), and in between is a mix of both. GROWL sends much more bass into the distortion;
+    BITE lifts about 3 kHz before it. BASS (80 Hz), MID (about 1 kHz) and TREBLE (5 kHz) come after the blend, so they
+    shape the clean bass too. OUTPUT is our addition, a trim into the amp. 8x oversampled to avoid harsh aliasing.
   - **3 Modulation:** eleven types: chorus, flanger, phaser, tremolo, Dimension chorus, Uni-Vibe, rotary
     (Leslie), vibrato, harmonic tremolo, auto-pan and doubler. SYNC locks the rate to the tapped or DAW tempo.
   - **4 Reverb / Delay:** switches both; each also has its own ON switch. The delay syncs to your
@@ -79,14 +87,20 @@ so the guide below still describes the guitar version's effects.
     Digital, Reverse and Classic (the original), with SIZE, PRE-DELAY, TONE and MIX. Both have a DUCK knob that tucks
     the repeats or reverb under your playing and lets them swell back in the gaps. Both let their
     tails ring out when switched off.
-- **Graphic EQ:** 9 bands (63 Hz to 16 kHz, ±12 dB) and a level, after the cabinet. Open it from the
-  **EQ** block in the signal chain; the curve shows the EQ's actual response. FLAT resets it. **PRESETS** has twelve
-  common starting curves (Metal Scoop, Tight Low End, Mud Cut, Fizz Tamer, Lead Mid Boost, Cut Through the Mix,
-  Fat Rhythm, British Crunch, Bright Clean, Funk Scoop, Warm Jazz, Radio), each loudness-matched with LEVEL.
+- **Graphic EQ:** a bass amp's 9 bands (33, 80, 150, 300, 500, 900 Hz, 2K, 5K and 9K, as on an Ampeg SVT-3 PRO; ±12 dB)
+  and a level, after the cabinet, with the amp's **ULTRA LO** (-10 dB at 500 Hz, +2 dB at 40 Hz) and **ULTRA HI**
+  (+9 dB at 8 kHz) switches, which work with the faders on or off. Open it from the
+  **EQ** block in the signal chain; the curve shows the EQ's actual response. FLAT resets it. **PRESETS** has sixteen
+  bass starting curves, most for modern metal (Modern Metal Clank, Djent Growl, Tight Low End, Drop-Tuned Weight, Grind
+  Through the Guitars, Thrash Pick Attack, Classic Metal Scoop, Doom Fuzz, Fizz Tamer, Mud Cut) and the rest for other
+  styles (Clean DI Polish, Slap Funk, Motown Thump, Fingerstyle Growl, Fretless Mwah, Radio). Some also set ULTRA LO / ULTRA HI.
+  Each is loudness-matched with LEVEL.
 - All effects start switched off, so projects made with earlier versions sound the same.
 - **Rigs:** SAVE in the header saves the current sound as a rig; **<** and **>** step through rigs; a
   `*` after the name means it's changed since loading. The **PRESETS** tab browses, searches, files
-  (banks A-D), tags and favourites rigs. Factory rigs set the effects and keep your amp and cab.
+  (banks A-D), tags and favourites rigs. Factory rigs set the effects and keep your amp and cab; they're
+  made for bass, with genre rigs in bank D (metalcore, nu metal, thrash, pop punk, djent and more), song rigs in bank E (Muse, Tool, Korn, RATM, Live, Karnivool, Metallica, Periphery and more), and
+  each rig's notes on the PRESETS page say which amp capture and cab IR to load with it.
   INPUT and OUTPUT stay put when you switch rigs; each rig has its own **RIG LEVEL** (on the unit), which adds to OUTPUT.
 - **TAP** (header or pedal) sets the delay's tempo from your taps; the BPM turns orange. Click the
   BPM to follow your DAW's tempo again. The TAP light flashes in time.
@@ -96,8 +110,8 @@ so the guide below still describes the guitar version's effects.
   (Cmd on a Mac). Each knob move, switch, file or rig load is one step. INPUT, OUTPUT and the
   pedal's position aren't undone.
 - **Expression pedal** (right of the unit): drag it, use the mouse wheel, or send MIDI CC 11 (or the CC chosen in SETTINGS) from a
-  real expression pedal (route your MIDI track to the plugin). Assign it on the small EXPRESSION screen beside it (click a line, or scroll; it also shows the
-  pedal's position) or with EXPRESSION ASSIGN in the dock, to
+  real expression pedal (route your MIDI track to the plugin). Assign it on the EXPRESSION ASSIGN screen in the dock (click a line, or scroll; it also shows the
+  pedal's position), to
   **VOLUME**, **WAH / FILTER** (a wah before the drive), **MORPH / FX** (fades modulation, delay and
   reverb in from the heel), **PITCH / WHAMMY** (bends the pitch shifter from no shift at the heel to its
   INTERVAL at the toe), **LO-FI** (fades the lo-fi effect in: full band at the heel, lo-fi at the toe) or

@@ -32,6 +32,10 @@ struct Rig
 
     juce::String ampModelPath, cabIrPath;
 
+    // Free text shown with the rig: what it's for, and for the factory song
+    // rigs, the amp and cabinet to load with it (they can't ship captures).
+    juce::String notes;
+
     // Factory rigs set only the effects: we can't ship other people's NAM
     // captures, so they keep whatever amp and cabinet the user has loaded.
     bool keepAmpAndCab = false;
