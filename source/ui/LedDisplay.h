@@ -43,7 +43,7 @@ public:
     // Draws one seven-segment digit ('0'-'9' or '-') in `area`. Public for reuse.
     static void drawDigit (juce::Graphics&, juce::juce_wchar digit, juce::Rectangle<float> area, juce::Colour lit);
 
-    // The screen itself, shared with the expression pedal's small screen so
+    // The screen itself, shared with the dock's EXPRESSION ASSIGN screen so
     // the two always match: the chrome frame, black bezel and dark glass,
     // returning the glass's area to draw the readout in. `size` scales the
     // frame and bezel (1 is this screen's).

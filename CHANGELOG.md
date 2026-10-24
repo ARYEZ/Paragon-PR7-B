@@ -2,6 +2,11 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.7.0
+
+- **The small EXPRESSION screen beside the pedal is gone.** Assign the expression pedal on the EXPRESSION ASSIGN screen in the dock, which is bigger and scrolls.
+- **AMP, CABINET and RIG share the row equally**, each window wider, now that the small screen's space at the row's end is free.
+
 ## 0.6.0
 
 The chassis finishes from the guitar version, Paragon PR7-G (its 0.29.0 to 0.32.0), brought over to PR7-B.

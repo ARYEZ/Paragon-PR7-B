@@ -117,9 +117,9 @@ ExpressionAssign::ExpressionAssign (juce::AudioProcessorValueTreeState& stateToU
           repaint();
       })
 {
-    // Both looks are the same screen, drawing its own menu: the small one on
-    // the unit's face, and a bigger one in the dock with buttons beside it
-    // to scroll the list.
+    // The same screen in two looks, drawing its own menu: plain, and the
+    // dock's, with buttons beside it to scroll the list. (The plain one sat
+    // on the unit's face until PR7-B 0.7.0; the dock's is the one in use.)
     setTooltip ("Expression pedal assign. Click a line (or scroll) to choose what the pedal controls; "
                 "click the highlighted line again to unassign it. The arrows show more of the list.");
     setMouseCursor (juce::MouseCursor::PointingHandCursor);

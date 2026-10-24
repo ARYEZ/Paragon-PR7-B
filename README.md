@@ -108,8 +108,8 @@ so the guide below still describes the guitar version's effects.
   (Cmd on a Mac). Each knob move, switch, file or rig load is one step. INPUT, OUTPUT and the
   pedal's position aren't undone.
 - **Expression pedal** (right of the unit): drag it, use the mouse wheel, or send MIDI CC 11 (or the CC chosen in SETTINGS) from a
-  real expression pedal (route your MIDI track to the plugin). Assign it on the small EXPRESSION screen beside it (click a line, or scroll; it also shows the
-  pedal's position) or with EXPRESSION ASSIGN in the dock, to
+  real expression pedal (route your MIDI track to the plugin). Assign it on the EXPRESSION ASSIGN screen in the dock (click a line, or scroll; it also shows the
+  pedal's position), to
   **VOLUME**, **WAH / FILTER** (a wah before the drive), **MORPH / FX** (fades modulation, delay and
   reverb in from the heel), **PITCH / WHAMMY** (bends the pitch shifter from no shift at the heel to its
   INTERVAL at the toe), **LO-FI** (fades the lo-fi effect in: full band at the heel, lo-fi at the toe) or
