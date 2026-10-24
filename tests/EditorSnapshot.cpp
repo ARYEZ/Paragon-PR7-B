@@ -73,6 +73,11 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
         processor.getParameters().getParameter ("driveGain")->setValueNotifyingHost (0.8f);   // shows the * marker
     }
 
+    // PARAGON_SNAPSHOT_FACTORY=name: that factory rig loaded (and selected on the PRESETS page).
+    if (const auto factory = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_FACTORY", {}); factory.isNotEmpty())
+        if (const auto* entry = processor.getRigLibrary().findFactory (factory))
+            processor.loadRig (*entry);
+
     // PARAGON_SNAPSHOT_TUNER=1: the tuner on, hearing an A string 4 cents
     // sharp, and the expression pedal assigned to the wah.
     const auto showTuner = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_TUNER", {}) == "1";

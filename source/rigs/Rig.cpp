@@ -37,6 +37,8 @@ std::unique_ptr<juce::XmlElement> Rig::toXml() const
     xml->setAttribute ("tags", tags.joinIntoString (","));
     xml->setAttribute ("ampModel", ampModelPath);
     xml->setAttribute ("cabIr", cabIrPath);
+    if (notes.isNotEmpty())
+        xml->setAttribute ("notes", notes);
     if (keepAmpAndCab)
         xml->setAttribute ("keepAmpAndCab", true);
 
@@ -69,6 +71,7 @@ std::optional<Rig> Rig::fromXml (const juce::XmlElement& xml)
     rig.ampModelPath = xml.getStringAttribute ("ampModel");
     rig.cabIrPath = xml.getStringAttribute ("cabIr");
     rig.keepAmpAndCab = xml.getBoolAttribute ("keepAmpAndCab");
+    rig.notes = xml.getStringAttribute ("notes");
 
     for (const auto* parameter : xml.getChildWithTagNameIterator (parameterTag))
         if (const auto id = parameter->getStringAttribute ("id"); id.isNotEmpty())

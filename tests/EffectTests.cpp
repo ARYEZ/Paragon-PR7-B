@@ -13,6 +13,7 @@
 #include "dsp/effects/Glitch.h"
 #include "dsp/effects/TalkBox.h"
 #include "ui/EqPresets.h"
+#include "rigs/FactoryRigs.h"
 
 using Catch::Matchers::WithinAbs;
 
@@ -615,6 +616,59 @@ TEST_CASE ("GOTHAM: the bass preamp follows the Bass Driver DI's circuit", "[eff
             CHECK (*std::max_element (output.begin(), output.end()) < 4.0f);
         }
     }
+}
+
+namespace
+{
+    // A few plucked bass notes (low E, A, D), each a fundamental with its
+    // harmonics, struck and decaying, peaking near -10 dBFS: a stand-in for
+    // a real bass DI, to compare the factory rigs' loudness.
+    std::vector<float> pluckedBassLine()
+    {
+        std::vector<float> line;
+        for (const auto hz : { 41.2, 55.0, 73.4, 41.2 })
+        {
+            for (int i = 0; i < (int) (sampleRate * 0.6); ++i)
+            {
+                const auto t = (double) i / sampleRate;
+                auto v = 0.0;
+                for (int harmonic = 1; harmonic <= 8; ++harmonic)
+                    v += std::sin (juce::MathConstants<double>::twoPi * hz * harmonic * t) / (double) (harmonic * harmonic);
+                line.push_back ((float) (0.22 * v * std::exp (-3.0 * t)));
+            }
+        }
+        return line;
+    }
+
+    // A factory rig's loudness through the plugin (no amp or cab loaded), in dB RMS.
+    float factoryRigLoudness (const juce::String& name, const std::vector<float>& input)
+    {
+        EffectRig rig;
+        const auto* entry = rig.processor.getRigLibrary().findFactory (name);
+        REQUIRE (entry != nullptr);
+        rig.processor.loadRig (*entry);
+        const auto output = rig.runMono (input);
+        return dB (rms (output, 0.0));
+    }
+}
+
+TEST_CASE ("Factory rigs are loudness-matched: within 3 dB of Clean DI", "[rigs][loudness]")
+{
+    const auto input = pluckedBassLine();
+    const auto reference = factoryRigLoudness ("Clean DI", input);
+    for (const auto& rig : makeFactoryRigs())
+    {
+        INFO (rig.name);
+        CHECK (std::abs (factoryRigLoudness (rig.name, input) - reference) <= 3.0f);
+    }
+}
+
+TEST_CASE ("Print each factory rig's loudness against Clean DI (run by hand)", "[.measure]")
+{
+    const auto input = pluckedBassLine();
+    const auto reference = factoryRigLoudness ("Clean DI", input);
+    for (const auto& rig : makeFactoryRigs())
+        std::printf ("LOUDNESS %+6.1f dB  %s\n", (double) (factoryRigLoudness (rig.name, input) - reference), rig.name.toRawUTF8());
 }
 
 TEST_CASE ("Noise gate silences signal below its threshold", "[effects][comp]")

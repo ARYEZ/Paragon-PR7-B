@@ -750,6 +750,7 @@ bool ParagonX1AudioProcessor::saveCurrentRig()
     rig.number = entry->rig.number;
     rig.tags = entry->rig.tags;
     rig.favourite = entry->rig.favourite;
+    rig.notes = entry->rig.notes;
 
     const auto file = entry->file;
     if (! rigLibrary->overwrite (file, rig))
@@ -771,6 +772,7 @@ bool ParagonX1AudioProcessor::saveCurrentRigAs (const juce::String& name)
     {
         rig.bank = entry->rig.bank;
         rig.tags = entry->rig.tags;
+        rig.notes = entry->rig.notes;   // a copy of a song rig keeps its amp and cab advice
     }
     rig.number = rigLibrary->nextFreeNumber (rig.bank);
 

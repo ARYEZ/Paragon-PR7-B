@@ -98,7 +98,9 @@ so the guide below still describes the guitar version's effects.
 - All effects start switched off, so projects made with earlier versions sound the same.
 - **Rigs:** SAVE in the header saves the current sound as a rig; **<** and **>** step through rigs; a
   `*` after the name means it's changed since loading. The **PRESETS** tab browses, searches, files
-  (banks A-D), tags and favourites rigs. Factory rigs set the effects and keep your amp and cab.
+  (banks A-D), tags and favourites rigs. Factory rigs set the effects and keep your amp and cab; they're
+  made for bass, with song rigs in bank E (Muse, Tool, Korn, RATM, Live, Karnivool, Metallica, Periphery and more), and
+  each rig's notes on the PRESETS page say which amp capture and cab IR to load with it.
   INPUT and OUTPUT stay put when you switch rigs; each rig has its own **RIG LEVEL** (on the unit), which adds to OUTPUT.
 - **TAP** (header or pedal) sets the delay's tempo from your taps; the BPM turns orange. Click the
   BPM to follow your DAW's tempo again. The TAP light flashes in time.

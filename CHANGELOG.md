@@ -2,6 +2,20 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.8.0
+
+- **New bass factory rigs.** All of PR7-G's guitar rigs are gone, replaced by 30 rigs made for bass:
+  - **A, clean and basics:** Clean DI, Studio Bass, Fingerstyle Round, Slap Funk, Motown Thump, Fretless Mwah.
+  - **B, drive:** Gotham Grit, Gotham Cranked, Obsidian Tight, Obsidian Raw, Modern Metal Clank, Doom Fuzz.
+  - **C, effects:** Envelope Funk, Synth Octave, Sub Octave, Chorus Bass, Flanged Bass, Dub Delay, Tremolo Pulse.
+  - **E, songs:** Hysteria (Muse), Forty Six & 2 (Tool), Blind (Korn), Bulls on Parade (RATM), Lakini's Juice (Live), Simple Boy (Karnivool), Until It Sleeps (Metallica), Absolomb (Periphery), Higher Ground (RHCP), What's Going On (Jamerson) and Love Will Tear Us Apart (Joy Division).
+- **The song rigs follow what's documented about each recording:** the bassist's drive, the EQ character and the effects, built from PR7-B's blocks.
+  - **Some sound right out of the box.** Bulls on Parade, for one, recreates Tim Commerford's clean amp plus distorted amp with the OBSIDIAN's blend. Simple Boy uses the OBSIDIAN, the pedal Jon Stockman co-designed.
+  - **They're our interpretation**, inspired by the records, not copies. Where nothing was published (most knob settings), the settings are our starting point, and each rig's notes say so.
+- **Rigs have notes.** The PRESETS page's SELECTED RIG panel shows what each rig is for. For the song rigs, it also shows **which amp capture and cabinet IR to load** (rigs can't ship them), the tuning and how to play it. Saving a copy keeps the notes.
+- **Every factory rig is loudness-matched**, within about 1 dB of Clean DI on a test bass line, so switching rigs doesn't jump in volume.
+- The PRESETS page's summary line now also names the octaver, filter and EQ.
+
 ## 0.7.1
 
 - **GOTHAM's DRIVE is more aggressive:** 25% more gain (in dB) at every setting, so fully cranked it's about 50 dB instead of 40, closer to the real pedal flat out. The knob keeps its feel, with most of the drive still in the top half. It's still well short of the OBSIDIAN's gain. This is our voicing by ear; the circuit's own values are unchanged.
