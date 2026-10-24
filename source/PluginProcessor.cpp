@@ -296,6 +296,9 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     effects::Drive::Settings driveSettings;
     driveSettings.on = isOn (ParamIDs::driveOn);
     driveSettings.model = (effects::Drive::Model) juce::roundToInt (param (ParamIDs::driveType));
+    driveSettings.split = isOn (ParamIDs::driveSplit);
+    driveSettings.splitHz = param (ParamIDs::driveSplitHz);
+    driveSettings.splitLowsDb = param (ParamIDs::driveSplitLows);
     auto& obsidian = driveSettings.obsidian;
     obsidian.drive = param (ParamIDs::driveGain);
     obsidian.mod = param (ParamIDs::dualMod);

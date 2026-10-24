@@ -263,5 +263,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::gothamBass, "Gotham Bass", { 0.0f, 10.0f, 0.1f }, 5.0f, v27, asKnob));
     layout.add (makeFloat (ParamIDs::gothamDrive, "Gotham Drive", { 0.0f, 10.0f, 0.1f }, 5.0f, v27, asKnob));
     layout.add (makeFloat (ParamIDs::gothamPresence, "Gotham Presence", { 0.0f, 10.0f, 0.1f }, 5.0f, v27, asKnob));
+
+    // Added in PR7-B 0.10.0: the drive's SPLIT (off by default, so earlier
+    // projects and rigs sound the same), its crossover and the clean lows' level.
+    constexpr int v28 = 28;
+    layout.add (makeSwitch (ParamIDs::driveSplit, "Drive Split", v28, false));
+    layout.add (makeFloat (ParamIDs::driveSplitHz, "Drive Split Hz", skewed (80.0f, 600.0f, 275.0f, 1.0f), 275.0f, v28, asHz));
+    layout.add (makeFloat (ParamIDs::driveSplitLows, "Drive Split Lows", { -12.0f, 12.0f, 0.1f }, 0.0f, v28, asDb));
     return layout;
 }

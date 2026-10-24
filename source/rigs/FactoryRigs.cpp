@@ -140,6 +140,20 @@ std::vector<Rig> makeFactoryRigs()
             "Thick, dark and heavy for doom and sludge: OMEGA side, GROWL, the top rolled off.\n"
             "Amp: an Orange or Ampeg capture.\nCab: an 8x10 or 4x12 IR."),
 
+        // Nolly's split (Periphery): his multiband trick, a FabFilter Saturn
+        // split at 275 Hz with the band below left alone and the band above
+        // driven hard (75% drive, 80% mix). Here: the Absolomb OBSIDIAN
+        // pushed harder, with SPLIT keeping everything below 275 Hz clean.
+        make ("Nolly Split", B, 7, "Drive,Metal", { { rigLevel, 2 },
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 7 }, { dualBlend, 8 }, { dualLevel, 4 }, { dualMod, 7 },
+            { dualBass, 5 }, { dualMid, 5.8f }, { dualTreble, 7.5f }, { dualGrowl, 0 }, { dualBite, 1 },
+            { driveSplit, 1 }, { driveSplitHz, 275 } },
+            "Nolly's split: everything below 275 Hz stays clean, so the low end is solid and tight while the drive above it "
+            "is pushed hard. Modelled on his FabFilter Saturn trick (band 1 bypassed, band 2 driven).\n"
+            "Amp: a clean Ampeg SVT capture, or none.\nCab: an SVT 8x10 IR.\n"
+            "Play: with a pick, on an extended-range bass. Try SPLIT off to hear what it does."),
+
         // ---- C: effects ---------------------------------------------------
         make ("Envelope Funk", C, 1, "Funk,Filter", { { rigLevel, 6.5f },
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 }, { compLevel, 8 },

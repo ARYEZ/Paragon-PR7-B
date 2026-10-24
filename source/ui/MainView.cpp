@@ -260,8 +260,11 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     footswitches[1]->describe = [this]
     {
         const auto gotham = juce::roundToInt (rawValue (ParamIDs::driveType)) == (int) effects::Drive::Model::gotham;
-        return gotham ? "Gotham  Drive " + valueText (ParamIDs::gothamDrive) + "  Blend " + valueText (ParamIDs::gothamBlend)
-                      : "Obsidian  Drive " + valueText (ParamIDs::driveGain) + "  Blend " + valueText (ParamIDs::dualBlend);
+        auto text = gotham ? "Gotham  Drive " + valueText (ParamIDs::gothamDrive) + "  Blend " + valueText (ParamIDs::gothamBlend)
+                           : "Obsidian  Drive " + valueText (ParamIDs::driveGain) + "  Blend " + valueText (ParamIDs::dualBlend);
+        if (rawValue (ParamIDs::driveSplit) > 0.5f)
+            text << "  + split";
+        return text;
     };
     footswitches[2] = std::make_unique<Footswitch> (3, "MODULATION", state, juce::StringArray { ParamIDs::modOn });
     footswitches[2]->describe = [this]
@@ -334,6 +337,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     // Each model's knobs, in the order of the pedal it's modelled on; OUTPUT is shared.
     const auto isGotham = [this] { return juce::roundToInt (rawValue (ParamIDs::driveType)) == (int) effects::Drive::Model::gotham; };
     const auto isObsidian = [this] { return juce::roundToInt (rawValue (ParamIDs::driveType)) != (int) effects::Drive::Model::gotham; };
+    const auto isSplit = [this] { return rawValue (ParamIDs::driveSplit) > 0.5f; };
     panels[driveBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "OD / DISTORTION", { { ParamIDs::driveOn, "ON" }, { ParamIDs::driveType, "MODEL" },
                                { ParamIDs::dualBlend, "BLEND", isObsidian, true }, { ParamIDs::dualLevel, "LEVEL", isObsidian, true },
@@ -344,6 +348,8 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                                { ParamIDs::gothamLevel, "LEVEL", isGotham, true }, { ParamIDs::gothamBlend, "BLEND", isGotham, true },
                                { ParamIDs::gothamTreble, "TREBLE", isGotham, true }, { ParamIDs::gothamBass, "BASS", isGotham, true },
                                { ParamIDs::gothamDrive, "DRIVE", isGotham, true }, { ParamIDs::gothamPresence, "PRESENCE", isGotham, true },
+                               { ParamIDs::driveSplit, "SPLIT" }, { ParamIDs::driveSplitHz, "SPLIT HZ", isSplit },
+                               { ParamIDs::driveSplitLows, "LOWS", isSplit },
                                { ParamIDs::driveLevel, "OUTPUT" } } } });
     panels[ampBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "AMP (NAM)", { { ParamIDs::ampOn, "ON" }, { ParamIDs::ampNormalise, "NORMALISE" }, { ParamIDs::presence, "PRESENCE" },

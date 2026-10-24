@@ -1855,3 +1855,80 @@ TEST_CASE ("Projects and rigs saved before reverb types keep the original reverb
            == (int) effects::Delay::Type::digital);
 }
 
+
+TEST_CASE ("SPLIT: everything below the split stays clean, the rest is driven", "[effects][drive]")
+{
+    // Both models cranked; a loud low A (55 Hz) or a 1 kHz note, with SPLIT
+    // on or off. Returns the input and the output.
+    const auto run = [] (effects::Drive::Model model, bool split, double hz, float amplitude,
+                         const std::function<void (EffectRig&)>& setUp = {})
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::driveOn, 1.0f);
+        rig.set (ParamIDs::driveType, (float) model);
+        rig.set (ParamIDs::dualBlend, 10.0f);
+        rig.set (ParamIDs::driveGain, 8.0f);
+        rig.set (ParamIDs::dualMod, 10.0f);
+        rig.set (ParamIDs::gothamBlend, 10.0f);
+        rig.set (ParamIDs::gothamDrive, 9.0f);
+        rig.set (ParamIDs::driveSplit, split ? 1.0f : 0.0f);
+        if (setUp)
+            setUp (rig);
+        auto input = sine (hz, amplitude, 0.8);
+        auto output = rig.runMono (input);
+        REQUIRE (allFinite (output));
+        return std::make_pair (std::move (input), std::move (output));
+    };
+    // A harmonic's level relative to the note, and the note's gain.
+    const auto harmonic = [] (const std::vector<float>& output, double hz, int n) { return dB (levelAt (output, hz * n, 0.4) / levelAt (output, hz, 0.4)); };
+    const auto gain = [] (const std::pair<std::vector<float>, std::vector<float>>& io, double hz) { return dB (levelAt (io.second, hz, 0.4) / levelAt (io.first, hz, 0.4)); };
+
+    for (const auto model : { effects::Drive::Model::obsidian, effects::Drive::Model::gotham })
+    {
+        DYNAMIC_SECTION ("Model " << effects::Drive::modelNames[(int) model])
+        {
+            SECTION ("A loud low note: full of harmonics without SPLIT, clean with it, at its own level")
+            {
+                CHECK (harmonic (run (model, false, 55.0, 0.3f).second, 55.0, 3) > -20.0f);
+                const auto split = run (model, true, 55.0, 0.3f);
+                CHECK (harmonic (split.second, 55.0, 3) < -80.0f);
+                CHECK (harmonic (split.second, 55.0, 5) < -80.0f);
+                CHECK_THAT (gain (split, 55.0), WithinAbs (0.0, 0.5));
+            }
+
+            SECTION ("Above the split it distorts just as much as without it")
+            {
+                CHECK_THAT (harmonic (run (model, true, 1000.0, 0.3f).second, 1000.0, 3),
+                            WithinAbs (harmonic (run (model, false, 1000.0, 0.3f).second, 1000.0, 3), 1.0));
+            }
+
+            SECTION ("LOWS sets the clean lows' level, and OUTPUT trims them too")
+            {
+                CHECK_THAT (gain (run (model, true, 55.0, 0.3f, [] (EffectRig& r) { r.set (ParamIDs::driveSplitLows, 6.0f); }), 55.0), WithinAbs (6.0, 0.5));
+                CHECK_THAT (gain (run (model, true, 55.0, 0.3f, [] (EffectRig& r) { r.set (ParamIDs::driveLevel, -6.0f); }), 55.0), WithinAbs (-6.0, 0.5));
+            }
+
+            SECTION ("SPLIT HZ moves the split: a loud 150 Hz note is far cleaner split at 275 Hz than at 80 Hz")
+            {
+                // (Not perfectly clean at 275: the crossover is a slope, not a
+                // wall, and 150 Hz is under an octave below it.)
+                const auto at275 = harmonic (run (model, true, 150.0, 0.3f).second, 150.0, 3);
+                const auto at80 = harmonic (run (model, true, 150.0, 0.3f, [] (EffectRig& r) { r.set (ParamIDs::driveSplitHz, 80.0f); }).second, 150.0, 3);
+                CAPTURE (at275, at80);
+                CHECK (at80 > -30.0f);
+                CHECK (at275 < at80 - 15.0f);
+            }
+        }
+    }
+
+    SECTION ("The two bands add back up flat: the OBSIDIAN all clean sounds the same with SPLIT")
+    {
+        const auto clean = [] (EffectRig& r) { r.set (ParamIDs::dualBlend, 0.0f); };
+        for (const auto hz : { 60.0, 150.0, 275.0, 500.0, 1000.0 })
+        {
+            CAPTURE (hz);
+            CHECK_THAT (gain (run (effects::Drive::Model::obsidian, true, hz, 1.0e-4f, clean), hz),
+                        WithinAbs (gain (run (effects::Drive::Model::obsidian, false, hz, 1.0e-4f, clean), hz), 0.75));
+        }
+    }
+}
