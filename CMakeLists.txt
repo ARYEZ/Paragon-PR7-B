@@ -86,7 +86,8 @@ target_sources(ParagonX1
         source/ui/GraphicEqPanel.cpp
         source/ui/PerformanceControls.cpp
         source/ui/MainView.cpp
-        source/ui/ParagonLookAndFeel.cpp)
+        source/ui/ParagonLookAndFeel.cpp
+        source/ui/Finish.cpp)
 
 target_include_directories(ParagonX1 PUBLIC source)
 
