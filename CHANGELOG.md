@@ -2,6 +2,10 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.8.1
+
+- **Forty Six & 2 (Tool) is now the intro riff:** a clean, picked, mid-forward bass with a slow flanger sweeping through it. The GOTHAM grit for the heavy part is set up but off: press **footswitch 2** when the band comes in.
+
 ## 0.8.0
 
 - **New bass factory rigs.** All of PR7-G's guitar rigs are gone, replaced by 30 rigs made for bass:

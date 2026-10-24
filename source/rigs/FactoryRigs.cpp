@@ -199,16 +199,19 @@ std::vector<Rig> makeFactoryRigs()
             "Amp: a clean Ampeg SVT capture (Marshall bass captures are rare).\nCab: a 4x10 or 8x10 IR.\n"
             "Play: with a pick, E standard, about 94 BPM."),
 
-        // Tool, "Forty Six & 2": Justin Chancellor on a Wal, with a pick;
-        // a SansAmp in his chain (the GT2 today), Gallien-Krueger amps, clean
-        // and dirty split. Mid-forward, picked, low grit under the clean.
-        make ("Forty Six & 2 (Tool)", E, 2, "Song,Drive", { { rigLevel, 10 },
+        // Tool, "Forty Six & 2", the intro: the clean, picked riff with a
+        // flanger sweeping through it (the owner's ears; a Boss BF-2 flanger
+        // is on Justin Chancellor's board, though no source ties it to this
+        // song). The GOTHAM is set up for the heavy part but left off:
+        // footswitch 2 brings it in.
+        make ("Forty Six & 2 (Tool)", E, 2, "Song,Modulation,Clean", { { rigLevel, 8.5f },
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 },
-            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 5 }, { gothamDrive, 5.5f }, { gothamPresence, 6 },
-            { gothamTreble, 6 },
-            { eqOn, 1 }, { eq80, 1 }, { eq300, -1 }, { eq900, 3 }, { eq2k, 3 }, { eq5k, 1 }, { eqLevel, -1.5f } },
-            "Justin Chancellor's picked, mid-forward Wal tone with low grit blended under the clean. GOTHAM stands in for the SansAmp "
-            "in his chain (a cousin of the GT2 he uses today; his 1996 drive isn't documented).\n"
+            { eqOn, 1 }, { eq80, 1 }, { eq300, -1 }, { eq900, 3 }, { eq2k, 3 }, { eq5k, 1 }, { eqLevel, -1.5f },
+            { modOn, 1 }, { modType, flanger }, { modRate, 0.15f }, { modDepth, 0.7f }, { modMix, 0.5f },
+            { driveOn, 0 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 5 }, { gothamDrive, 5.5f }, { gothamPresence, 6 },
+            { gothamTreble, 6 } },
+            "The intro riff: Justin Chancellor's clean, picked, mid-forward Wal tone with a slow flanger sweeping through it. "
+            "For the heavy part, press footswitch 2: the GOTHAM is set up for his grit (a SansAmp is in his chain).\n"
             "Amp: a Gallien-Krueger (2001RB style) capture.\nCab: a Mesa 8x10 IR.\n"
             "Play: with a hard pick, drop D, about 80 BPM."),
 
