@@ -2,6 +2,13 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.9.0
+
+- **14 genre rigs in bank D:** Metalcore, Nu Metal, Thrash Metal, Pop Punk, Djent, Death Metal, Stoner Rock, Hardcore Punk, Grunge, Classic Rock, Alt / Indie Rock, Prog Metal, Post-Rock and 80s / Synthwave.
+  - Each one is that style's typical bass sound, as it's commonly played, recorded and mixed, built from PR7-B's blocks: our interpretation of the genre, not any one player's rig.
+  - Like the song rigs, each one's notes say what it's for, which amp capture and cab IR to load, and how to play it (pick or fingers, tuning).
+  - They're loudness-matched to the other rigs, within about 1 dB.
+
 ## 0.8.1
 
 - **Forty Six & 2 (Tool) is now the intro riff:** a clean, picked, mid-forward bass with a slow flanger sweeping through it. The GOTHAM grit for the heavy part is set up but off: press **footswitch 2** when the band comes in.

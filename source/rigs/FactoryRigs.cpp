@@ -52,11 +52,11 @@ namespace
 std::vector<Rig> makeFactoryRigs()
 {
     using namespace ParamIDs;
-    constexpr int A = 0, B = 1, C = 2;
+    constexpr int A = 0, B = 1, C = 2, D = 3;
     constexpr float obsidian = 0, gotham = 1;   // OD / DISTORTION's MODEL
 
     // The bass factory rigs (PR7-B 0.8.0; PR7-G's guitar rigs are gone).
-    // A: clean and basics. B: drive. C: effects. E: songs.
+    // A: clean and basics. B: drive. C: effects. D: genres. E: songs.
     //
     // The song rigs follow what's documented about each recording (the
     // research notes behind them are summarised in each rig's notes): the
@@ -183,6 +183,135 @@ std::vector<Rig> makeFactoryRigs()
             { modOn, 1 }, { modType, tremolo }, { modSync, eighth }, { modDepth, 0.7f } },
             "Tremolo in time with the song: chopping eighth notes.\n"
             "Amp: a clean amp capture.\nCab: a 4x10 IR."),
+
+        // ---- D: genres ----------------------------------------------------
+        // Each genre's typical bass sound, as it's commonly played, recorded
+        // and mixed: our interpretation of the style, not any one player's rig.
+        make ("Metalcore", D, 1, "Genre,Metal,Drive", { { rigLevel, 10 },
+            { compOn, 1 }, { compThreshold, -24 }, { compRatio, 5 }, { gateThreshold, -62 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 6.5f }, { dualMod, 3 }, { dualBlend, 5 }, { dualLevel, 4 }, { dualBite, 1 },
+            { eqOn, 1 }, { eq33, -3 }, { eq80, 3 }, { eq300, -3 }, { eq500, -1 }, { eq900, 2 }, { eq2k, 4 }, { eq5k, 3 }, { eq9k, -2 },
+            { eqLevel, -2 } },
+            "Tight, compressed and clanky: a bright, gritty top over a clean, solid low end that locks with the kick through "
+            "breakdowns.\n"
+            "Amp: a clean Ampeg SVT capture.\nCab: an SVT 8x10 IR.\n"
+            "Play: with a pick, drop C or drop B."),
+
+        make ("Nu Metal", D, 2, "Genre,Metal", { { rigLevel, 9.5f },
+            { compOn, 1 }, { compThreshold, -26 }, { compRatio, 6 }, { compLevel, 3 }, { gateThreshold, -60 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 3 }, { gothamDrive, 4 }, { gothamPresence, 7 },
+            { gothamTreble, 7 },
+            { eqOn, 1 }, { eq33, 1 }, { eq80, 3 }, { eq150, -4 }, { eq300, -6 }, { eq500, -4 }, { eq2k, 3 }, { eq5k, 5 }, { eq9k, 3 },
+            { eqLevel, 1.5f }, { eqUltraHi, 1 } },
+            "Late-'90s down-tuned clank: a percussive, bright attack, hollowed-out mids and boom underneath, with just a little "
+            "grit. Dig in hard.\n"
+            "Amp: a clean Mesa bass capture.\nCab: a 4x10 IR with a tweeter.\n"
+            "Play: slapped or picked hard on a 5-string tuned down (B, A or drop A)."),
+
+        make ("Thrash Metal", D, 3, "Genre,Metal,Drive", { { rigLevel, 8 },
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 5 }, { gothamBlend, 6 }, { gothamDrive, 6.5f }, { gothamPresence, 6.5f },
+            { gothamTreble, 6 },
+            { eqOn, 1 }, { eq33, -2 }, { eq80, 2 }, { eq300, -1 }, { eq900, 3 }, { eq2k, 3 }, { eq5k, 2 }, { eqLevel, -1.5f } },
+            "Picked, bright and gritty with plenty of mids, so fast riffs stay defined against the guitars.\n"
+            "Amp: an Ampeg SVT capture with a little hair.\nCab: an SVT 8x10 IR.\n"
+            "Play: fast down-picking, E or E-flat standard."),
+
+        make ("Pop Punk", D, 4, "Genre,Punk,Drive", { { rigLevel, 9.5f },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 }, { compLevel, 2 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 4 }, { gothamDrive, 4.5f }, { gothamPresence, 5 },
+            { eqOn, 1 }, { eq80, 2 }, { eq300, 1 }, { eq500, 2 }, { eq900, 2 }, { eq2k, 1 }, { eq9k, -2 }, { eqLevel, -2 } },
+            "A picked P-bass with a fat midrange and light overdrive: driving eighth notes that glue the band together.\n"
+            "Amp: an Ampeg SVT capture.\nCab: an SVT 8x10 IR.\n"
+            "Play: with a pick, steady eighth notes, E or E-flat standard."),
+
+        make ("Djent", D, 5, "Genre,Metal,Drive", { { rigLevel, 11 },
+            { compOn, 1 }, { compThreshold, -28 }, { compRatio, 8 }, { gateThreshold, -58 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 7 }, { dualMod, 5 }, { dualBlend, 4.5f }, { dualLevel, 4 }, { dualBite, 1 }, { driveLevel, 4 },
+            { eqOn, 1 }, { eq33, -4 }, { eq80, 2 }, { eq150, -1 }, { eq300, -4 }, { eq900, 4 }, { eq2k, 6 }, { eq5k, 2 }, { eq9k, -4 },
+            { eqLevel, -2.5f } },
+            "Heavily compressed and surgical: a tight low end, a deep low-mid scoop and a gnarly 900 Hz-2 kHz growl, gated "
+            "between stabs.\n"
+            "Amp: a clean Ampeg SVT capture, or none.\nCab: an SVT 8x10 IR.\n"
+            "Play: with a pick on a 5- or 6-string in a low drop tuning (drop A, drop F#)."),
+
+        make ("Death Metal", D, 6, "Genre,Metal,Drive", { { rigLevel, 9 },
+            { compOn, 1 }, { compThreshold, -24 }, { compRatio, 5 }, { gateThreshold, -60 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 5.5f }, { dualMod, 2 }, { dualBlend, 4 }, { dualLevel, 4.5f }, { dualBite, 1 },
+            { dualTreble, 6.5f },
+            { eqOn, 1 }, { eq80, 2 }, { eq300, -2 }, { eq500, 1 }, { eq900, 3 }, { eq2k, 4 }, { eq5k, 4 }, { eqLevel, -2.5f } },
+            "Trebly, articulate clank that cuts through tremolo-picked guitars and blast beats, with just enough grit.\n"
+            "Amp: a clean Ampeg SVT or Mesa capture.\nCab: an 8x10 or 4x10 IR.\n"
+            "Play: fingers or pick, fast; D standard or lower."),
+
+        make ("Stoner Rock", D, 7, "Genre,Fuzz,Drive", { { rigLevel, 3 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 8.5f }, { dualMod, 9 }, { dualBlend, 6 }, { dualLevel, 3.5f }, { dualGrowl, 1 },
+            { dualTreble, 4 },
+            { eqOn, 1 }, { eq33, 2 }, { eq80, 4 }, { eq150, 2 }, { eq300, 1 }, { eq2k, -1 }, { eq5k, -3 }, { eq9k, -5 }, { eqLevel, -2 },
+            { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.3f }, { reverbMix, 0.08f } },
+            "Warm, fat fuzz with huge lows and the fizz rolled off: big, slow riffs in the desert.\n"
+            "Amp: an Orange or Sunn-style bass capture.\nCab: an 8x10 or 4x15 IR.\n"
+            "Play: fingers or pick, C or D standard, let notes ring."),
+
+        make ("Hardcore Punk", D, 8, "Genre,Punk,Drive", { { rigLevel, 3.5f },
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 4.5f }, { gothamBlend, 7 }, { gothamDrive, 8 }, { gothamPresence, 5 },
+            { eqOn, 1 }, { eq80, 2 }, { eq500, 2 }, { eq900, 3 }, { eq2k, 1 }, { eq9k, -3 }, { eqLevel, -2 } },
+            "Raw, mid-pushed grit that's almost a second guitar: aggressive and in your face.\n"
+            "Amp: an Ampeg SVT capture.\nCab: an SVT 8x10 IR.\n"
+            "Play: fast down-picking, E or D standard."),
+
+        make ("Grunge", D, 9, "Genre,Rock,Drive", { { rigLevel, 6 },
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 3 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 5 }, { gothamBlend, 6 }, { gothamDrive, 6 }, { gothamPresence, 3.5f },
+            { gothamBass, 6 },
+            { eqOn, 1 }, { eq80, 3 }, { eq300, 1 }, { eq500, 2 }, { eq5k, -2 }, { eq9k, -4 }, { eqLevel, -2 } },
+            "A dirty, warm P-bass growl, a little dark: thick under loud, fuzzy guitars.\n"
+            "Amp: an Ampeg SVT capture.\nCab: an SVT 8x10 IR.\n"
+            "Play: with a pick or fingers, E or drop D."),
+
+        make ("Classic Rock", D, 10, "Genre,Rock,Vintage", { { rigLevel, 9.5f },
+            { compOn, 1 }, { compThreshold, -18 }, { compRatio, 3 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 3 }, { gothamDrive, 3 }, { gothamPresence, 4 },
+            { eqOn, 1 }, { eq80, 3 }, { eq150, 2 }, { eq500, 1 }, { eq2k, -1 }, { eq5k, -3 }, { eq9k, -5 }, { eqLevel, -1.5f } },
+            "Round and warm, like a tube amp pushed just to the edge of breakup.\n"
+            "Amp: an Ampeg B-15 or SVT capture.\nCab: a 1x15 or 8x10 IR.\n"
+            "Play: fingers, E standard."),
+
+        make ("Alt / Indie Rock", D, 11, "Genre,Rock,Modulation", { { rigLevel, 12 },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 },
+            { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 3 }, { gothamDrive, 4 }, { gothamPresence, 6 }, { driveLevel, 4 },
+            { eqOn, 1 }, { eq33, -2 }, { eq500, 2 }, { eq900, 3 }, { eq2k, 2 }, { eq5k, 1 }, { eqLevel, -1.5f },
+            { modOn, 1 }, { modType, chorus }, { modRate, 0.7f }, { modDepth, 0.35f }, { modMix, 0.25f } },
+            "Picked and mid-forward with a little chorus shimmer: melodic lines that sit up front.\n"
+            "Amp: an Ampeg or Fender-style bass capture.\nCab: a 4x10 IR.\n"
+            "Play: with a pick, E standard."),
+
+        make ("Prog Metal", D, 12, "Genre,Metal,Prog", { { rigLevel, 6.5f },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 },
+            { driveOn, 1 }, { driveType, obsidian }, { driveGain, 5.5f }, { dualMod, 4 }, { dualBlend, 3.5f }, { dualLevel, 5 }, { dualMid, 6 },
+            { dualBite, 1 },
+            { eqOn, 1 }, { eq80, 2 }, { eq300, -2 }, { eq900, 2 }, { eq2k, 3 }, { eq5k, 2 }, { eqLevel, -1.5f } },
+            "Articulate and mostly clean, with grind blended underneath: every note of a busy line heard.\n"
+            "Amp: a clean Ampeg SVT capture.\nCab: an SVT 8x10 IR.\n"
+            "Play: fingers or pick on a 5- or 6-string."),
+
+        make ("Post-Rock", D, 13, "Genre,Ambient,Clean", { { rigLevel, 2 },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 },
+            { eqOn, 1 }, { eq80, 2 }, { eq300, -1 }, { eq900, 1 }, { eq5k, -2 }, { eq9k, -3 }, { eqLevel, -0.5f },
+            { delayOn, 1 }, { delayType, analogDelay }, { delaySync, dottedEighth }, { delayFeedback, 0.35f }, { delayMix, 0.2f }, { delayTone, 4 },
+            { reverbOn, 1 }, { reverbType, hall }, { reverbSize, 0.7f }, { reverbMix, 0.25f } },
+            "Clean and round in a big space: dark echoes in time and a hall, for slow builds.\n"
+            "Amp: a clean Ampeg or Fender-style capture.\nCab: an 8x10 or 4x10 IR.\n"
+            "Play: fingers, let notes ring; tap the tempo for the echoes."),
+
+        make ("80s / Synthwave", D, 14, "Genre,Modulation,Clean", { { rigLevel, 7.5f },
+            { compOn, 1 }, { compThreshold, -26 }, { compRatio, 6 }, { compLevel, 4 },
+            { eqOn, 1 }, { eq33, -2 }, { eq80, 2 }, { eq300, -3 }, { eq900, 1 }, { eq2k, 3 }, { eq5k, 4 }, { eq9k, 3 }, { eqLevel, -1.5f },
+            { modOn, 1 }, { modType, chorus }, { modRate, 0.9f }, { modDepth, 0.55f }, { modMix, 0.45f } },
+            "Bright, tightly compressed and chorused: punchy eighth notes with a glossy '80s shine.\n"
+            "Amp: a clean, bright bass capture, or none.\nCab: a 4x10 IR, or none.\n"
+            "Play: with a pick, steady eighths, E standard."),
 
         // ---- E: songs -----------------------------------------------------
         // Muse, "Hysteria": producer Rich Costey described three amps at once,
