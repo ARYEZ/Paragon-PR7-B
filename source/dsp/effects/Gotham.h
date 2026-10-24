@@ -22,7 +22,8 @@ namespace effects
     // scoops about 800 Hz by 16 dB before the gain, PRESENCE lifts the top
     // going into the first clipping stage (up to +27 dB at 5 kHz), DRIVE
     // adds up to 40 dB more (most of it at the top of the knob's travel: it
-    // is a linear pot used as a variable resistor), and the filters after
+    // is a linear pot used as a variable resistor; we voice it 25% hotter,
+    // about 50 dB at full, to match the pedal cranked), and the filters after
     // it keep the lows big and roll the top off like a speaker. The
     // distortion is the op-amps running out of room on 9 V; there are no
     // diodes. The clean signal is the buffered input, full range; BLEND
@@ -65,6 +66,7 @@ namespace effects
 
         juce::SmoothedValue<float> level, blend, treble, bass, drive, presence, output;
         float appliedBlend = -1.0f, appliedTreble = -1.0f, appliedBass = -1.0f, appliedDrive = -1.0f, appliedPresence = -1.0f;
+        double driveBoost = 1.0;   // our voicing: see driveVoicing in Gotham.cpp
         bool needsUpdate = true;
     };
 }

@@ -13,6 +13,13 @@ namespace effects
 
         constexpr double k = 1.0e3, n = 1.0e-9, p = 1.0e-12;
 
+        // Our voicing, by ear against the real pedal (not from the circuit):
+        // DRIVE gets 25% more gain, in dB, at every setting (40 dB at full
+        // becomes about 50), as a gain step into the DRIVE stage so it clips
+        // harder. Cranked, the circuit's own gain sounded tamer than the pedal.
+        constexpr double driveVoicing = 1.25;
+        constexpr double driveR9 = 330.0e3, driveR10 = 3.3e3;   // the DRIVE stage's gain resistors
+
         double knob (float value) noexcept { return juce::jlimit (0.0, 1.0, (double) value / 10.0); }
 
         // A pot's two halves: pin 3 to the wiper, and the wiper to pin 1,
@@ -179,8 +186,11 @@ namespace effects
         }
         if (changed (drive, appliedDrive))
         {
-            driveStage.setResistor (drivePot, 100 * k * (1.0 - knob (appliedDrive)));
+            const auto potR = 100 * k * (1.0 - knob (appliedDrive));
+            driveStage.setResistor (drivePot, potR);
             driveStage.update();
+            const auto circuitGain = 1.0 + driveR9 / (driveR10 + potR);
+            driveBoost = std::pow (circuitGain, driveVoicing - 1.0);   // the extra 25% (in dB) of the circuit's gain
         }
         if (changed (blend, appliedBlend))
         {
@@ -228,7 +238,7 @@ namespace effects
         for (size_t i = 0; i < fast.getNumSamples(); ++i)
         {
             auto v = opAmpClip (presenceStage.process (voltsPerUnit * (double) distorted[i]), tl07xRail);
-            v = opAmpClip (driveStage.process (v), tl07xRail);
+            v = opAmpClip (driveStage.process (v * driveBoost), tl07xRail);
             distorted[i] = (float) v;   // volts
         }
         oversampling.processSamplesDown (block);

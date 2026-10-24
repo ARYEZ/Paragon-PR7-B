@@ -2,6 +2,10 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.7.1
+
+- **GOTHAM's DRIVE is more aggressive:** 25% more gain (in dB) at every setting, so fully cranked it's about 50 dB instead of 40, closer to the real pedal flat out. The knob keeps its feel, with most of the drive still in the top half. It's still well short of the OBSIDIAN's gain. This is our voicing by ear; the circuit's own values are unchanged.
+
 ## 0.7.0
 
 - **The small EXPRESSION screen beside the pedal is gone.** Assign the expression pedal on the EXPRESSION ASSIGN screen in the dock, which is bigger and scrolls.

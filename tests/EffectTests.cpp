@@ -580,11 +580,12 @@ TEST_CASE ("GOTHAM: the bass preamp follows the Bass Driver DI's circuit", "[eff
         CHECK (std::abs (at (100.0, 10.0f) - at (100.0, 0.0f)) < 1.0f);
     }
 
-    SECTION ("DRIVE: +23 dB from noon to full, most of its range at the top")
+    SECTION ("DRIVE: the circuit's gain plus our 25% (in dB): +29 dB from noon to full, most of it at the top")
     {
+        // The circuit alone: +23.0 dB from noon to full, +4.6 from 0 to noon.
         const auto at = [&] (float drive) { return gainAt (100.0, [&] (EffectRig& r) { wet (r); r.set (ParamIDs::gothamDrive, drive); }); };
-        CHECK_THAT (at (10.0f) - at (5.0f), WithinAbs (23.0, 1.0));
-        CHECK_THAT (at (5.0f) - at (0.0f), WithinAbs (4.6, 1.0));
+        CHECK_THAT (at (10.0f) - at (5.0f), WithinAbs (23.0 * 1.25, 1.0));
+        CHECK_THAT (at (5.0f) - at (0.0f), WithinAbs (4.6 * 1.25, 1.0));
     }
 
     SECTION ("BASS and TREBLE: +10 / -13 dB at 80 Hz, +15 dB at 5 kHz (Tech 21 says about +-12)")
