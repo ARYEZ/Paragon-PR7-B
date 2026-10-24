@@ -2,6 +2,20 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.6.0
+
+The chassis finishes from the guitar version, Paragon PR7-G (its 0.29.0 to 0.32.0), brought over to PR7-B.
+
+- **Three finishes**, in **SETTINGS → FINISH**:
+  - **Pearl White:** the original, unchanged.
+  - **Pearl White + Neon:** the white unit with neon keys and knobs that run pink through red to orange. That covers the footswitches, the AMP / CABINET / RIG keys, the small keys, the RIG LEVEL and PRESENCE knobs, and the expression pedal's grip plates.
+  - **Pearl Black:** a deep black pearl chassis, pedal bay and treadle, with the same neon keys, knobs and grips, and white lettering.
+  - Over the neon keys, the six button names (UNDO, REDO, BYPASS, TUNER, MUTE, TAP) are printed so they stay readable.
+  - The choice is saved on your computer, not in the project, so every Paragon PR7-B you open uses it. It's kept apart from PR7-G's, so each plugin remembers its own finish.
+- **Opens bigger:** the window opens at **1824 × 1026** (it was 1280 × 720), or the largest size that fits on the screen *above the taskbar*, leaving room for the DAW's title bar and plugin toolbar. On a 1080p screen that's about 1706 × 959. You can still drag it to any size.
+- **EXPRESSION ASSIGN is a screen:** the dock's list of small buttons is now the same orange LCD as the EXPRESSION screen beside the pedal, enlarged, with bigger lettering. **▲ / ▼** beside it scroll the list. Click a line to assign the pedal, click it again to unassign, or use the mouse wheel. MIN, the range slider and MAX share one row underneath.
+- On the neon finishes, a tilted expression pedal no longer looks washed-out and grey.
+
 ## 0.5.0
 
 - **GOTHAM, a new bass preamp modelled on the Tech 21 SansAmp Bass Driver DI** (the original, Version 1). OD / DISTORTION now has a **MODEL** menu: OBSIDIAN or GOTHAM.
