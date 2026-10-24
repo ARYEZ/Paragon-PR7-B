@@ -66,10 +66,13 @@ so the guide below still describes the guitar version's effects.
     toe: the interval, as far as six octaves down) and eight harmonies (your note plus a voice the pedal moves between two intervals);
     or a **Talk Box**: the amp's sound, after the cab, shaped into vowels (oo to ee) by the expression pedal (TALK BOX),
     with RESONANCE and MIX.
-  - **2 OD / Distortion:** four models: **Screamer**, modelled on the Ibanez TS808 Tube Screamer's circuit;
-    **Classic**, Paragon's original overdrive; **Muff Fuzz**, following the Big Muff's two clipping stages and
-    mid-scooping tone stack (long, violin-like sustain); and **Face Fuzz**, following the silicon Fuzz Face's uneven
-    clipping (raspy and round, cleaning up with the guitar's volume). Drive, tone, level; 8x oversampled to avoid harsh aliasing.
+  - **2 OD / Distortion: DUAL ENGINE**, a bass preamp/distortion modelled on the Darkglass Alpha·Omega, built from a
+    trace of its circuit (Aion FX's) with the real component values. BLEND mixes the clean bass (full range) with the
+    distortion; LEVEL sets the distortion's volume; DRIVE its gain. MOD moves between two voicings of the same
+    op-amp distortion: 0 is ALPHA (tight and refined: a deep 520 Hz scoop, the top rolled off), 10 is OMEGA (raw: a
+    gentler 780 Hz scoop, more top), and in between is a mix of both. GROWL sends much more bass into the distortion;
+    BITE lifts about 3 kHz before it. BASS (80 Hz), MID (about 1 kHz) and TREBLE (5 kHz) come after the blend, so they
+    shape the clean bass too. OUTPUT is our addition, a trim into the amp. 8x oversampled to avoid harsh aliasing.
   - **3 Modulation:** eleven types: chorus, flanger, phaser, tremolo, Dimension chorus, Uni-Vibe, rotary
     (Leslie), vibrato, harmonic tremolo, auto-pan and doubler. SYNC locks the rate to the tapped or DAW tempo.
   - **4 Reverb / Delay:** switches both; each also has its own ON switch. The delay syncs to your

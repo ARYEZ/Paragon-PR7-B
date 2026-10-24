@@ -23,8 +23,17 @@ namespace ParamIDs
 
     inline constexpr auto driveOn        = "driveOn";
     inline constexpr auto driveGain      = "driveGain";
-    inline constexpr auto driveTone      = "driveTone";
     inline constexpr auto driveLevel     = "driveLevel";
+
+    // The DUAL ENGINE's other knobs (its DRIVE is driveGain, and driveLevel is its OUTPUT trim).
+    inline constexpr auto dualMod    = "dualMod";
+    inline constexpr auto dualLevel  = "dualLevel";
+    inline constexpr auto dualBlend  = "dualBlend";
+    inline constexpr auto dualBass   = "dualBass";
+    inline constexpr auto dualMid    = "dualMid";
+    inline constexpr auto dualTreble = "dualTreble";
+    inline constexpr auto dualGrowl  = "dualGrowl";
+    inline constexpr auto dualBite   = "dualBite";
 
     inline constexpr auto modOn          = "modOn";
     inline constexpr auto modType        = "modType";
@@ -71,9 +80,7 @@ namespace ParamIDs
     // Modulation tempo sync: Off, or a note length at the tapped or host tempo.
     inline constexpr auto modSync = "modSync";
 
-    // Version 10: the drive's model (Tube Screamer or the original), and
-    // the FILTER / PITCH block: auto-wah and pitch shifter.
-    inline constexpr auto driveModel    = "driveModel";
+    // Version 10: the FILTER / PITCH block: auto-wah and pitch shifter.
     inline constexpr auto fpOn          = "fpOn";
     inline constexpr auto fpType        = "fpType";
     inline constexpr auto fpSensitivity = "fpSensitivity";   // auto-wah

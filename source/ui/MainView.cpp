@@ -243,8 +243,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     footswitches[1] = std::make_unique<Footswitch> (2, "OD / DISTORTION", state, juce::StringArray { ParamIDs::driveOn });
     footswitches[1]->describe = [this]
     {
-        const auto screamer = juce::roundToInt (rawValue (ParamIDs::driveModel)) == (int) effects::Drive::Model::screamer;
-        return juce::String (screamer ? "Screamer" : "Classic") + "  Drive " + valueText (ParamIDs::driveGain);
+        return "Dual Engine  Drive " + valueText (ParamIDs::driveGain) + "  Blend " + valueText (ParamIDs::dualBlend);
     };
     footswitches[2] = std::make_unique<Footswitch> (3, "MODULATION", state, juce::StringArray { ParamIDs::modOn });
     footswitches[2]->describe = [this]
@@ -314,9 +313,12 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                               { ParamIDs::fpInterval, "INTERVAL", fpIs (effects::FilterPitch::Type::pitchShifter) },
                               { ParamIDs::fpXpProgram, "PROGRAM", fpIs (effects::FilterPitch::Type::whammyWah) },
                               { ParamIDs::fpMix, "MIX" } } } });
+    // The DUAL ENGINE's knobs, in the order of the pedal it's modelled on.
     panels[driveBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
-        { "OVERDRIVE", { { ParamIDs::driveOn, "ON" }, { ParamIDs::driveModel, "MODEL" }, { ParamIDs::driveGain, "DRIVE" }, { ParamIDs::driveTone, "TONE" },
-                         { ParamIDs::driveLevel, "LEVEL" } } } });
+        { "DUAL ENGINE", { { ParamIDs::driveOn, "ON" }, { ParamIDs::dualBlend, "BLEND" }, { ParamIDs::dualLevel, "LEVEL" },
+                           { ParamIDs::driveGain, "DRIVE" }, { ParamIDs::dualMod, "MOD" },
+                           { ParamIDs::dualBass, "BASS" }, { ParamIDs::dualMid, "MID" }, { ParamIDs::dualTreble, "TREBLE" },
+                           { ParamIDs::dualGrowl, "GROWL" }, { ParamIDs::dualBite, "BITE" }, { ParamIDs::driveLevel, "OUTPUT" } } } });
     panels[ampBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "AMP (NAM)", { { ParamIDs::ampOn, "ON" }, { ParamIDs::ampNormalise, "NORMALISE" }, { ParamIDs::presence, "PRESENCE" },
                          { ParamIDs::rigLevel, "RIG LEVEL" } } } });

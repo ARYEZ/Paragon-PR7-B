@@ -2,6 +2,26 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.4.0
+
+- **DUAL ENGINE, a bass distortion modelled on the Darkglass Alpha·Omega**, the pedal Nolly demoed for Darkglass with "Absolomb". It replaces the guitar drives (Classic, Screamer, Muff Fuzz and Face Fuzz), so OD / DISTORTION is now the bass distortion.
+  - **Built from the circuit itself.** Every stage follows a trace of the pedal's circuit (Aion FX's) with its real component values, so the filters and gains are the pedal's, not guesses. The distortion is what the circuit does: op-amps pushed past their 9 V supply, in three places.
+  - **The knobs, as on the pedal:**
+    - **BLEND:** the clean bass (full range, untouched) against the distortion.
+    - **LEVEL:** the distortion's volume.
+    - **DRIVE:** its gain, up to about 40 dB on top of a fixed 20 dB.
+    - **MOD:** 0 is ALPHA (tight and refined: a deep scoop at 520 Hz and the top rolled off), 10 is OMEGA (raw: a gentler scoop at 780 Hz, more top). In between is a mix of both.
+    - **GROWL:** much more bass into the distortion (about 7 dB at 80 Hz), for a fatter, heavier sound.
+    - **BITE:** lifts about 3 kHz by 9 dB before the distortion, for clank and definition.
+    - **BASS, MID, TREBLE:** after the blend, so they shape the clean bass too.
+    - **OUTPUT:** our addition, a trim into the amp.
+  - **What the circuit showed** that the specs don't say:
+    - The MID knob centres near 1 kHz, not the advertised 500 Hz.
+    - There's a fixed, narrow dip at 1.85 kHz after the blend, on the clean bass too.
+    - BITE really is a boost, as Darkglass says.
+- **New song rig: E9 Absolomb (Periphery)**, the DUAL ENGINE at the settings on the pedal in Nolly's demo, after a gentle 4:1 compressor. GROWL and BITE weren't visible there, so those two are our guess. Load an SVT 8x10 cabinet IR with it.
+- The guitar factory rigs that used a drive now use the DUAL ENGINE until they're replaced with bass rigs.
+
 ## 0.3.0
 
 - **Bass EQ presets.** The guitar presets are replaced by sixteen made for bass, most of them for modern metal. Open **PRESETS** in the GRAPHIC EQ:

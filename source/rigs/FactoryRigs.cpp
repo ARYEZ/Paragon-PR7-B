@@ -34,7 +34,6 @@ namespace
     constexpr float pedalWah = 2;      // the expression pedal's WAH / FILTER setting
     constexpr float glitchKillswitch = 4;
     constexpr int E = 4;               // bank E: rigs inspired by particular songs
-    constexpr float muffFuzz = 2, faceFuzz = 3;   // OD / DISTORTION's MODEL
     constexpr float digitalDelay = 0;
     constexpr float xpCryWah = 1, xpUpOctave = 12, xpOctDownOctUp = 20, xpUp4thUp5th = 23;   // Whammy-Wah programs 02, 13, 21 and 24
     constexpr float pedalWhammyWah = 6;   // the expression pedal's WHAMMY-WAH setting
@@ -64,7 +63,7 @@ std::vector<Rig> makeFactoryRigs()
             { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.25f } }),
 
         make ("Edge of Breakup", A, 4, "Crunch,Drive", {
-            { driveOn, 1 }, { driveGain, 2 }, { driveTone, 6 }, { driveLevel, 4 },
+            { driveOn, 1 }, { driveGain, 2 }, { driveLevel, 4 },
             { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.2f } }),
 
         // Daybreak on a clean: smooth, even and sustaining, with half the dry
@@ -76,7 +75,7 @@ std::vector<Rig> makeFactoryRigs()
 
         make ("Lead Boost", B, 1, "Lead,Drive", {
             { compThreshold, -20 }, { gateThreshold, -60 }, { compOn, 1 }, { compRatio, 2 },
-            { driveOn, 1 }, { driveGain, 4 }, { driveTone, 6 }, { driveLevel, 6 },
+            { driveOn, 1 }, { driveGain, 4 }, { driveLevel, 6 },
             { delayOn, 1 }, { delayType, analogDelay }, { delaySync, dottedEighth }, { delayFeedback, 0.3f }, { delayMix, 0.2f },
             { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.25f }, { rigLevel, 2 } }),
 
@@ -84,7 +83,7 @@ std::vector<Rig> makeFactoryRigs()
         // and sharpens the attack: the classic metal "boost" trick.
         make ("High Gain Tight", B, 2, "High Gain,Rhythm", {
             { compOn, 1 }, { compThreshold, 0 }, { gateThreshold, -55 },
-            { driveOn, 1 }, { driveGain, 1 }, { driveTone, 6 }, { driveLevel, 8 },
+            { driveOn, 1 }, { driveGain, 1 }, { driveLevel, 8 },
             { presence, 2 } }),
 
         make ("Ambient Swells", C, 1, "Ambient,Clean", {
@@ -113,7 +112,7 @@ std::vector<Rig> makeFactoryRigs()
             { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.4f }, { reverbMix, 0.2f } }),
 
         make ("Machine Gun Vibe", D, 3, "Modulation,Drive,Lead", {
-            { driveOn, 1 }, { driveGain, 6 }, { driveTone, 5 }, { driveLevel, 3 },
+            { driveOn, 1 }, { driveGain, 6 }, { driveLevel, 3 },
             { modOn, 1 }, { modType, uniVibe }, { modRate, 1.2f }, { modDepth, 0.75f }, { modMix, 0.5f },
             { reverbOn, 1 }, { reverbMix, 0.18f } }),
 
@@ -130,13 +129,13 @@ std::vector<Rig> makeFactoryRigs()
         make ("Octave Lead", B, 3, "Lead,Pitch,Drive", {
             { compOn, 1 }, { compThreshold, -20 }, { compRatio, 3 },
             { fpOn, 1 }, { fpType, pitchShifter }, { fpInterval, 12 }, { fpMix, 0.45f },
-            { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 }, { driveLevel, 2 },
+            { driveOn, 1 }, { driveGain, 5 }, { driveLevel, 2 },
             { delayOn, 1 }, { delayType, ducking }, { delaySync, dottedEighth }, { delayFeedback, 0.3f }, { delayMix, 0.2f },
             { reverbOn, 1 }, { reverbMix, 0.2f } }),
 
         make ("Harmony Fifths", B, 4, "Lead,Pitch", {
             { fpOn, 1 }, { fpType, pitchShifter }, { fpInterval, 7 }, { fpMix, 0.4f },
-            { driveOn, 1 }, { driveGain, 4 }, { driveTone, 5 },
+            { driveOn, 1 }, { driveGain, 4 },
             { reverbOn, 1 }, { reverbSize, 0.6f }, { reverbMix, 0.25f } }),
 
         make ("Funk Envelope", C, 6, "Funk,Filter,Clean", {
@@ -145,7 +144,7 @@ std::vector<Rig> makeFactoryRigs()
             { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.3f }, { reverbMix, 0.15f } }),
 
         make ("Wide Doubler", D, 6, "Rhythm,Modulation", {
-            { driveOn, 1 }, { driveGain, 3 }, { driveTone, 5 },
+            { driveOn, 1 }, { driveGain, 3 },
             { modOn, 1 }, { modType, doubler }, { modRate, 0.8f }, { modDepth, 0.4f }, { modMix, 0.7f },
             { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.35f }, { reverbMix, 0.15f } }),
 
@@ -154,20 +153,20 @@ std::vector<Rig> makeFactoryRigs()
         make ("Whammy Lead", B, 7, "Lead,Pitch,Drive,Expression", {
             { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpUpOctave }, { fpMix, 1 },
             { expressionTarget, pedalWhammyWah },
-            { driveOn, 1 }, { driveGain, 6 }, { driveTone, 6 }, { driveLevel, 3 },
+            { driveOn, 1 }, { driveGain, 6 }, { driveLevel, 3 },
             { delayOn, 1 }, { delaySync, dottedEighth }, { delayFeedback, 0.25f }, { delayMix, 0.18f },
             { reverbOn, 1 }, { reverbMix, 0.2f } }),
 
         make ("XP Wah Crunch", B, 8, "Wah,Drive,Expression", {
             { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpCryWah }, { fpMix, 1 },
             { expressionTarget, pedalWhammyWah },
-            { driveOn, 1 }, { driveGain, 4 }, { driveTone, 5 }, { driveLevel, 4 },
+            { driveOn, 1 }, { driveGain, 4 }, { driveLevel, 4 },
             { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.3f }, { reverbMix, 0.15f } }),
 
         make ("Harmony Bends", B, 9, "Lead,Pitch,Expression", {
             { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpUp4thUp5th }, { fpMix, 0.8f },
             { expressionTarget, pedalWhammyWah },
-            { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 },
+            { driveOn, 1 }, { driveGain, 5 },
             { delayOn, 1 }, { delaySync, quarter }, { delayFeedback, 0.3f }, { delayMix, 0.2f },
             { reverbOn, 1 }, { reverbSize, 0.6f }, { reverbMix, 0.25f } }),
 
@@ -180,7 +179,7 @@ std::vector<Rig> makeFactoryRigs()
             { compOn, 1 }, { compThreshold, 0 }, { gateThreshold, -55 },
             { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpOctDownOctUp }, { fpMix, 0.85f },
             { expressionTarget, pedalWhammyWah },
-            { driveOn, 1 }, { driveGain, 1 }, { driveTone, 6 }, { driveLevel, 8 },
+            { driveOn, 1 }, { driveGain, 1 }, { driveLevel, 8 },
             { presence, 2 },
             { eqOn, 1 }, { "eq33", -6 }, { "eq80", 4 }, { "eq150", 1 }, { "eq300", -3 }, { "eq500", -1 }, { "eq900", 1 },
             { "eq2k", 3 }, { "eq5k", 2 }, { "eq9k", -1 }, { eqLevel, -1 },
@@ -192,7 +191,7 @@ std::vector<Rig> makeFactoryRigs()
             { glitchOn, 1 }, { glitchMode, glitchSequence }, { glitchSync, 1 }, { glitchDivision, glitchSixteenth },
             { glitchDensity, 6 }, { glitchChaos, 2 }, { glitchMix, 1 },
             { expressionTarget, pedalGlitch },
-            { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 }, { driveLevel, 4 },
+            { driveOn, 1 }, { driveGain, 5 }, { driveLevel, 4 },
             { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.12f } }),
 
         // A slow cloud of grains under a clean tone: chords smear into a pad.
@@ -213,7 +212,7 @@ std::vector<Rig> makeFactoryRigs()
         make ("Killing Solo (RATM)", E, 1, "Song,Lead,Pitch,Expression", {
             { fpOn, 1 }, { fpType, whammyWah }, { fpXpProgram, xpUpOctave }, { fpMix, 1 },
             { expressionTarget, pedalWhammyWah },
-            { driveOn, 1 }, { driveGain, 3 }, { driveTone, 6 }, { driveLevel, 6 },
+            { driveOn, 1 }, { driveGain, 3 }, { driveLevel, 6 },
             { presence, 1 } }),
 
         // Rage Against the Machine, "Bulls on Parade" scratch: a wah on the
@@ -224,7 +223,7 @@ std::vector<Rig> makeFactoryRigs()
             { expressionTarget, pedalWah },
             { glitchOn, 1 }, { glitchMode, glitchKillswitch }, { glitchSync, 1 }, { glitchDivision, glitchSixteenth },
             { glitchDensity, 5 }, { glitchChaos, 0 }, { glitchMix, 1 },
-            { driveOn, 1 }, { driveGain, 4 }, { driveTone, 6 }, { driveLevel, 5 },
+            { driveOn, 1 }, { driveGain, 4 }, { driveLevel, 5 },
             { presence, 1 } }),
 
         // Pink Floyd. David Gilmour's sounds as his gear guides describe them;
@@ -234,7 +233,7 @@ std::vector<Rig> makeFactoryRigs()
         // tone 30-40%) into a delay of about 370 ms, through a subtly mixed
         // rotating speaker (his Yamaha RA-200), with studio reverb.
         make ("Numb Solo (Floyd)", E, 3, "Song,Lead,Fuzz", {
-            { driveOn, 1 }, { driveModel, muffFuzz }, { driveGain, 7 }, { driveTone, 3.5f }, { driveLevel, 1 },
+            { driveOn, 1 }, { driveGain, 7 }, { driveLevel, 1 },
             { modOn, 1 }, { modType, rotary }, { modRate, 0.9f }, { modDepth, 0.5f }, { modMix, 0.3f },
             { delayOn, 1 }, { delayType, digitalDelay }, { delaySync, syncOff }, { delayTime, 370 }, { delayFeedback, 0.3f }, { delayMix, 0.25f },
             { reverbOn, 1 }, { reverbType, hall }, { reverbSize, 0.6f }, { reverbMix, 0.18f } }),
@@ -244,7 +243,7 @@ std::vector<Rig> makeFactoryRigs()
         // For the louder chorus, stomp footswitch 2: a Fuzz Face-style fuzz
         // is set up and waiting, as Gilmour kicked his in.
         make ("Us and Them (Floyd)", E, 4, "Song,Clean,Modulation,Fuzz", {
-            { driveOn, 0 }, { driveModel, faceFuzz }, { driveGain, 6 }, { driveTone, 6 }, { driveLevel, 0 },
+            { driveOn, 0 }, { driveGain, 6 }, { driveLevel, 0 },
             { modOn, 1 }, { modType, rotary }, { modRate, 0.7f }, { modDepth, 0.6f }, { modMix, 0.6f },
             { delayOn, 1 }, { delayType, tapeDelay }, { delaySync, syncOff }, { delayTime, 420 }, { delayFeedback, 0.25f }, { delayMix, 0.2f },
             { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.25f } }),
@@ -261,7 +260,7 @@ std::vector<Rig> makeFactoryRigs()
         // "Money" solos: the bridge pickup into a Fuzz Face-style fuzz, with
         // a multi-head echo in the spirit of his Binson Echorec.
         make ("Money Solo (Floyd)", E, 6, "Song,Lead,Fuzz,Delay", {
-            { driveOn, 1 }, { driveModel, faceFuzz }, { driveGain, 7 }, { driveTone, 7 }, { driveLevel, 1 },
+            { driveOn, 1 }, { driveGain, 7 }, { driveLevel, 1 },
             { delayOn, 1 }, { delayType, multiTap }, { delaySync, syncOff }, { delayTime, 330 }, { delayFeedback, 0.3f }, { delayMix, 0.22f },
             { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.15f } }),
 
@@ -270,7 +269,7 @@ std::vector<Rig> makeFactoryRigs()
         make ("Jambi Talk Box (Tool)", E, 7, "Song,Lead,Talk Box,Expression", {
             { fpOn, 1 }, { fpType, talkBoxType }, { fpResonance, 6 }, { fpMix, 1 },
             { expressionTarget, pedalTalkBox },
-            { driveOn, 1 }, { driveGain, 3 }, { driveTone, 6 }, { driveLevel, 6 },
+            { driveOn, 1 }, { driveGain, 3 }, { driveLevel, 6 },
             { delayOn, 1 }, { delayType, digitalDelay }, { delaySync, eighth }, { delayFeedback, 0.2f }, { delayMix, 0.12f },
             { reverbOn, 1 }, { reverbType, room }, { reverbMix, 0.1f } }),
 
@@ -279,8 +278,19 @@ std::vector<Rig> makeFactoryRigs()
         make ("Show Me the Way (Frampton)", E, 8, "Song,Lead,Talk Box,Expression", {
             { fpOn, 1 }, { fpType, talkBoxType }, { fpResonance, 5 }, { fpMix, 1 },
             { expressionTarget, pedalTalkBox },
-            { driveOn, 1 }, { driveModel, 0 }, { driveGain, 3 }, { driveTone, 5 }, { driveLevel, 2 },
+            { driveOn, 1 }, { driveGain, 3 }, { driveLevel, 2 },
             { reverbOn, 1 }, { reverbType, plate }, { reverbMix, 0.2f } }),
+
+        // Periphery, "Absolomb" (Nolly on bass): the DUAL ENGINE at the
+        // settings seen on the pedal in Nolly's Darkglass demo, which plays
+        // the song. GROWL and BITE weren't readable there: these are our
+        // guess (GROWL off keeps the lows tight, BITE on for the clank).
+        // Nolly's own chain compresses gently (4:1) before the drive. Load
+        // an SVT 8x10 cabinet IR, and an amp capture or the amp off.
+        make ("Absolomb (Periphery)", E, 9, "Song,Bass,Distortion,Metal", {
+            { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 },
+            { driveOn, 1 }, { driveGain, 5.8f }, { dualBlend, 5.5f }, { dualLevel, 4 }, { dualMod, 7 },
+            { dualBass, 5 }, { dualMid, 5.8f }, { dualTreble, 7.5f }, { dualGrowl, 0 }, { dualBite, 1 } }),
 
         make ("Phone Intro", B, 5, "Lo-Fi,Clean", {
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 },
@@ -288,7 +298,7 @@ std::vector<Rig> makeFactoryRigs()
             { lofiOn, 1 }, { lofiType, telephone }, { lofiAmount, 6 }, { lofiNoise, 3 }, { lofiLevel, 2 } }),
 
         make ("Megaphone Verse", B, 6, "Lo-Fi,Drive", {
-            { driveOn, 1 }, { driveGain, 5 }, { driveTone, 6 },
+            { driveOn, 1 }, { driveGain, 5 },
             { lofiOn, 1 }, { lofiType, megaphone }, { lofiAmount, 6 }, { lofiNoise, 2 } }),
 
         make ("Old Radio", C, 7, "Lo-Fi,Vintage", {

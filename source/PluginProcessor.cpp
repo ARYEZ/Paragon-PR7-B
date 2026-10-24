@@ -293,8 +293,20 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     if (glitchPre)
         glitch.process (monoBlock, glitchSettings, getTempoBpm(), songBeats);
 
-    drive.process (monoBlock, { isOn (ParamIDs::driveOn), (effects::Drive::Model) (int) param (ParamIDs::driveModel),
-                                param (ParamIDs::driveGain), param (ParamIDs::driveTone), param (ParamIDs::driveLevel) });
+    effects::Drive::Settings driveSettings;
+    driveSettings.on = isOn (ParamIDs::driveOn);
+    auto& engine = driveSettings.engine;
+    engine.drive = param (ParamIDs::driveGain);
+    engine.mod = param (ParamIDs::dualMod);
+    engine.level = param (ParamIDs::dualLevel);
+    engine.blend = param (ParamIDs::dualBlend);
+    engine.bass = param (ParamIDs::dualBass);
+    engine.mid = param (ParamIDs::dualMid);
+    engine.treble = param (ParamIDs::dualTreble);
+    engine.growl = isOn (ParamIDs::dualGrowl);
+    engine.bite = isOn (ParamIDs::dualBite);
+    engine.outputDb = param (ParamIDs::driveLevel);
+    drive.process (monoBlock, driveSettings);
 
     amp.process (mono, numSamples, ampOn->load() > 0.5f, ampNormalise->load() > 0.5f);
     cab.process (mono, numSamples, cabOn->load() > 0.5f);
@@ -859,7 +871,6 @@ void ParagonX1AudioProcessor::setStateInformation (const void* data, int sizeInB
         parameter.setProperty ("value", value, nullptr);
         state.appendChild (parameter, nullptr);
     };
-    addIfMissing (ParamIDs::driveModel, (int) effects::Drive::Model::classic);    // before the drive had a MODEL
     addIfMissing (ParamIDs::reverbType, (int) effects::Reverb::Type::classic);    // before the reverb had a TYPE
     parameters.replaceState (state);
 

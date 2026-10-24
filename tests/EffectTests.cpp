@@ -4,6 +4,7 @@
 
 #include "Parameters.h"
 #include "PluginProcessor.h"
+#include "dsp/effects/Circuit.h"
 #include "dsp/effects/Modulation.h"
 #include "dsp/effects/Delay.h"
 #include "dsp/effects/Reverb.h"
@@ -387,60 +388,141 @@ TEST_CASE ("GLITCH: each mode chops, repeats or smears the guitar as it says", "
     }
 }
 
-TEST_CASE ("Fuzzes: Muff sustains with odd harmonics and scoops the mids; Face clips unevenly and cleans up", "[effects][drive]")
+TEST_CASE ("The circuit solver behaves like the circuit: an RC low-pass", "[effects][drive]")
 {
-    const auto play = [] (effects::Drive::Model model, float amplitude, float drive = 5.0f, float tone = 5.0f, double hz = 220.0)
+    // 1k and 1 uF: the corner is at 159 Hz, falling 6 dB per octave.
+    effects::Circuit c;
+    const auto in = c.node(), out = c.node();
+    c.resistor (in, out, 1.0e3);
+    c.capacitor (out, 0, 1.0e-6);
+    c.setInput (in);
+    c.setOutput (out);
+    c.prepare (sampleRate);
+
+    const auto gainAt = [&c] (double hz)
+    {
+        c.reset();
+        std::vector<float> output;
+        for (int i = 0; i < (int) sampleRate; ++i)
+            output.push_back ((float) c.process (std::sin (juce::MathConstants<double>::twoPi * hz * i / sampleRate)));
+        return dB (levelAt (output, hz, 0.5));
+    };
+    CHECK_THAT (gainAt (159.15), WithinAbs (-3.01, 0.1));
+    CHECK_THAT (gainAt (1591.5), WithinAbs (-20.04, 0.2));
+    CHECK_THAT (gainAt (20.0), WithinAbs (0.0, 0.1));
+}
+
+TEST_CASE ("DUAL ENGINE: the bass distortion follows the pedal's circuit", "[effects][drive]")
+{
+    // The level of a tone at `hz` through the plugin, relative to its input,
+    // with the drive on and set up by `setUp`. At the default -80 dBFS
+    // nothing clips, so the circuit's filters can be measured directly.
+    const auto gainAt = [] (double hz, const std::function<void (EffectRig&)>& setUp, float amplitude = 1.0e-4f)
     {
         EffectRig rig;
         rig.set (ParamIDs::driveOn, 1.0f);
-        rig.set (ParamIDs::driveModel, (float) model);
-        rig.set (ParamIDs::driveGain, drive);
-        rig.set (ParamIDs::driveTone, tone);
-        const auto output = rig.runMono (sine (hz, amplitude, 1.0));
+        setUp (rig);
+        const auto input = sine (hz, amplitude, 0.6);
+        const auto output = rig.runMono (input);
         REQUIRE (allFinite (output));
-        return output;
+        return dB (levelAt (output, hz, 0.3) / levelAt (input, hz, 0.3));
     };
+    const auto wet = [] (EffectRig& rig) { rig.set (ParamIDs::dualBlend, 10.0f); };
+    const auto clean = [] (EffectRig& rig) { rig.set (ParamIDs::dualBlend, 0.0f); };
 
-    SECTION ("At LEVEL 0 dB both sit near the guitar's own level, at any FUZZ / SUSTAIN")
+    SECTION ("BLEND all the way clean: the bass at its own level, but for the circuit's 1.85 kHz notch")
     {
-        for (const auto model : { effects::Drive::Model::muff, effects::Drive::Model::face })
-            for (const auto drive : { 2.0f, 5.0f, 9.0f })
-            {
-                INFO ("model " << (int) model << ", drive " << drive);
-                CHECK (std::abs (dB (rms (play (model, 0.3f, drive), 0.3) / (0.3f / std::sqrt (2.0f)))) < 3.0f);
-            }
+        CHECK_THAT (gainAt (100.0, clean), WithinAbs (0.0, 0.7));
+        CHECK_THAT (gainAt (5000.0, clean), WithinAbs (0.0, 0.7));
+        CHECK (gainAt (1854.0, clean) < -9.0f);
     }
 
-    SECTION ("Muff clips both halves alike (odd harmonics); Face clips one harder (a strong 2nd)")
+    SECTION ("It distorts: a loud low note comes out full of harmonics")
     {
-        const auto secondToThird = [&] (effects::Drive::Model model)
-        {
-            const auto output = play (model, 0.3f, 7.0f, 7.0f);
-            return dB (levelAt (output, 440.0, 0.3) / levelAt (output, 660.0, 0.3));
-        };
-        CHECK (secondToThird (effects::Drive::Model::face) > secondToThird (effects::Drive::Model::muff) + 10.0f);
+        EffectRig rig;
+        rig.set (ParamIDs::driveOn, 1.0f);
+        rig.set (ParamIDs::dualBlend, 10.0f);
+        rig.set (ParamIDs::driveGain, 8.0f);
+        rig.set (ParamIDs::dualMod, 10.0f);
+        const auto output = rig.runMono (sine (110.0, 0.3f, 0.6));
+        REQUIRE (allFinite (output));
+        CHECK (dB (levelAt (output, 330.0, 0.3) / levelAt (output, 110.0, 0.3)) > -20.0f);
     }
 
-    SECTION ("Face cleans up as the guitar's volume comes down")
+    SECTION ("DRIVE: about 10 dB more gain from 5 to 10, 25 or so from 0 (at 1 kHz, before clipping)")
     {
-        const auto harmonics = [&] (float amplitude)
-        {
-            const auto output = play (effects::Drive::Model::face, amplitude, 5.0f);
-            return dB ((levelAt (output, 440.0, 0.3) + levelAt (output, 660.0, 0.3)) / levelAt (output, 220.0, 0.3));
-        };
-        CHECK (harmonics (0.3f) > harmonics (0.01f) + 10.0f);
+        // (At DRIVE 0 the little clean signal that BLEND's track leaks into
+        // the wet side, as on the pedal, is no longer negligible.)
+        const auto at = [&] (float drive) { return gainAt (1000.0, [&] (EffectRig& r) { wet (r); r.set (ParamIDs::driveGain, drive); }); };
+        CHECK_THAT (at (10.0f) - at (5.0f), WithinAbs (10.4, 1.0));
+        CHECK (at (10.0f) - at (0.0f) > 24.0f);
     }
 
-    SECTION ("Muff's TONE scoops the mids at noon")
+    SECTION ("GROWL sends about 7 dB more low end into the distortion; the top barely moves")
     {
-        // A quiet 1 kHz tone (still fuzzed), against 250 Hz, through the tone stack.
-        const auto midsAgainstLows = [&] (float tone)
+        const auto off = [&] (double hz) { return gainAt (hz, wet); };
+        const auto on = [&] (double hz) { return gainAt (hz, [&] (EffectRig& r) { wet (r); r.set (ParamIDs::dualGrowl, 1.0f); }); };
+        CHECK_THAT (on (80.0) - off (80.0), WithinAbs (6.7, 1.0));
+        CHECK (std::abs (on (8000.0) - off (8000.0)) < 1.5f);
+    }
+
+    SECTION ("BITE lifts about 3 kHz by 9 dB")
+    {
+        const auto off = gainAt (2976.0, wet);
+        const auto on = gainAt (2976.0, [&] (EffectRig& r) { wet (r); r.set (ParamIDs::dualBite, 1.0f); });
+        CHECK_THAT (on - off, WithinAbs (8.9, 1.0));
+    }
+
+    SECTION ("MOD: ALPHA scoops 520 Hz far deeper than OMEGA; at 1.9 kHz they're close")
+    {
+        const auto alpha = [&] (double hz) { return gainAt (hz, [&] (EffectRig& r) { wet (r); r.set (ParamIDs::dualMod, 0.0f); }); };
+        const auto omega = [&] (double hz) { return gainAt (hz, [&] (EffectRig& r) { wet (r); r.set (ParamIDs::dualMod, 10.0f); }); };
+        CHECK (omega (520.0) - alpha (520.0) > 10.0f);
+        CHECK (std::abs (omega (1900.0) - alpha (1900.0)) < 3.0f);
+    }
+
+    SECTION ("LEVEL down with BLEND fully wet: silence")
+    {
+        CHECK (gainAt (500.0, [&] (EffectRig& r) { wet (r); r.set (ParamIDs::dualLevel, 0.0f); }, 0.1f) < -40.0f);
+    }
+
+    SECTION ("The EQ, after the blend: BASS +13 dB at 80 Hz, TREBLE +16 dB at 5 kHz, MID +14.5 dB near 1 kHz")
+    {
+        const auto flat = [&] (double hz) { return gainAt (hz, clean); };
+        CHECK_THAT (gainAt (80.0, [&] (EffectRig& r) { clean (r); r.set (ParamIDs::dualBass, 10.0f); }) - flat (80.0), WithinAbs (13.1, 1.0));
+        CHECK_THAT (gainAt (5000.0, [&] (EffectRig& r) { clean (r); r.set (ParamIDs::dualTreble, 10.0f); }) - flat (5000.0), WithinAbs (15.9, 1.0));
+        CHECK_THAT (gainAt (1053.0, [&] (EffectRig& r) { clean (r); r.set (ParamIDs::dualMid, 10.0f); }) - flat (1053.0), WithinAbs (14.5, 1.0));
+        CHECK_THAT (gainAt (80.0, [&] (EffectRig& r) { clean (r); r.set (ParamIDs::dualBass, 0.0f); }) - flat (80.0), WithinAbs (-12.9, 1.0));
+    }
+
+    SECTION ("Oversampling keeps aliasing down at full drive")
+    {
+        // A 5 kHz note at full drive makes harmonics at 15, 25, 35 kHz...;
+        // without oversampling, 35 kHz would fold back to 13 kHz.
+        EffectRig rig;
+        rig.set (ParamIDs::driveOn, 1.0f);
+        rig.set (ParamIDs::dualBlend, 10.0f);
+        rig.set (ParamIDs::dualMod, 10.0f);
+        rig.set (ParamIDs::driveGain, 10.0f);
+        const auto output = rig.runMono (sine (5000.0, 0.5f, 0.6));
+        CHECK (dB (levelAt (output, 13000.0, 0.3) / levelAt (output, 5000.0, 0.3)) < -45.0f);
+    }
+
+    SECTION ("Every knob at its extreme, played hard: stable and bounded")
+    {
+        for (const auto extreme : { 0.0f, 10.0f })
         {
-            const auto mids = play (effects::Drive::Model::muff, 0.3f, 5.0f, tone, 1000.0);
-            const auto lows = play (effects::Drive::Model::muff, 0.3f, 5.0f, tone, 250.0);
-            return dB (rms (mids, 0.3) / rms (lows, 0.3));
-        };
-        CHECK (midsAgainstLows (5.0f) < midsAgainstLows (10.0f) - 3.0f);
+            EffectRig rig;
+            rig.set (ParamIDs::driveOn, 1.0f);
+            for (const auto* id : { ParamIDs::driveGain, ParamIDs::dualMod, ParamIDs::dualLevel, ParamIDs::dualBlend,
+                                    ParamIDs::dualBass, ParamIDs::dualMid, ParamIDs::dualTreble })
+                rig.set (id, extreme);
+            rig.set (ParamIDs::dualGrowl, 1.0f);
+            rig.set (ParamIDs::dualBite, 1.0f);
+            const auto output = rig.runMono (sine (41.2, 1.0f, 0.5));   // a low E, flat out
+            REQUIRE (allFinite (output));
+            CHECK (*std::max_element (output.begin(), output.end()) < 4.0f);   // the EQ op-amps' rails
+        }
     }
 }
 
@@ -456,105 +538,6 @@ TEST_CASE ("Noise gate silences signal below its threshold", "[effects][comp]")
 
     const auto note = sine (220.0, juce::Decibels::decibelsToGain (-20.0f), 1.0);
     CHECK_THAT (dB (rms (rig.runMono (note), 0.5) / rms (note, 0.5)), WithinAbs (0.0, 0.5));
-}
-
-TEST_CASE ("Overdrive adds harmonics, and oversampling keeps aliasing down", "[effects][drive]")
-{
-    EffectRig rig;
-    rig.set (ParamIDs::driveOn, 1.0f);
-    rig.set (ParamIDs::driveModel, (float) effects::Drive::Model::classic);
-    rig.set (ParamIDs::driveTone, 10.0f);
-
-    SECTION ("Harmonics: odd from clipping, even from the asymmetry")
-    {
-        rig.set (ParamIDs::driveGain, 7.0f);
-        const auto output = rig.runMono (sine (1000.0, 0.3f, 0.5));
-        REQUIRE (allFinite (output));
-        const auto fundamental = levelAt (output, 1000.0);
-        CHECK (dB (levelAt (output, 3000.0) / fundamental) > -30.0f);
-        CHECK (dB (levelAt (output, 2000.0) / fundamental) > -40.0f);
-    }
-
-    SECTION ("Aliasing")
-    {
-        // A 5 kHz note at full drive makes harmonics at 15, 25, 35 kHz...
-        // Without oversampling, 35 kHz folds back to 13 kHz (48 - 35), a
-        // frequency that isn't musically related to the note.
-        rig.set (ParamIDs::driveGain, 10.0f);
-        const auto output = rig.runMono (sine (5000.0, 0.5f, 0.5));
-        CHECK (dB (levelAt (output, 13000.0) / levelAt (output, 5000.0)) < -45.0f);
-    }
-
-    SECTION ("Drive 0 at level 0 dB is close to unity; level adds gain")
-    {
-        rig.set (ParamIDs::driveGain, 0.0f);
-        const auto input = sine (1000.0, 0.1f, 0.5);
-        CHECK_THAT (dB (rms (rig.runMono (input), 0.2) / rms (input, 0.2)), WithinAbs (0.0, 1.0));
-
-        rig.set (ParamIDs::driveLevel, 6.0f);
-        CHECK_THAT (dB (rms (rig.runMono (input), 0.2) / rms (input, 0.2)), WithinAbs (6.0, 1.0));
-    }
-}
-
-TEST_CASE ("The Screamer drive behaves like a Tube Screamer", "[effects][drive]")
-{
-    EffectRig rig;
-    rig.set (ParamIDs::driveOn, 1.0f);
-    rig.set (ParamIDs::driveModel, (float) effects::Drive::Model::screamer);
-
-    SECTION ("It's the default for new rigs")
-    {
-        EffectRig fresh;
-        CHECK (juce::roundToInt (fresh.processor.getParameters().getRawParameterValue (ParamIDs::driveModel)->load())
-               == (int) effects::Drive::Model::screamer);
-    }
-
-    SECTION ("Mid hump: the bass passes clean while the mids are boosted")
-    {
-        // A quiet signal, so nothing clips and this is just the frequency response.
-        rig.set (ParamIDs::driveGain, 0.0f);
-        rig.set (ParamIDs::driveTone, 10.0f);
-        const auto gainAt = [&] (double hz)
-        {
-            const auto input = sine (hz, 0.003f, 0.5);
-            return dB (rms (rig.runMono (input), 0.2) / rms (input, 0.2));
-        };
-        CHECK (gainAt (1000.0) - gainAt (100.0) > 9.0f);
-
-        // TONE: dark at 0 (the top well below the mids), bright at 10.
-        const auto brightTreble = gainAt (6000.0) - gainAt (1000.0);
-        rig.set (ParamIDs::driveTone, 0.0f);
-        const auto darkTreble = gainAt (6000.0) - gainAt (1000.0);
-        CHECK (darkTreble < -10.0f);
-        CHECK (brightTreble - darkTreble > 12.0f);
-    }
-
-    SECTION ("Its diodes clip both halves alike: odd harmonics, hardly any even")
-    {
-        rig.set (ParamIDs::driveGain, 7.0f);
-        rig.set (ParamIDs::driveTone, 10.0f);
-        const auto output = rig.runMono (sine (500.0, 0.3f, 0.5));
-        REQUIRE (allFinite (output));
-        const auto fundamental = levelAt (output, 500.0);
-        CHECK (dB (levelAt (output, 1500.0) / fundamental) > -25.0f);
-        CHECK (dB (levelAt (output, 1000.0) / fundamental) < -50.0f);
-    }
-
-    SECTION ("Its level at noon is close to the guitar's own")
-    {
-        rig.set (ParamIDs::driveGain, 5.0f);
-        rig.set (ParamIDs::driveTone, 5.0f);
-        const auto input = sine (440.0, 0.3f, 0.5);
-        CHECK_THAT (dB (rms (rig.runMono (input), 0.2) / rms (input, 0.2)), WithinAbs (0.0, 3.0));
-    }
-
-    SECTION ("Aliasing stays down at full drive")
-    {
-        rig.set (ParamIDs::driveGain, 10.0f);
-        rig.set (ParamIDs::driveTone, 10.0f);
-        const auto output = rig.runMono (sine (5000.0, 0.5f, 0.5));
-        CHECK (dB (levelAt (output, 13000.0) / levelAt (output, 5000.0)) < -45.0f);
-    }
 }
 
 TEST_CASE ("Modulation effects", "[effects][mod]")
@@ -957,34 +940,6 @@ TEST_CASE ("The doubler adds a take on each side", "[effects][mod]")
         difference[i] = output[0][i] - output[1][i];
     CHECK (rms (difference, 0.2) > 0.1f * rms (output[0], 0.2));   // the two sides differ
     CHECK (rms (output[0], 0.2) < 2.0f * rms (input, 0.2));
-}
-
-TEST_CASE ("Projects saved before the drive MODEL keep the original overdrive", "[effects][drive]")
-{
-    EffectRig original;
-    juce::MemoryBlock saved;
-    original.processor.getStateInformation (saved);
-
-    // As an older version saved it: no driveModel parameter at all.
-    auto xml = juce::AudioProcessor::getXmlFromBinary (saved.getData(), (int) saved.getSize());
-    REQUIRE (xml != nullptr);
-    for (auto* child : xml->getChildIterator())
-        if (child->getStringAttribute ("id") == ParamIDs::driveModel)
-        {
-            xml->removeChildElement (child, true);
-            break;
-        }
-    juce::MemoryBlock older;
-    juce::AudioProcessor::copyXmlToBinary (*xml, older);
-
-    const auto modelAfterLoading = [] (const juce::MemoryBlock& state)
-    {
-        EffectRig rig;
-        rig.processor.setStateInformation (state.getData(), (int) state.getSize());
-        return juce::roundToInt (rig.processor.getParameters().getRawParameterValue (ParamIDs::driveModel)->load());
-    };
-    CHECK (modelAfterLoading (older) == (int) effects::Drive::Model::classic);
-    CHECK (modelAfterLoading (saved) == (int) effects::Drive::Model::screamer);
 }
 
 TEST_CASE ("LO-FI: telephone, radio, megaphone, cassette and bitcrusher", "[effects][lofi]")

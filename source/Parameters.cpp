@@ -109,7 +109,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
 
     layout.add (makeSwitch (ParamIDs::driveOn, "Drive On", v3, false));
     layout.add (makeFloat (ParamIDs::driveGain, "Drive", { 0.0f, 10.0f, 0.1f }, 5.0f, v3, asKnob));
-    layout.add (makeFloat (ParamIDs::driveTone, "Drive Tone", { 0.0f, 10.0f, 0.1f }, 5.0f, v3, asKnob));
     layout.add (makeFloat (ParamIDs::driveLevel, "Drive Level", { -24.0f, 12.0f, 0.1f }, 0.0f, v3, asDb));
 
     layout.add (makeSwitch (ParamIDs::modOn, "Mod On", v3, false));
@@ -168,12 +167,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     // added to the end of Mod Type's list, so saved choices keep their meaning.)
     layout.add (makeChoice (ParamIDs::modSync, "Mod Sync", 9, effects::Delay::syncNames, 0));
 
-    // Added in plugin version 10. The drive defaults to the Tube Screamer
-    // model; projects and rigs saved before it existed are given the
-    // original model when they load (see ParagonX1AudioProcessor::setStateInformation
-    // and Rig::fromXml), so they sound as they did.
+    // Added in plugin version 10: the FILTER / PITCH block. (Version 10's
+    // drive MODEL and version 3's drive TONE were for PR7-G's guitar
+    // drives, removed in PR7-B 0.4.0.)
     constexpr int v10 = 10;
-    layout.add (makeChoice (ParamIDs::driveModel, "Drive Model", v10, effects::Drive::modelNames, (int) effects::Drive::Model::screamer));
     layout.add (makeSwitch (ParamIDs::fpOn, "Filter/Pitch On", v10, false));
     layout.add (makeChoice (ParamIDs::fpType, "Filter/Pitch Type", v10, effects::FilterPitch::typeNames, 0));
     layout.add (makeFloat (ParamIDs::fpSensitivity, "Auto-Wah Sensitivity", { 0.0f, 10.0f, 0.1f }, 5.0f, v10, asKnob));
@@ -243,5 +240,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     // Added in PR7-B 0.2.0: the bass EQ's ULTRA LO and ULTRA HI switches. Off by default.
     layout.add (makeSwitch (ParamIDs::eqUltraLo, "EQ Ultra Lo", v25, false));
     layout.add (makeSwitch (ParamIDs::eqUltraHi, "EQ Ultra Hi", v25, false));
+
+    // Added in PR7-B 0.4.0: the DUAL ENGINE's knobs, as on the pedal it's
+    // modelled on (0 to 10, EQ flat at 5).
+    constexpr int v26 = 26;
+    layout.add (makeFloat (ParamIDs::dualMod, "Dual Engine Mod", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeFloat (ParamIDs::dualLevel, "Dual Engine Level", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeFloat (ParamIDs::dualBlend, "Dual Engine Blend", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeFloat (ParamIDs::dualBass, "Dual Engine Bass", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeFloat (ParamIDs::dualMid, "Dual Engine Mid", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeFloat (ParamIDs::dualTreble, "Dual Engine Treble", { 0.0f, 10.0f, 0.1f }, 5.0f, v26, asKnob));
+    layout.add (makeSwitch (ParamIDs::dualGrowl, "Dual Engine Growl", v26, false));
+    layout.add (makeSwitch (ParamIDs::dualBite, "Dual Engine Bite", v26, false));
     return layout;
 }
