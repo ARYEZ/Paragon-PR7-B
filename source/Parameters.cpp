@@ -154,12 +154,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::expressionMax, "Expression Max", { 0.0f, 1.0f, 0.01f }, 1.0f, v6, asPercent));
 
     // Added in plugin version 8: the graphic EQ. Off by default, so existing
-    // projects and rigs sound the same.
-    constexpr int v8 = 8;
+    // projects and rigs sound the same. Its bands were moved to the bass
+    // EQ's in PR7-B 0.2.0, under new IDs (so version 25).
+    constexpr int v8 = 8, v25 = 25;
     layout.add (makeSwitch (ParamIDs::eqOn, "EQ On", v8, false));
     for (int band = 0; band < ParamIDs::eqBands.size(); ++band)
         layout.add (makeFloat (ParamIDs::eqBands[band].toRawUTF8(), "EQ " + ParamIDs::eqBandNames[band] + " Hz",
-                               { -effects::GraphicEq::maxGainDb, effects::GraphicEq::maxGainDb, 0.1f }, 0.0f, v8, asDb));
+                               { -effects::GraphicEq::maxGainDb, effects::GraphicEq::maxGainDb, 0.1f }, 0.0f, v25, asDb));
     layout.add (makeFloat (ParamIDs::eqLevel, "EQ Level", { -12.0f, 12.0f, 0.1f }, 0.0f, v8, asDb));
 
     // Added in plugin version 9: modulation tempo sync. Off by default, so
@@ -238,5 +239,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::freezeLevel, "Freeze Level", { 0.0f, 1.0f, 0.01f }, 0.7f, v24, asPercent));
     layout.add (makeFloat (ParamIDs::freezeAttack, "Freeze Attack", skewed (10.0f, 5000.0f, 300.0f, 1.0f), 300.0f, v24, asTime));
     layout.add (makeFloat (ParamIDs::freezeRelease, "Freeze Release", skewed (50.0f, 8000.0f, 1500.0f, 1.0f), 1500.0f, v24, asTime));
+
+    // Added in PR7-B 0.2.0: the bass EQ's ULTRA LO and ULTRA HI switches. Off by default.
+    layout.add (makeSwitch (ParamIDs::eqUltraLo, "EQ Ultra Lo", v25, false));
+    layout.add (makeSwitch (ParamIDs::eqUltraHi, "EQ Ultra Hi", v25, false));
     return layout;
 }

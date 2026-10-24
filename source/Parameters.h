@@ -62,8 +62,11 @@ namespace ParamIDs
     // Phase 8: the 9-band graphic EQ, one band per octave.
     inline constexpr auto eqOn    = "eqOn";
     inline constexpr auto eqLevel = "eqLevel";
-    inline const juce::StringArray eqBands { "eq63", "eq125", "eq250", "eq500", "eq1k", "eq2k", "eq4k", "eq8k", "eq16k" };
-    inline const juce::StringArray eqBandNames { "63", "125", "250", "500", "1K", "2K", "4K", "8K", "16K" };
+    // The bass EQ's bands (PR7-G's were 63 Hz to 16 kHz, with their own IDs).
+    inline const juce::StringArray eqBands { "eq33", "eq80", "eq150", "eq300", "eq500", "eq900", "eq2k", "eq5k", "eq9k" };
+    inline const juce::StringArray eqBandNames { "33", "80", "150", "300", "500", "900", "2K", "5K", "9K" };
+    inline constexpr auto eqUltraLo = "eqUltraLo";
+    inline constexpr auto eqUltraHi = "eqUltraHi";
 
     // Modulation tempo sync: Off, or a note length at the tapped or host tempo.
     inline constexpr auto modSync = "modSync";

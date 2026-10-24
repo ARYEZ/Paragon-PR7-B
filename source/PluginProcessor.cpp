@@ -310,6 +310,8 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     for (size_t band = 0; band < eq.gainsDb.size(); ++band)
         eq.gainsDb[band] = eqGainDb[band]->load();
     eq.levelDb = param (ParamIDs::eqLevel);
+    eq.ultraLo = isOn (ParamIDs::eqUltraLo);
+    eq.ultraHi = isOn (ParamIDs::eqUltraHi);
     graphicEq.process (monoBlock, eq);
     if (! glitchPre)
         glitch.process (monoBlock, glitchSettings, getTempoBpm(), songBeats);

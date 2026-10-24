@@ -113,7 +113,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
           { "OD / DIST", Icons::Type::drive, ParagonColours::drive, ParamIDs::driveOn },
           { "NAMP", Icons::Type::amp, ParagonColours::amp, ParamIDs::ampOn },
           { "CABINET IR", Icons::Type::cabinet, ParagonColours::cab, ParamIDs::cabOn },
-          { "EQ", Icons::Type::eq, ParagonColours::eq, ParamIDs::eqOn },
+          { "EQ", Icons::Type::eq, ParagonColours::eq, juce::String (ParamIDs::eqOn) + "," + ParamIDs::eqUltraLo + "," + ParamIDs::eqUltraHi },
           { "GLITCH", Icons::Type::glitch, ParagonColours::glitch, ParamIDs::glitchOn },
           { "MOD", Icons::Type::modulation, ParagonColours::modulation, ParamIDs::modOn },   // MODULATION: short, to fit twelve blocks
           { "DELAY", Icons::Type::delay, ParagonColours::delay, ParamIDs::delayOn },

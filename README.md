@@ -79,7 +79,9 @@ so the guide below still describes the guitar version's effects.
     Digital, Reverse and Classic (the original), with SIZE, PRE-DELAY, TONE and MIX. Both have a DUCK knob that tucks
     the repeats or reverb under your playing and lets them swell back in the gaps. Both let their
     tails ring out when switched off.
-- **Graphic EQ:** 9 bands (63 Hz to 16 kHz, ±12 dB) and a level, after the cabinet. Open it from the
+- **Graphic EQ:** a bass amp's 9 bands (33, 80, 150, 300, 500, 900 Hz, 2K, 5K and 9K, as on an Ampeg SVT-3 PRO; ±12 dB)
+  and a level, after the cabinet, with the amp's **ULTRA LO** (-10 dB at 500 Hz, +2 dB at 40 Hz) and **ULTRA HI**
+  (+9 dB at 8 kHz) switches, which work with the faders on or off. Open it from the
   **EQ** block in the signal chain; the curve shows the EQ's actual response. FLAT resets it. **PRESETS** has twelve
   common starting curves (Metal Scoop, Tight Low End, Mud Cut, Fizz Tamer, Lead Mid Boost, Cut Through the Mix,
   Fat Rhythm, British Crunch, Bright Clean, Funk Scoop, Warm Jazz, Radio), each loudness-matched with LEVEL.

@@ -182,8 +182,8 @@ std::vector<Rig> makeFactoryRigs()
             { expressionTarget, pedalWhammyWah },
             { driveOn, 1 }, { driveGain, 1 }, { driveTone, 6 }, { driveLevel, 8 },
             { presence, 2 },
-            { eqOn, 1 }, { "eq63", -6 }, { "eq125", -4 }, { "eq250", -1 }, { "eq1k", 1 }, { "eq2k", 2 }, { "eq4k", 2 }, { "eq8k", 1 },
-            { eqLevel, -0.5f },
+            { eqOn, 1 }, { "eq33", -6 }, { "eq80", -5.5f }, { "eq150", -3 }, { "eq300", -0.5f }, { "eq900", 1 }, { "eq2k", 2 },
+            { "eq5k", 1.5f }, { "eq9k", 1 }, { eqLevel, 0.5f },
             { reverbOn, 1 }, { reverbType, room }, { reverbSize, 0.25f }, { reverbMix, 0.1f } }),
 
         // Tempo-locked stutters on a crunch, faded in with the pedal: rock
