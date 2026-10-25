@@ -2,6 +2,20 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.10.1
+
+- **No more screws on the face plate.** The four screw heads in its corners are gone, for a cleaner front.
+- **The MIN light beside the expression pedal is gone too.** It lit when the pedal was fully back on its heel; the dock's EXPRESSION ASSIGN screen already shows where the pedal sits.
+
+## 0.10.0
+
+- **SPLIT in OD / DIST (both models):** keeps everything below 275 Hz clean, the multiband trick Nolly (Periphery) uses on bass.
+  - A crossover sends the lows around the pedal, untouched, and only the band above through the OBSIDIAN or GOTHAM, then adds them back together. The low end stays tight and solid however hard the drive is pushed.
+  - Modelled on his FabFilter Saturn setup (split at 275 Hz, the band below bypassed). The crossover is a Linkwitz-Riley, whose two bands add back up flat.
+  - **SPLIT HZ** (80 to 600 Hz, 275 by default) moves the split. **LOWS** (±12 dB) sets the clean lows' level against the pedal's. OUTPUT trims both.
+  - Off by default, so existing rigs and projects sound the same. The footswitch shows "+ split" when it's on.
+- **New rig B7, Nolly Split:** the Absolomb OBSIDIAN pushed harder, with SPLIT on. The Absolomb rig itself is unchanged.
+
 ## 0.9.0
 
 - **14 genre rigs in bank D:** Metalcore, Nu Metal, Thrash Metal, Pop Punk, Djent, Death Metal, Stoner Rock, Hardcore Punk, Grunge, Classic Rock, Alt / Indie Rock, Prog Metal, Post-Rock and 80s / Synthwave.
