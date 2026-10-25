@@ -2,6 +2,11 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.10.1
+
+- **No more screws on the face plate.** The four screw heads in its corners are gone, for a cleaner front.
+- **The MIN light beside the expression pedal is gone too.** It lit when the pedal was fully back on its heel; the dock's EXPRESSION ASSIGN screen already shows where the pedal sits.
+
 ## 0.10.0
 
 - **SPLIT in OD / DIST (both models):** keeps everything below 275 Hz clean, the multiband trick Nolly (Periphery) uses on bass.

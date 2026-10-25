@@ -117,7 +117,6 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
       cabSlot ("CABINET", "*.wav;*.aif;*.aiff;*.flac", "Load / Edit IR",
                processorToShow.getParameters(), ParamIDs::cabOn),
       expressionPedal (processorToShow),
-      heelIndicator (processorToShow),
       tunerReader (processorToShow),
       selectedRig (processorToShow),
       expressionPanel (processorToShow.getParameters()),
@@ -290,7 +289,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                       &undoPedal, &redoPedal, &tunerPedal, &mutePedal, &tapPedal,
                       &undoLabel, &redoLabel, &bypassLabel, &tunerLabel, &muteLabel, &tapLabel, &holdLabel,
                       &rigLevelKnob, &presenceKnob, &rigLevelLabel, &presenceLabel,
-                      &ampSlot, &cabSlot, &rigSlot, &expressionPedal, &heelIndicator,
+                      &ampSlot, &cabSlot, &rigSlot, &expressionPedal,
                       &rigNavigator, &selectedRig, &expressionPanel };
     for (auto& footswitch : footswitches)
         processorPage.push_back (footswitch.get());
@@ -748,7 +747,6 @@ void MainView::resized()
     ampSlot.setBounds (mock (253, 250, 572, 382));
     cabSlot.setBounds (mock (622, 250, 941, 382));
     rigSlot.setBounds (mock (991, 250, 1310, 382));
-    heelIndicator.setBounds (mock (1262, 407, 1314, 423));
 
     for (size_t i = 0; i < footswitches.size(); ++i)
         footswitches[i]->setBounds (mock (footswitchX[i] - 48, 400, footswitchX[i] + 164, 520));

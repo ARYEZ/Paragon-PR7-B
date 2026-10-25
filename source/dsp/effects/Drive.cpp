@@ -28,7 +28,7 @@ namespace effects
             lastModel = settings.model;
         }
 
-        if (settings.splitHz != appliedSplitHz)
+        if (! juce::exactlyEqual (settings.splitHz, appliedSplitHz))
         {
             crossover.setCutoffFrequency (settings.splitHz);
             appliedSplitHz = settings.splitHz;
