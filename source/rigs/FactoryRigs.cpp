@@ -181,9 +181,9 @@ std::vector<Rig> makeFactoryRigs()
             "A shimmering bass chorus for clean, melodic parts.\n"
             "Amp: a clean amp capture.\nCab: a 4x10 IR."),
 
-        make ("Flanged Bass", C, 5, "Modulation", { { rigLevel, 3 },
-            { modOn, 1 }, { modType, flanger }, { modRate, 0.25f }, { modDepth, 0.6f }, { modMix, 0.5f } },
-            "A slow jet-plane flanger sweep.\n"
+        make ("Flanged Bass", C, 5, "Modulation", { { rigLevel, -3 },
+            { modOn, 1 }, { modType, flanger }, { modRate, 0.25f }, { modDepth, 0.6f }, { modManual, 5 }, { modRes, 6 } },
+            "A slow jet-plane sweep on the AEON (modelled on the Boss BF-2), RES up for the ring.\n"
             "Amp: a clean amp capture.\nCab: a 4x10 or 8x10 IR."),
 
         make ("Dub Delay", C, 6, "Delay,Reggae", { { rigLevel, 2 },
@@ -345,15 +345,16 @@ std::vector<Rig> makeFactoryRigs()
         // Tool, "Forty Six & 2", the intro: the clean, picked riff with a
         // flanger sweeping through it (the owner's ears; a Boss BF-2 flanger
         // is on Justin Chancellor's board, though no source ties it to this
-        // song). The GOTHAM is set up for the heavy part but left off:
+        // song, so the AEON, modelled on it, plays it; its settings are ours). The GOTHAM is set up for the heavy part but left off:
         // footswitch 2 brings it in.
-        make ("Forty Six & 2 (Tool)", E, 2, "Song,Modulation,Clean", { { rigLevel, 8.5f },
+        make ("Forty Six & 2 (Tool)", E, 2, "Song,Modulation,Clean", { { rigLevel, 0.5f },
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 },
             { eqOn, 1 }, { eq80, 1 }, { eq300, -1 }, { eq900, 3 }, { eq2k, 3 }, { eq5k, 1 }, { eqLevel, -1.5f },
-            { modOn, 1 }, { modType, flanger }, { modRate, 0.15f }, { modDepth, 0.7f }, { modMix, 0.5f },
+            { modOn, 1 }, { modType, flanger }, { modRate, 0.15f }, { modDepth, 0.7f }, { modManual, 4 }, { modRes, 4 },
             { driveOn, 0 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 5 }, { gothamDrive, 5.5f }, { gothamPresence, 6 },
             { gothamTreble, 6 } },
-            "The intro riff: Justin Chancellor's clean, picked, mid-forward Wal tone with a slow flanger sweeping through it. "
+            "The intro riff: Justin Chancellor's clean, picked, mid-forward Wal tone with a slow AEON sweep through it "
+            "(modelled on the Boss BF-2 on his board). "
             "For the heavy part, press footswitch 2: the GOTHAM is set up for his grit (a SansAmp is in his chain).\n"
             "Amp: a Gallien-Krueger (2001RB style) capture.\nCab: a Mesa 8x10 IR.\n"
             "Play: with a hard pick, drop D, about 80 BPM."),
