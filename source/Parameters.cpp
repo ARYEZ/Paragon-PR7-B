@@ -270,5 +270,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeSwitch (ParamIDs::driveSplit, "Drive Split", v28, false));
     layout.add (makeFloat (ParamIDs::driveSplitHz, "Drive Split Hz", skewed (80.0f, 600.0f, 275.0f, 1.0f), 275.0f, v28, asHz));
     layout.add (makeFloat (ParamIDs::driveSplitLows, "Drive Split Lows", { -12.0f, 12.0f, 0.1f }, 0.0f, v28, asDb));
+
+    // Added in PR7-B 0.11.0: AEON's MANUAL and RES knobs (0 to 10), as on the
+    // pedal it's modelled on. AEON took the old flanger's place in the list.
+    constexpr int v29 = 29;
+    layout.add (makeFloat (ParamIDs::modManual, "AEON Manual", { 0.0f, 10.0f, 0.1f }, 5.0f, v29, asKnob));
+    layout.add (makeFloat (ParamIDs::modRes, "AEON Res", { 0.0f, 10.0f, 0.1f }, 5.0f, v29, asKnob));
     return layout;
 }

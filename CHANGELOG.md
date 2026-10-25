@@ -2,6 +2,18 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.11.0
+
+- **AEON replaces the generic flanger:** a flanger modelled on the Boss BF-2, built stage by stage from its schematic with the real component values, like the OBSIDIAN and GOTHAM. It's first in a plan to model specific pedals for each modulation effect.
+  - **The pedal's four knobs:** MANUAL (the delay time), DEPTH, RATE and RES (resonance). MIX is greyed out, because the pedal always mixes dry and wet 50/50, which makes the notches deep.
+  - **The delay:** a bucket-brigade chip (BBD) model, 13 ms down to 1 ms across MANUAL, the pedal's specified range. The old flanger only reached 0.5 to 5.5 ms, so AEON sweeps much lower and deeper. At full DEPTH, MANUAL does nothing, as the pedal's manual says.
+  - **The sweep:** a triangle LFO, from one cycle every 16 s to 10 per second. At fast RATE settings the sweep gets narrower, as on the pedal, where a capacitor smooths it.
+  - **RES:** rings the peaks hardest in the treble, the BF-2's metallic "zing", without howling.
+  - **For bass:** the pedal's wet path lets little through below about 40 Hz, so the low end stays solid while the mids and highs sweep.
+  - **Your sound:** rigs and projects that used the old flanger now get AEON, with MANUAL and RES at 5. Expect it to be louder (up to about 6 dB on the comb's peaks), because dry and wet add at full level.
+  - **Two details are estimates,** because the schematic can't show them: how much signal the BBD chip and its output stage lose, and where the factory set the RES trimmer. Both are set so full RES rings hard without howling.
+- **Flanged Bass (C5) and Forty Six & 2 (E2)** now use AEON (Justin Chancellor has a BF-2 on his board), rebalanced to match the other rigs' loudness.
+
 ## 0.10.1
 
 - **No more screws on the face plate.** The four screw heads in its corners are gone, for a cleaner front.
