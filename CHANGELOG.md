@@ -2,6 +2,12 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.11.1
+
+- **The signal chain in the PR7 family's colours:** each block along the bottom strip now glows in the red, hot pink and orange gradient of the new PR7-E's chain, by its place in the chain: red at PITCH, pink in the middle, orange at LO-FI. The same change as in PR7-G 0.43.1 and 0.43.2.
+- **Each edit panel matches its block:** a panel's header icon is in its block's chain colour, and the graphic EQ's faders, curve and icon are in the EQ block's.
+- Before, each block had its own unrelated colour (blue for delay, teal for reverb and so on). Only the colours change; the sound and the controls are the same.
+
 ## 0.11.0
 
 - **AEON replaces the generic flanger:** a flanger modelled on the Boss BF-2, built stage by stage from its schematic with the real component values, like the OBSIDIAN and GOTHAM. It's first in a plan to model specific pedals for each modulation effect.
