@@ -437,16 +437,54 @@ TEST_CASE ("The FACEPLATE shows the selected block, and the bass's level going i
     findAll (*editor, chains);
     REQUIRE (chains.size() == 1);
 
-    // Every block from the signal chain: OD / DIST and NAMP have their own
-    // faceplates so far; the rest show the generic unit.
+    // Every block from the signal chain gets its own faceplate.
+    using Look = Faceplate::Look;
+    const Look looks[] { Look::pitch, Look::classic, Look::filterPitch, Look::drive, Look::amp, Look::cabinet, Look::eq,
+                         Look::glitch, Look::modulation, Look::delay, Look::reverb, Look::loFi };
+    static_assert (std::size (looks) == 12);
     for (int block = 0; block < 12; ++block)
     {
         chains[0]->onSelect (block);
         CAPTURE (block);
-        const auto expected = block == 3 ? Faceplate::Look::drive : block == 4 ? Faceplate::Look::amp : Faceplate::Look::generic;
-        CHECK (faceplate.getLook() == expected);
+        CHECK (faceplate.getLook() == looks[block]);
         CHECK (faceplate.createComponentSnapshot (faceplate.getLocalBounds()).isValid());
     }
+
+    // COMP / GATE follows its TYPE: Daybreak has its own faceplate.
+    chains[0]->onSelect (1);
+    set (processor, ParamIDs::compType, 1.0f);
+    CHECK (faceplate.getLook() == Look::daybreak);
+    set (processor, ParamIDs::compType, 0.0f);
+    CHECK (faceplate.getLook() == Look::classic);
+
+    // Every TYPE (or MODE) of the blocks that have them draws.
+    const auto paintsEvery = [&] (int block, const char* id, int count)
+    {
+        chains[0]->onSelect (block);
+        for (int type = 0; type < count; ++type)
+        {
+            CAPTURE (block, type);
+            set (processor, id, (float) type);
+            CHECK (faceplate.createComponentSnapshot (faceplate.getLocalBounds()).isValid());
+        }
+    };
+    paintsEvery (2, ParamIDs::fpType, effects::FilterPitch::typeNames.size());
+    paintsEvery (7, ParamIDs::glitchMode, effects::Glitch::modeNames.size());
+    paintsEvery (8, ParamIDs::modType, effects::Modulation::typeNames.size());
+    paintsEvery (9, ParamIDs::delayType, effects::Delay::typeNames.size());
+    paintsEvery (10, ParamIDs::reverbType, effects::Reverb::typeNames.size());
+    paintsEvery (11, ParamIDs::lofiType, effects::LoFi::typeNames.size());
+
+    // The EQ with ULTRA LO and ULTRA HI, faders on and off.
+    chains[0]->onSelect (6);
+    for (auto ultra : { 0.0f, 1.0f })
+        for (auto faders : { 0.0f, 1.0f })
+        {
+            set (processor, ParamIDs::eqUltraLo, ultra);
+            set (processor, ParamIDs::eqUltraHi, ultra);
+            set (processor, ParamIDs::eqOn, faders);
+            CHECK (faceplate.createComponentSnapshot (faceplate.getLocalBounds()).isValid());
+        }
 
     // Both drive MODELs, with SPLIT off and on, draw on the same faceplate.
     chains[0]->onSelect (3);
