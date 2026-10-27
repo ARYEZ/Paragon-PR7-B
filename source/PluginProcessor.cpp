@@ -250,6 +250,7 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     inputGain.setTargetValue (juce::Decibels::decibelsToGain (inputGainDb->load()));
     inputGain.applyGain (mono, numSamples);
     inputMeter.pushSamples (mono, numSamples);
+    faceplateMeter.pushSamples (mono, numSamples);
 
     // PITCH: TUNING, OCTAVER and FREEZE, before anything else shapes the guitar.
     pitchBlock.process (monoBlock, { param (ParamIDs::pitchTune), isOn (ParamIDs::octOn), param (ParamIDs::octSubTwo),
@@ -522,6 +523,7 @@ void ParagonX1AudioProcessor::loadCabinetIR (const juce::File& file)
         {
             status.file = file;   // keep the path, as for the amp
             status.detail = {};
+            status.responseDb.clear();
             status.error = "Can't find " + file.getFullPathName();
             setStatus (cabStatus, status);
             return;
@@ -537,6 +539,7 @@ void ParagonX1AudioProcessor::loadCabinetIR (const juce::File& file)
             status.file = file;
             status.error = {};
             status.detail = juce::String (juce::roundToInt (result.lengthSeconds * 1000.0)) + " ms IR";
+            status.responseDb = result.responseDb;
         }
 
         setStatus (cabStatus, status);

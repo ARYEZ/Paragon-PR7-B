@@ -2,6 +2,42 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.13.0
+
+- **FACEPLATE stage 2: every block now has its own faceplate**, the same as PR7-G's, fitted to PR7-B's controls, in every finish.
+  - **PITCH:** the octaver's four voices and FREEZE's level as faders; TUNING on a screen; OCTAVER and FREEZE on keys.
+  - **COMP / GATE:**
+    - **Classic:** a gain-reduction needle that moves as you play, plus THRESHOLD, RATIO, LEVEL and GATE.
+    - **Daybreak:** its knobs, INTENSITY on a key, the GATE, and gain reduction in LED bars.
+  - **FILTER / PITCH:**
+    - **Auto-Wah and Talk Box:** the filter's peak, sharper with RESONANCE.
+    - **Pitch Shifter:** the interval. **Quasar:** the program.
+  - **CABINET IR:** the IR's name and length, and its **real frequency response** from 40 Hz to 20 kHz, worked out from the file when it loads.
+  - **GRAPHIC EQ:** the EQ's real curve on PR7-B's bass bands (33 Hz to 9 kHz), **ULTRA LO and ULTRA HI included**, with those two on keys. The switches work with the faders off, as on the amp, and the curve shows just them then.
+  - **GLITCH:** a 16-step pattern by DENSITY, with a light stepping at LENGTH.
+  - **MOD:** named for its TYPE (AEON / FLANGER, NEBULA / PHASE VIBRATO...), its wobble at RATE and DEPTH, RATE in digits or as a note, and its knobs (AEON's MANUAL, DEPTH and RES).
+  - **DELAY:** named for its TYPE (TAPE ECHO...), the repeats fading by FEEDBACK, and TIME in digits.
+  - **REVERB:** named for its TYPE (HALL...), its pre-delay and tail (Spring ripples, Reverse swells), and DECAY in seconds.
+  - **LO-FI:** a wave showing AMOUNT and NOISE.
+  - **What's a drawing rather than a measurement:** the reverb's shape, the filter peak, the glitch pattern and the lo-fi wave. The cab and EQ curves and the compressor's needle are real. Moving lights keep time with the settings, not with the audio.
+
+## 0.12.0
+
+- **The FACEPLATE, in place of RIG BROWSER and SELECTED RIG** (the two panels at the bottom left), as on PR7-V and PR7-G. It shows the block you've selected in the signal chain as a hardware unit, built from the PR7's own parts (its chassis, LCD screens, knobs, keys and lettering) in your current finish. This is stage 1 of 2:
+  - **OD / DIST:** the pedal's name on a badge and what it is, with its controls laid out as on its panel:
+    - **OBSIDIAN:** BLEND, LEVEL, DRIVE and MOD (ALPHA to OMEGA) on top; BASS, MID and TREBLE below, with GROWL and BITE on keys that light when on.
+    - **GOTHAM:** LEVEL, BLEND, TREBLE, BASS, DRIVE and PRESENCE.
+    - **SPLIT** on a key that lights when on, with its frequency and the clean LOWS level under it.
+    - An **INPUT** meter along the bottom shows your bass's level going in.
+  - **NAMP:** the loaded amp model's name and details on an LCD screen (or LOADING... / NO MODEL LOADED), with RIG LEVEL, PRESENCE and NORMALISE, and the same INPUT meter.
+  - **Every other block** shows a plain unit with its name and on light until stage 2.
+  - **Nothing is lost:** saving is still on the header's SAVE button, the pedal's SAVE / SAVE AS and the PRESETS page, and the rig browser is the PRESETS page.
+  - The faceplate is a display: you still turn the knobs in the middle panel.
+- **Our own names, as in PR7-G 0.49.0.** Only the names changed: everything sounds the same, and rigs and projects load as before.
+  - Whammy-Wah is now **Quasar**, Uni-Vibe is now **Nebula** and Dimension Chorus is now **Prism**.
+  - The expression pedal's PITCH / WHAMMY is now **PITCH BEND**, and WHAMMY-WAH is now **QUASAR**.
+  - Quasar's programs 02, 03, 07 and 10 are now **Classic Wah**, **Classic Wah 2**, **Wah Auto Sens** and **Wah Auto Attack**.
+
 ## 0.11.1
 
 - **The signal chain in the PR7 family's colours:** each block along the bottom strip now glows in the red, hot pink and orange gradient of the new PR7-E's chain, by its place in the chain: red at PITCH, pink in the middle, orange at LO-FI. The same change as in PR7-G 0.43.1 and 0.43.2.
