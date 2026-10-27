@@ -27,7 +27,7 @@ namespace effects
     public:
         // Saved by number in rigs and projects: only ever add to the end.
         enum class Type { chorus, flanger, phaser, tremolo, dimension, uniVibe, rotary, vibrato, harmonicTremolo, autoPan, doubler };
-        static inline const juce::StringArray typeNames { "Chorus", "AEON", "Phaser", "Tremolo", "Dimension Chorus", "Uni-Vibe",
+        static inline const juce::StringArray typeNames { "Chorus", "AEON", "Phaser", "Tremolo", "Prism", "Nebula",
                                                           "Rotary", "Vibrato", "Harmonic Tremolo", "Auto-Pan", "Doubler" };
 
         // Types for which MIX means something (the others are fully "wet" by nature).

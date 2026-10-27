@@ -60,9 +60,9 @@ so the guide below still describes the guitar version's effects.
     Sequence and Interfere start their steps on the song's grid (every 1/16, every bar...), locked to the drums. POSITION puts it after the amp (POST,
     the default: exact chops) or before it (PRE: the chops hit the drive). The expression pedal's GLITCH setting fades it in.
   - **Filter / Pitch** (in the signal chain; no footswitch): an auto-wah (envelope filter), a pitch shifter
-    (two octaves down to two up, blended with the dry guitar for harmonies and octaves), or a **Whammy-Wah**: the
-    DigiTech XP-100's factory programs 01–28, numbered as on the pedal and played with the expression pedal (WHAMMY-WAH):
-    a volume pedal, five wahs, six auto-wahs (the pedal sets sensitivity or attack), eight whammy bends (heel: no shift,
+    (two octaves down to two up, blended with the dry guitar for harmonies and octaves), or **Quasar**: 28 programs
+    modelled on the DigiTech XP-100's, numbered as on that pedal and played with the expression pedal (QUASAR):
+    a volume pedal, five wahs, six auto-wahs (the pedal sets sensitivity or attack), eight pitch bends (heel: no shift,
     toe: the interval, as far as six octaves down) and eight harmonies (your note plus a voice the pedal moves between two intervals);
     or a **Talk Box**: the amp's sound, after the cab, shaped into vowels (oo to ee) by the expression pedal (TALK BOX),
     with RESONANCE and MIX.
@@ -78,8 +78,8 @@ so the guide below still describes the guitar version's effects.
     gentler 780 Hz scoop, more top), and in between is a mix of both. GROWL sends much more bass into the distortion;
     BITE lifts about 3 kHz before it. BASS (80 Hz), MID (about 1 kHz) and TREBLE (5 kHz) come after the blend, so they
     shape the clean bass too. OUTPUT is our addition, a trim into the amp. 8x oversampled to avoid harsh aliasing.
-  - **3 Modulation:** eleven types: chorus, flanger, phaser, tremolo, Dimension chorus, Uni-Vibe, rotary
-    (Leslie), vibrato, harmonic tremolo, auto-pan and doubler. SYNC locks the rate to the tapped or DAW tempo.
+  - **3 Modulation:** eleven types: chorus, flanger, phaser, tremolo, Prism (a wide stereo chorus), Nebula (a throbbing
+    phase vibrato), rotary speaker, vibrato, harmonic tremolo, auto-pan and doubler. SYNC locks the rate to the tapped or DAW tempo.
   - **4 Reverb / Delay:** switches both; each also has its own ON switch. The delay syncs to your
     DAW's tempo (or set SYNC to Off for milliseconds), has a tone control for darker repeats, and
     optional ping-pong; it comes in eight types: Digital (the original), Analog, Tape, Mod, Reverse,
@@ -113,12 +113,13 @@ so the guide below still describes the guitar version's effects.
   real expression pedal (route your MIDI track to the plugin). Assign it on the EXPRESSION ASSIGN screen in the dock (click a line, or scroll; it also shows the
   pedal's position), to
   **VOLUME**, **WAH / FILTER** (a wah before the drive), **MORPH / FX** (fades modulation, delay and
-  reverb in from the heel), **PITCH / WHAMMY** (bends the pitch shifter from no shift at the heel to its
+  reverb in from the heel), **PITCH BEND** (bends the pitch shifter from no shift at the heel to its
   INTERVAL at the toe), **LO-FI** (fades the lo-fi effect in: full band at the heel, lo-fi at the toe) or
-  **WHAMMY-WAH** (plays the FILTER / PITCH block's Whammy-Wah). MIN and MAX set where the heel and toe land. The assignment and range
+  **QUASAR** (plays the FILTER / PITCH block's Quasar). MIN and MAX set where the heel and toe land. The assignment and range
   are saved with each rig.
-- **Bottom panels:** RIG BROWSER jumps to the PRESETS page filtered; SELECTED RIG files and saves the
-  current rig; the middle shows the graphic EQ, or the knobs of whichever block you pick (click a
+- **Bottom panels:** the FACEPLATE (left) shows the selected block as a hardware unit: the OBSIDIAN or
+  GOTHAM pedal with its knobs, switches and SPLIT, the NAM amp's model on an LCD, and your bass's input
+  level; the middle shows the graphic EQ, or the knobs of whichever block you pick (click a
   signal-chain block or a footswitch name); **GRAPHIC EQ** goes back to the EQ.
 - **SETTINGS:** the tuner's reference pitch, mute while tuning, and the expression pedal's MIDI CC.
 - The paths of the loaded files are saved in your DAW project. If a file is missing when the project
