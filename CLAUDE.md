@@ -1,6 +1,6 @@
 # Paragon PR7-B: notes for Claude
 
-This repository starts as a copy of **Paragon PR7-G** (the guitar processor, repo `ARYEZ/Paragon-X1`), full history included, to become **Paragon PR7-B**, the **bass** version. Everything below describes how the project is built, tested and released, and how the owner likes to work.
+This repository starts as a copy of **Paragon PR7-G** (the guitar processor, repo `ARYEZ/Paragon-PR7-G`), full history included, to become **Paragon PR7-B**, the **bass** version. Everything below describes how the project is built, tested and released, and how the owner likes to work.
 
 ## First: make it its own plugin (do this before anything else)
 

@@ -121,19 +121,21 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
       selectedRig (processorToShow),
       expressionPanel (processorToShow.getParameters()),
       eqPanel (processorToShow.getParameters()),
+      // Each block in the red to pink to orange of the PR7 family's chains, by
+      // its place in the chain: red first, orange last.
       signalChain (processorToShow.getParameters(), {
-          { "PITCH", Icons::Type::pitch, ParagonColours::pitch, juce::String (ParamIDs::octOn) + "," + ParamIDs::freezeOn },
-          { "COMP / GATE", Icons::Type::comp, ParagonColours::comp, ParamIDs::compOn },
-          { "FILTER / PITCH", Icons::Type::filterPitch, ParagonColours::filterPitch, ParamIDs::fpOn },
-          { "OD / DIST", Icons::Type::drive, ParagonColours::drive, ParamIDs::driveOn },
-          { "NAMP", Icons::Type::amp, ParagonColours::amp, ParamIDs::ampOn },
-          { "CABINET IR", Icons::Type::cabinet, ParagonColours::cab, ParamIDs::cabOn },
-          { "EQ", Icons::Type::eq, ParagonColours::eq, juce::String (ParamIDs::eqOn) + "," + ParamIDs::eqUltraLo + "," + ParamIDs::eqUltraHi },
-          { "GLITCH", Icons::Type::glitch, ParagonColours::glitch, ParamIDs::glitchOn },
-          { "MOD", Icons::Type::modulation, ParagonColours::modulation, ParamIDs::modOn },   // MODULATION: short, to fit twelve blocks
-          { "DELAY", Icons::Type::delay, ParagonColours::delay, ParamIDs::delayOn },
-          { "REVERB", Icons::Type::reverb, ParagonColours::reverb, ParamIDs::reverbOn },
-          { "LO-FI", Icons::Type::loFi, ParagonColours::loFi, ParamIDs::lofiOn } }),
+          { "PITCH", Icons::Type::pitch, ParagonColours::chainColour (pitchBlock, numBlocks), juce::String (ParamIDs::octOn) + "," + ParamIDs::freezeOn },
+          { "COMP / GATE", Icons::Type::comp, ParagonColours::chainColour (compBlock, numBlocks), ParamIDs::compOn },
+          { "FILTER / PITCH", Icons::Type::filterPitch, ParagonColours::chainColour (filterPitchBlock, numBlocks), ParamIDs::fpOn },
+          { "OD / DIST", Icons::Type::drive, ParagonColours::chainColour (driveBlock, numBlocks), ParamIDs::driveOn },
+          { "NAMP", Icons::Type::amp, ParagonColours::chainColour (ampBlock, numBlocks), ParamIDs::ampOn },
+          { "CABINET IR", Icons::Type::cabinet, ParagonColours::chainColour (cabBlock, numBlocks), ParamIDs::cabOn },
+          { "EQ", Icons::Type::eq, ParagonColours::chainColour (eqBlock, numBlocks), juce::String (ParamIDs::eqOn) + "," + ParamIDs::eqUltraLo + "," + ParamIDs::eqUltraHi },
+          { "GLITCH", Icons::Type::glitch, ParagonColours::chainColour (glitchBlock, numBlocks), ParamIDs::glitchOn },
+          { "MOD", Icons::Type::modulation, ParagonColours::chainColour (modBlock, numBlocks), ParamIDs::modOn },   // MODULATION: short, to fit twelve blocks
+          { "DELAY", Icons::Type::delay, ParagonColours::chainColour (delayBlock, numBlocks), ParamIDs::delayOn },
+          { "REVERB", Icons::Type::reverb, ParagonColours::chainColour (reverbBlock, numBlocks), ParamIDs::reverbOn },
+          { "LO-FI", Icons::Type::loFi, ParagonColours::chainColour (loFiBlock, numBlocks), ParamIDs::lofiOn } }),
       rigBrowser (processorToShow),
       settingsPage (processorToShow)
 {
@@ -387,21 +389,19 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     panels[loFiBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "LO-FI", { { ParamIDs::lofiOn, "ON" }, { ParamIDs::lofiType, "TYPE" }, { ParamIDs::lofiAmount, "AMOUNT" },
                      { ParamIDs::lofiNoise, "NOISE" }, { ParamIDs::lofiMix, "MIX" }, { ParamIDs::lofiLevel, "LEVEL" } } } });
-    const std::pair<Icons::Type, juce::Colour> headers[] = {
-        { Icons::Type::pitch, ParagonColours::pitch }, { Icons::Type::comp, ParagonColours::comp }, { Icons::Type::filterPitch, ParagonColours::filterPitch },
-        { Icons::Type::drive, ParagonColours::drive },
-        { Icons::Type::amp, ParagonColours::amp }, { Icons::Type::cabinet, ParagonColours::cab },
-        { Icons::Type::eq, ParagonColours::eq }, { Icons::Type::glitch, ParagonColours::glitch },
-        { Icons::Type::modulation, ParagonColours::modulation }, { Icons::Type::delay, ParagonColours::delay },
-        { Icons::Type::reverb, ParagonColours::reverb }, { Icons::Type::loFi, ParagonColours::loFi } };
+    // Each panel's header and accents in its block's colour in the chain.
+    const Icons::Type headers[] = { Icons::Type::pitch, Icons::Type::comp, Icons::Type::filterPitch, Icons::Type::drive,
+                                    Icons::Type::amp, Icons::Type::cabinet, Icons::Type::eq, Icons::Type::glitch,
+                                    Icons::Type::modulation, Icons::Type::delay, Icons::Type::reverb, Icons::Type::loFi };
     const char* titles[] = { "PITCH", "COMP / GATE", "FILTER / PITCH", "OD / DISTORTION", "AMP (NAM)", "CABINET (IR)", "GRAPHIC EQ", "GLITCH", "MODULATION", "DELAY", "REVERB", "LO-FI" };
     for (size_t i = 0; i < panels.size(); ++i)
     {
         if (panels[i] == nullptr)
             continue;
-        panels[i]->setHeader (headers[i].first, headers[i].second, titles[i]);
+        panels[i]->setHeader (headers[i], ParagonColours::chainColour ((int) i, numBlocks), titles[i]);
         addChildComponent (*panels[i]);
     }
+    eqPanel.setAccent (ParagonColours::chainColour (eqBlock, numBlocks));
     addChildComponent (eqPanel);
 
     closePanel.setTooltip ("Back to the graphic EQ");
