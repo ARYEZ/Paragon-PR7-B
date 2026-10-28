@@ -582,14 +582,40 @@ TEST_CASE ("The rack: every block's display, real controls at full size and EXPR
         REQUIRE (count == 1);
         if (panel == nullptr)
         {
-            // The GRAPHIC EQ (stage 2 rebuilds it at full size): in its screen on the face.
+            // The GRAPHIC EQ: its own rack layout, on the face at full size,
+            // its faders, LEVEL, ON and the ULTRA switches the real ones.
             CHECK (block == 6);
-            const auto shown = eqPanels[0]->getBoundsInParent();
-            CHECK (shown == rack.getWindowGlass() + rack.getPosition());
-            CHECK (rackBounds.contains (shown));
+            auto& eq = *eqPanels[0];
+            CHECK (eq.isRack());
+            CHECK (eq.getTransform().isIdentity());
+            CHECK (eq.getBounds() == rack.getControlArea() + rack.getPosition());
+            CHECK (eq.getRight() <= expression[0]->getX());
+            std::vector<juce::Slider*> faders;
+            findAll (eq, faders);
+            REQUIRE (faders.size() == 10);   // nine bands and LEVEL
+            std::sort (faders.begin(), faders.end(), [] (auto* a, auto* b) { return a->getX() < b->getX(); });
+            for (size_t i = 0; i < faders.size(); ++i)
+            {
+                CAPTURE (i);
+                CHECK (faders[i]->getHeight() >= 100);   // a full-length fader, not shrunk
+                CHECK (eq.getLocalBounds().contains (faders[i]->getBounds()));
+                const auto id = i < 9 ? ParamIDs::eqBands[(int) i] : juce::String (ParamIDs::eqLevel);
+                faders[i]->setValue (-5.0, juce::sendNotificationSync);
+                CHECK_THAT (processor.getParameters().getRawParameterValue (id)->load(), WithinAbs (-5.0, 0.05));
+            }
+            std::vector<juce::ToggleButton*> keys;
+            findAll (eq, keys);
+            REQUIRE (keys.size() == 3);   // ON, ULTRA LO, ULTRA HI
+            for (auto* key : keys)
+            {
+                CHECK ((bool) key->getProperties()[ParagonLookAndFeel::rackKeyProperty]);
+                CHECK (eq.getLocalBounds().contains (key->getBounds()));
+                const auto before = snapshot();
+                key->setToggleState (! key->getToggleState(), juce::sendNotificationSync);
+                CHECK (changedSomething (before));
+            }
             continue;
         }
-        CHECK (rack.getWindowGlass().isEmpty());
         CHECK (panel->getBounds() == rack.getControlArea() + rack.getPosition());
         CHECK (rackBounds.contains (panel->getBounds()));
         CHECK (panel->getRight() <= expression[0]->getX());

@@ -2,6 +2,15 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.15.0
+
+- **THE RACK, stage 2: the GRAPHIC EQ rebuilt for the rack, at full size** (as on PR7-V and PR7-G). In 0.14.0 it sat in a screen on the rack, a little smaller; now it's on the unit's face like every other block, and nothing on the rack is scaled down.
+  - **The nine faders** (33 Hz to 9 kHz): evenly spaced, as on a hardware graphic EQ, with LEVEL a little apart. Each value is on a small screen above its fader and each frequency is stamped under it.
+  - **A printed red dB scale** and a 0 dB line across the faders.
+  - **The keys:** ON, **ULTRA LO and ULTRA HI** are the unit's keys with light stripes; FLAT is a key and PRESETS is on a screen.
+  - **The display shows the EQ's curve**, the ULTRA switches included. They work with the faders off, as on the amp, and the curve then shows just them.
+  - The faders and switches are the real ones (same settings, automation and undo).
+
 ## 0.14.0
 
 - **THE RACK, stage 1 of 2** (as on PR7-V and PR7-G): the faceplate, the block's controls and EXPRESSION ASSIGN are now **one wide rack unit** under the floorboard, the "brain" for the floorboard processor.
