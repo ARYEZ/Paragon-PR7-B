@@ -359,9 +359,13 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
         { "SPLIT", { { ParamIDs::driveSplit, "SPLIT" }, { ParamIDs::driveSplitHz, "SPLIT HZ", isSplit },
                      { ParamIDs::driveSplitLows, "LOWS", isSplit } }, 1 } });
     panels[driveBlock]->setPages ({ "PEDAL", "EQ / SPLIT" });
+    // The DI's POINT and PHASE only matter once some DI is blended in.
+    const auto diBlended = [this] { return rawValue (ParamIDs::ampDiBlend) > 0.0f; };
     panels[ampBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "AMP (NAM)", { { ParamIDs::ampOn, "ON" }, { ParamIDs::ampNormalise, "NORMALISE" }, { ParamIDs::presence, "PRESENCE" },
-                         { ParamIDs::rigLevel, "RIG LEVEL" } } } });
+                         { ParamIDs::rigLevel, "RIG LEVEL" } } },
+        { "DI", { { ParamIDs::ampDiBlend, "BLEND" }, { ParamIDs::ampDiPoint, "POINT", diBlended },
+                  { ParamIDs::ampDiPhase, "PHASE", diBlended } } } });
     panels[cabBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "CABINET (IR)", { { ParamIDs::cabOn, "ON" }, { ParamIDs::presence, "PRESENCE" } } } });
     // AEON (the flanger) adds its pedal's MANUAL and RES.

@@ -101,6 +101,15 @@ std::vector<Rig> makeFactoryRigs()
             "Lifts the vocal 500 Hz to 2 kHz range that makes a fretless sing, with a touch of chorus.\n"
             "Amp: a clean Ampeg or Mesa capture.\nCab: a 4x10 or 8x10 IR."),
 
+        // The amp/DI blend (0.19.0): the studio way, a clean DI under the amp.
+        make ("Amp + DI Blend", A, 7, "Clean,Studio", { { rigLevel, 3 },
+            { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 },
+            { ampDiBlend, 0.4f }, { ampDiPoint, 0 } },
+            "The studio bass sound: your amp and cab with a clean DI blended under them (40%, taken after the pedals), "
+            "for solid, tight lows and a clear attack under the amp's character. Raise DI BLEND for more punch and "
+            "definition, lower it for more amp. If the lows sound thin, try PHASE.\n"
+            "Amp: any bass amp capture (an Ampeg SVT works well).\nCab: an 8x10 or 4x10 IR."),
+
         // ---- B: drive -----------------------------------------------------
         make ("Gotham Grit", B, 1, "Drive", { { rigLevel, 7 },
             { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 6 }, { gothamDrive, 4 }, { gothamPresence, 5 } },
