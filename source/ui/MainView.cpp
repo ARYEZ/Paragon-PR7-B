@@ -1,6 +1,7 @@
 #include "MainView.h"
 
 #include "Parameters.h"
+#include "ui/RackView.h"
 #include "ui/Logo.h"
 #include "dsp/effects/Modulation.h"
 
@@ -413,8 +414,21 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     addChildComponent (closePanel);
 
 
-    signalChain.onSelect = [this] (int block) { selectBlock (block); };
+    // Clicking a block in the chain means "edit this": it brings a hidden
+    // rack back. (Stomping a footswitch doesn't.)
+    signalChain.onSelect = [this] (int block)
+    {
+        RackView::setShown (true);
+        selectBlock (block);
+    };
     addAndMakeVisible (signalChain);
+
+    rackButton.setComponentID ("rackButton");
+    rackButton.setTooltip ("Hide the rack to keep the window small; click a block in the signal chain to bring it back");
+    rackButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff151217));
+    rackButton.onClick = [this] { RackView::setShown (! RackView::isShown()); };
+    processorPage.push_back (&rackButton);
+    addAndMakeVisible (rackButton);
     addChildComponent (rigBrowser);
     addChildComponent (settingsPage);
 
@@ -425,6 +439,8 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     changeListenerCallback (nullptr);
     Finish::changes().addChangeListener (this);
     applyFinish();
+    RackView::changes().addChangeListener (this);
+    applyRackView();
 
     // The modified marker, tempo and undo state can change from the audio
     // thread or the host, so poll them. 30 Hz for the TAP light's flash.
@@ -436,6 +452,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
 
 MainView::~MainView()
 {
+    RackView::changes().removeChangeListener (this);
     Finish::changes().removeChangeListener (this);
     audioProcessor.statusBroadcaster.removeChangeListener (this);
     audioProcessor.rigBroadcaster.removeChangeListener (this);
@@ -455,12 +472,14 @@ void MainView::selectBlock (int block)
 {
     // The selected block's knobs fill the middle of the dock; the graphic EQ is the default.
     selectedBlock = block;
-    const auto onProcessorPage = page == Page::processor;
+    const auto rackVisible = page == Page::processor && RackView::isShown();
+    faceplate.setVisible (rackVisible);
+    expressionPanel.setVisible (rackVisible);
     for (size_t i = 0; i < panels.size(); ++i)
         if (panels[i] != nullptr)
-            panels[i]->setVisible ((int) i == block && onProcessorPage);
-    eqPanel.setVisible (block == eqBlock && onProcessorPage);
-    closePanel.setVisible (block != eqBlock && onProcessorPage);
+            panels[i]->setVisible ((int) i == block && rackVisible);
+    eqPanel.setVisible (block == eqBlock && rackVisible);
+    closePanel.setVisible (block != eqBlock && rackVisible);
     layoutDock();
 
     // The FACEPLATE: the block as hardware, each its own.
@@ -686,11 +705,29 @@ void MainView::applyFinish()
     repaint();
 }
 
+void MainView::applyRackView()
+{
+    const auto shown = RackView::isShown();
+    rackButton.setButtonText (shown ? "HIDE RACK" : "SHOW RACK");
+    selectBlock (selectedBlock);   // shows or hides the rack's parts
+    if (getHeight() != heightFor (shown))
+    {
+        setSize (width, heightFor (shown));   // lays it out again
+        if (onHeightChanged)
+            onHeightChanged();
+    }
+}
+
 void MainView::changeListenerCallback (juce::ChangeBroadcaster* source)
 {
     if (source == &Finish::changes())
     {
         applyFinish();
+        return;
+    }
+    if (source == &RackView::changes())
+    {
+        applyRackView();
         return;
     }
 
@@ -832,10 +869,15 @@ void MainView::resized()
     // The dock: the rack (see layoutDock).
     layoutDock();
 
-    signalChain.setBounds (mock (12, 832, 1662, 930));
+    // With the rack hidden, the chain moves up into its place.
+    const auto rackGap = RackView::isShown() ? 0 : rackHeight;
+    signalChain.setBounds (mock (12, 832, 1662, 930).translated (0, -rackGap));
+    // HIDE RACK / SHOW RACK: top right of the chain's strip, level with its title.
+    rackButton.setBounds (signalChain.getRight() - 16 - 96, signalChain.getY() + 5, 96, 18);
+    rackButton.toFront (false);
 
     // Other pages cover the pedal and the dock.
-    const auto pageArea = mock (126, 72, 1548, 822);   // between the INPUT and OUTPUT strips
+    const auto pageArea = mock (126, 72, 1548, 822).withTrimmedBottom (rackGap);   // between the INPUT and OUTPUT strips
     rigBrowser.setBounds (pageArea);
     settingsPage.setBounds (pageArea);
 }

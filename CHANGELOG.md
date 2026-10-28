@@ -2,6 +2,14 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.16.0
+
+- **HIDE RACK** (as on PR7-G): a button at the top right of the SIGNAL CHAIN strip hides the rack when you're not editing an effect, for a smaller, cleaner window.
+  - The SIGNAL CHAIN moves up under the floor unit and the window gets shorter by the rack's height. It keeps its width, so the floor unit stays the same size.
+  - **SHOW RACK** (the same button) brings it back, and so does clicking a block in the SIGNAL CHAIN, which opens the rack on that block. Footswitches don't open it.
+  - It's remembered on this computer, like the finish: every PR7-B you open afterwards starts with the rack shown or hidden, the way you left it.
+  - The PRESETS and SETTINGS pages fit the shorter window too.
+
 ## 0.15.0
 
 - **THE RACK, stage 2: the GRAPHIC EQ rebuilt for the rack, at full size** (as on PR7-V and PR7-G). In 0.14.0 it sat in a screen on the rack, a little smaller; now it's on the unit's face like every other block, and nothing on the rack is scaled down.
