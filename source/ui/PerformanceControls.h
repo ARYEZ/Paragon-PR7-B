@@ -79,6 +79,7 @@ public:
     static constexpr int visibleRows = 6;   // the screen's lines; the list scrolls
 
     ExpressionAssign (juce::AudioProcessorValueTreeState&, Style);
+    void setRack (bool inRack);   // the scroll buttons as the rack unit's keys
 
     void paint (juce::Graphics&) override;
     void resized() override;
@@ -151,11 +152,17 @@ class ExpressionPanel final : public juce::Component
 public:
     explicit ExpressionPanel (juce::AudioProcessorValueTreeState&);
 
+    // On the rack unit's face (see Faceplate): no panel behind it, its
+    // name stamped and MIN / MAX printed in the finish's ink.
+    void setRack (bool inRack);
+    void refinish();   // the ink, when the finish changes
+
     void paint (juce::Graphics&) override;
     void resized() override;
 
 private:
     void updateRangeText();
+    bool rack = false;
 
     ExpressionAssign assign;
     juce::Slider range { juce::Slider::TwoValueHorizontal, juce::Slider::NoTextBox };

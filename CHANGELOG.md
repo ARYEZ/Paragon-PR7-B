@@ -2,6 +2,28 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.14.0
+
+- **THE RACK, stage 1 of 2** (as on PR7-V and PR7-G): the faceplate, the block's controls and EXPRESSION ASSIGN are now **one wide rack unit** under the floorboard, the "brain" for the floorboard processor.
+  - **Left: the block's display.** Only its screens and meters, since the real knobs are right beside it:
+    - OBSIDIAN, GOTHAM and NAMP show the bass's level going in as big LED bars, with the SPLIT frequency when SPLIT is on;
+    - Classic's needle fills the display, and Daybreak's gain reduction is big LED bars;
+    - the delay's repeats, the reverb's shape and the modulation's wave each have their readout beside them;
+    - PITCH's voices are LED columns.
+  - **Middle: the block's real controls, at full size.** They're the same controls as before (same settings, automation and undo), drawn as the unit's own parts:
+    - its big knobs, each value on a small screen;
+    - lists on screens;
+    - switches as small keys with a light stripe.
+
+    A control that doesn't apply (another TYPE's, TIME while synced) leaves the face rather than greying out.
+  - **OD / DIST has two pages** (keys at the top), because OBSIDIAN's twelve controls won't fit in one row at full size:
+    - **PEDAL:** ON, MODEL, the pedal's knobs and switches, OUTPUT;
+    - **EQ / SPLIT:** its BASS, MID and TREBLE, then SPLIT, SPLIT HZ and LOWS.
+
+    Before, it squeezed onto two rows of smaller knobs. Every other block fits in one row.
+  - **Right end: EXPRESSION ASSIGN**, behind its own printed red line. **GRAPHIC EQ** is one of the unit's keys, top right.
+  - **The GRAPHIC EQ sits in a screen on the rack for now**, a little smaller. Stage 2 rebuilds it for the rack at full size, with the ULTRA LO and ULTRA HI keys.
+
 ## 0.13.0
 
 - **FACEPLATE stage 2: every block now has its own faceplate**, the same as PR7-G's, fitted to PR7-B's controls, in every finish.
