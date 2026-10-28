@@ -339,19 +339,22 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     const auto isGotham = [this] { return juce::roundToInt (rawValue (ParamIDs::driveType)) == (int) effects::Drive::Model::gotham; };
     const auto isObsidian = [this] { return juce::roundToInt (rawValue (ParamIDs::driveType)) != (int) effects::Drive::Model::gotham; };
     const auto isSplit = [this] { return rawValue (ParamIDs::driveSplit) > 0.5f; };
+    // Too many for one row at full size, so two pages: the pedal itself, then
+    // its EQ and SPLIT.
     panels[driveBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "OD / DISTORTION", { { ParamIDs::driveOn, "ON" }, { ParamIDs::driveType, "MODEL" },
                                { ParamIDs::dualBlend, "BLEND", isObsidian, true }, { ParamIDs::dualLevel, "LEVEL", isObsidian, true },
                                { ParamIDs::driveGain, "DRIVE", isObsidian, true }, { ParamIDs::dualMod, "MOD", isObsidian, true },
-                               { ParamIDs::dualBass, "BASS", isObsidian, true }, { ParamIDs::dualMid, "MID", isObsidian, true },
-                               { ParamIDs::dualTreble, "TREBLE", isObsidian, true },
                                { ParamIDs::dualGrowl, "GROWL", isObsidian, true }, { ParamIDs::dualBite, "BITE", isObsidian, true },
                                { ParamIDs::gothamLevel, "LEVEL", isGotham, true }, { ParamIDs::gothamBlend, "BLEND", isGotham, true },
-                               { ParamIDs::gothamTreble, "TREBLE", isGotham, true }, { ParamIDs::gothamBass, "BASS", isGotham, true },
                                { ParamIDs::gothamDrive, "DRIVE", isGotham, true }, { ParamIDs::gothamPresence, "PRESENCE", isGotham, true },
-                               { ParamIDs::driveSplit, "SPLIT" }, { ParamIDs::driveSplitHz, "SPLIT HZ", isSplit },
-                               { ParamIDs::driveSplitLows, "LOWS", isSplit },
-                               { ParamIDs::driveLevel, "OUTPUT" } } } });
+                               { ParamIDs::driveLevel, "OUTPUT" } }, 0 },
+        { "EQ", { { ParamIDs::dualBass, "BASS", isObsidian, true }, { ParamIDs::dualMid, "MID", isObsidian, true },
+                  { ParamIDs::dualTreble, "TREBLE", isObsidian, true },
+                  { ParamIDs::gothamTreble, "TREBLE", isGotham, true }, { ParamIDs::gothamBass, "BASS", isGotham, true } }, 1 },
+        { "SPLIT", { { ParamIDs::driveSplit, "SPLIT" }, { ParamIDs::driveSplitHz, "SPLIT HZ", isSplit },
+                     { ParamIDs::driveSplitLows, "LOWS", isSplit } }, 1 } });
+    panels[driveBlock]->setPages ({ "PEDAL", "EQ / SPLIT" });
     panels[ampBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "AMP (NAM)", { { ParamIDs::ampOn, "ON" }, { ParamIDs::ampNormalise, "NORMALISE" }, { ParamIDs::presence, "PRESENCE" },
                          { ParamIDs::rigLevel, "RIG LEVEL" } } } });
@@ -458,8 +461,7 @@ void MainView::selectBlock (int block)
             panels[i]->setVisible ((int) i == block && onProcessorPage);
     eqPanel.setVisible (block == eqBlock && onProcessorPage);
     closePanel.setVisible (block != eqBlock && onProcessorPage);
-    if (block != eqBlock)
-        closePanel.toFront (false);
+    layoutDock();
 
     // The FACEPLATE: the block as hardware, each its own.
     struct About { const char* title; Icons::Type icon; juce::String onIds; const char* typeId; };
@@ -631,6 +633,43 @@ void MainView::saveRig()
     refreshRig();
 }
 
+void MainView::layoutDock()
+{
+    // The rack, as on the PR7-V: one wide unit across the dock, the "brain"
+    // to go with the floorboard. The selected block's display on the left
+    // (the faceplate), its real controls in the middle, EXPRESSION ASSIGN at
+    // the right end.
+    faceplate.setBounds (mock (12, 568, 1662, 822));
+    faceplate.setRackDisplayWidth (mockF (0, 0, 380, 0).getWidth(), mockF (0, 0, 270, 0).getWidth());
+    expressionPanel.setRack (true);
+    expressionPanel.setBounds (faceplate.getSideArea() + faceplate.getPosition());
+    expressionPanel.toFront (false);
+
+    const auto controls = faceplate.getControlArea() + faceplate.getPosition();
+    for (auto& panel : panels)
+        if (panel != nullptr)
+        {
+            panel->setRack (true);
+            panel->setBounds (controls);
+            if (panel->isVisible())
+                panel->toFront (false);
+        }
+
+    // The GRAPHIC EQ has its own rack layout, on the face at full size (the
+    // display shows its curve).
+    eqPanel.setRack (true);
+    eqPanel.setBounds (controls);
+    if (eqPanel.isVisible())
+        eqPanel.toFront (false);
+
+    // GRAPHIC EQ (back to the default block): one of the unit's keys, top
+    // right over the controls' row of keys.
+    closePanel.getProperties().set (ParagonLookAndFeel::pedalButtonProperty, true);
+    closePanel.setBounds (controls.getRight() - 108, controls.getY(), 108, 24);
+    if (closePanel.isVisible())
+        closePanel.toFront (false);
+}
+
 void MainView::applyFinish()
 {
     for (auto* label : { &rigLevelLabel, &presenceLabel })
@@ -643,6 +682,7 @@ void MainView::applyFinish()
     holdLabel.setColour (juce::Label::textColourId, Finish::printedRed());
     pedal.refinish();
     expressionPedal.refinish();
+    expressionPanel.refinish();
     repaint();
 }
 
@@ -789,19 +829,8 @@ void MainView::resized()
     // for the toe to rise into.
     expressionPedal.setBounds (mock (1342, 46, 1553, 562));
 
-    // Dock
-    // The FACEPLATE where the RIG BROWSER and SELECTED RIG panels were (as on
-    // the PR7-V): both only repeated the PRESETS page and the unit's own
-    // display and SAVE buttons.
-    faceplate.setBounds (mock (12, 568, 652, 822));
-    const auto summaryArea = mock (662, 568, 1334, 822);
-    for (auto& panel : panels)
-        if (panel != nullptr)
-            panel->setBounds (summaryArea);
-    eqPanel.setBounds (summaryArea);
-    closePanel.setBounds (summaryArea.withSizeKeepingCentre (0, 0).withX (summaryArea.getRight() - 130).withY (summaryArea.getY() + 10)
-                              .withSize (118, 24));
-    expressionPanel.setBounds (mock (1344, 568, 1662, 822));
+    // The dock: the rack (see layoutDock).
+    layoutDock();
 
     signalChain.setBounds (mock (12, 832, 1662, 930));
 

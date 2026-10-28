@@ -3,6 +3,7 @@
 #include "Parameters.h"
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
+#include "ui/EffectPanel.h"
 #include "ui/Finish.h"
 
 namespace
@@ -143,6 +144,20 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
     if (const auto block = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_BLOCK", {}); block.isNotEmpty())
         if (auto* chain = findType<SignalChain> (*editor))
             chain->onSelect (block.getIntValue());
+    // PARAGON_SNAPSHOT_RACK_PAGE=n turns the shown block's controls to page n (OD / DIST has two).
+    if (const auto rackPage = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_RACK_PAGE", {}); rackPage.isNotEmpty())
+    {
+        std::function<void (juce::Component&)> turn = [&] (juce::Component& parent)
+        {
+            for (auto* child : parent.getChildren())
+            {
+                if (auto* panel = dynamic_cast<EffectPanel*> (child); panel != nullptr && panel->isVisible())
+                    panel->showPage (rackPage.getIntValue());
+                turn (*child);
+            }
+        };
+        turn (*editor);
+    }
     if (const auto width = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_WIDTH", {}).getIntValue(); width > 0)
         editor->setSize (width, width * 9 / 16);
     editor->resized();
