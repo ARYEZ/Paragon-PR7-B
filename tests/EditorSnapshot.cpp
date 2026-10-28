@@ -5,6 +5,7 @@
 #include "PluginProcessor.h"
 #include "ui/EffectPanel.h"
 #include "ui/Finish.h"
+#include "ui/RackView.h"
 
 namespace
 {
@@ -127,6 +128,9 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
         if (auto* p = processor.getParameters().getParameter (setting.upToFirstOccurrenceOf ("=", false, false)))
             p->setValueNotifyingHost (p->convertTo0to1 (setting.fromFirstOccurrenceOf ("=", false, false).getFloatValue()));
 
+    // PARAGON_SNAPSHOT_RACK=hidden: the rack hidden (HIDE RACK), the window shorter.
+    RackView::setShown (juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_RACK", {}) != "hidden", false);
+
     std::unique_ptr<juce::AudioProcessorEditor> editor (processor.createEditor());
     if (showTuner)
         for (int i = 0; i < 12; ++i)   // let the editor's timers run: the tuner reads a few times
@@ -159,7 +163,7 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
         turn (*editor);
     }
     if (const auto width = juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_WIDTH", {}).getIntValue(); width > 0)
-        editor->setSize (width, width * 9 / 16);
+        editor->setSize (width, width * editor->getHeight() / editor->getWidth());
     editor->resized();
     // The FACEPLATE's meters settle as they would over a second of the timer;
     // PARAGON_SNAPSHOT_INPUT=0.3 plays a guitar at that peak into them.
