@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Gotham.h"
+#include "Halo.h"
 #include "Obsidian.h"
 #include "EffectUtils.h"
 
@@ -30,8 +31,16 @@ namespace effects
     {
     public:
         // Saved by number in rigs and projects: only ever add to the end.
-        enum class Model { obsidian, gotham };
-        static inline const juce::StringArray modelNames { "Obsidian", "Gotham" };
+        enum class Model { obsidian, gotham, halo };
+        static inline const juce::StringArray modelNames { "Obsidian", "Gotham", "Halo" };
+
+        // HALO's knobs, as on the original: FUZZ (0 to 10) and its volume
+        // (our OUTPUT trim, shared with the other models).
+        struct HaloSettings
+        {
+            float fuzz = 5.0f;
+            float outputDb = 0.0f;
+        };
 
         struct Settings
         {
@@ -42,6 +51,7 @@ namespace effects
             float splitLowsDb = 0.0f;    // the clean lows' level
             Obsidian::Settings obsidian;
             Gotham::Settings gotham;
+            HaloSettings halo;
         };
 
         void prepare (double sampleRate, int maxBlockSize);
@@ -52,6 +62,12 @@ namespace effects
         Gotham gotham;
         Model lastModel = Model::obsidian;
         BypassFade bypass;
+
+        // HALO, solved at 8x the rate (against aliasing), like the other models.
+        void processHalo (juce::dsp::AudioBlock<float> block, const HaloSettings&) noexcept;
+        Halo halo;
+        juce::dsp::Oversampling<float> haloOversampling { 1, 3, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true };
+        juce::SmoothedValue<float> haloLevel;
 
         juce::dsp::LinkwitzRileyFilter<float> crossover;
         juce::SmoothedValue<float> splitAmount, lowsGain;   // splitAmount fades SPLIT in and out

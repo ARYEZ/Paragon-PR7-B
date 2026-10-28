@@ -261,9 +261,10 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     footswitches[1] = std::make_unique<Footswitch> (2, "OD / DISTORTION", state, juce::StringArray { ParamIDs::driveOn });
     footswitches[1]->describe = [this]
     {
-        const auto gotham = juce::roundToInt (rawValue (ParamIDs::driveType)) == (int) effects::Drive::Model::gotham;
-        auto text = gotham ? "Gotham  Drive " + valueText (ParamIDs::gothamDrive) + "  Blend " + valueText (ParamIDs::gothamBlend)
-                           : "Obsidian  Drive " + valueText (ParamIDs::driveGain) + "  Blend " + valueText (ParamIDs::dualBlend);
+        const auto model = juce::roundToInt (rawValue (ParamIDs::driveType));
+        auto text = model == (int) effects::Drive::Model::gotham ? "Gotham  Drive " + valueText (ParamIDs::gothamDrive) + "  Blend " + valueText (ParamIDs::gothamBlend)
+                  : model == (int) effects::Drive::Model::halo   ? "Halo  Fuzz " + valueText (ParamIDs::haloFuzz)
+                                                                 : "Obsidian  Drive " + valueText (ParamIDs::driveGain) + "  Blend " + valueText (ParamIDs::dualBlend);
         if (rawValue (ParamIDs::driveSplit) > 0.5f)
             text << "  + split";
         return text;
@@ -338,7 +339,8 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                               { ParamIDs::fpMix, "MIX" } } } });
     // Each model's knobs, in the order of the pedal it's modelled on; OUTPUT is shared.
     const auto isGotham = [this] { return juce::roundToInt (rawValue (ParamIDs::driveType)) == (int) effects::Drive::Model::gotham; };
-    const auto isObsidian = [this] { return juce::roundToInt (rawValue (ParamIDs::driveType)) != (int) effects::Drive::Model::gotham; };
+    const auto isObsidian = [this] { return juce::roundToInt (rawValue (ParamIDs::driveType)) == (int) effects::Drive::Model::obsidian; };
+    const auto isHalo = [this] { return juce::roundToInt (rawValue (ParamIDs::driveType)) == (int) effects::Drive::Model::halo; };
     const auto isSplit = [this] { return rawValue (ParamIDs::driveSplit) > 0.5f; };
     // Too many for one row at full size, so two pages: the pedal itself, then
     // its EQ and SPLIT.
@@ -349,6 +351,7 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                                { ParamIDs::dualGrowl, "GROWL", isObsidian, true }, { ParamIDs::dualBite, "BITE", isObsidian, true },
                                { ParamIDs::gothamLevel, "LEVEL", isGotham, true }, { ParamIDs::gothamBlend, "BLEND", isGotham, true },
                                { ParamIDs::gothamDrive, "DRIVE", isGotham, true }, { ParamIDs::gothamPresence, "PRESENCE", isGotham, true },
+                               { ParamIDs::haloFuzz, "FUZZ", isHalo, true },
                                { ParamIDs::driveLevel, "OUTPUT" } }, 0 },
         { "EQ", { { ParamIDs::dualBass, "BASS", isObsidian, true }, { ParamIDs::dualMid, "MID", isObsidian, true },
                   { ParamIDs::dualTreble, "TREBLE", isObsidian, true },

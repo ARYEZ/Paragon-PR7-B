@@ -400,8 +400,10 @@ void Faceplate::paintDrive (juce::Graphics& g, juce::Rectangle<float> header, ju
 {
     // A bass pedal: the MODEL's name in the badge's lettering and what it
     // is, its knobs and switches as on its panel, SPLIT, and the level going in.
-    const auto gotham = juce::roundToInt (raw (ParamIDs::driveType)) == (int) effects::Drive::Model::gotham;
-    nameplate (g, header, gotham ? "GOTHAM" : "OBSIDIAN", gotham ? "BASS PREAMP / DI" : "BASS PREAMP / DISTORTION");
+    const auto model = juce::roundToInt (raw (ParamIDs::driveType));
+    const auto gotham = model == (int) effects::Drive::Model::gotham, halo = model == (int) effects::Drive::Model::halo;
+    nameplate (g, header, gotham ? "GOTHAM" : halo ? "HALO" : "OBSIDIAN",
+               gotham ? "BASS PREAMP / DI" : halo ? "GERMANIUM FUZZ" : "BASS PREAMP / DISTORTION");
 
     if (isRack())
     {
@@ -434,6 +436,13 @@ void Faceplate::paintDrive (juce::Graphics& g, juce::Rectangle<float> header, ju
             bigKnob (g, area.removeFromLeft (cellWidth).reduced (cellWidth > 80.0f ? cellWidth * 0.1f : 2.0f, 0.0f), name, normalised (id));
         return area;
     };
+
+    if (halo)
+    {
+        // As the original: FUZZ and its volume (our OUTPUT), nothing else.
+        row (body, { { ParamIDs::haloFuzz, "FUZZ" }, { ParamIDs::driveLevel, "LEVEL" } }, 2);
+        return;
+    }
 
     if (gotham)
     {

@@ -53,7 +53,7 @@ std::vector<Rig> makeFactoryRigs()
 {
     using namespace ParamIDs;
     constexpr int A = 0, B = 1, C = 2, D = 3;
-    constexpr float obsidian = 0, gotham = 1;   // OD / DISTORTION's MODEL
+    constexpr float obsidian = 0, gotham = 1, halo = 2;   // OD / DISTORTION's MODEL
 
     // The bass factory rigs (PR7-B 0.8.0; PR7-G's guitar rigs are gone).
     // A: clean and basics. B: drive. C: effects. D: genres. E: songs.
@@ -87,7 +87,7 @@ std::vector<Rig> makeFactoryRigs()
             "Full lows, scooped mids and sparkle for slap and pop.\n"
             "Amp: a clean Gallien-Krueger or Ampeg capture.\nCab: a 4x10 IR with a tweeter."),
 
-        make ("Motown Thump", A, 5, "Clean,Vintage", {
+        make ("Vintage Thump", A, 5, "Clean,Vintage", {
             { compOn, 1 }, { compThreshold, -20 }, { compRatio, 3 },
             { eqOn, 1 }, { eq33, 1 }, { eq80, 4 }, { eq150, 2 }, { eq500, -1 }, { eq900, -2 }, { eq2k, -4 }, { eq5k, -6 }, { eq9k, -8 },
             { eqLevel, -0.5f } },
@@ -144,15 +144,26 @@ std::vector<Rig> makeFactoryRigs()
         // split at 275 Hz with the band below left alone and the band above
         // driven hard (75% drive, 80% mix). Here: the Absolomb OBSIDIAN
         // pushed harder, with SPLIT keeping everything below 275 Hz clean.
-        make ("Nolly Split", B, 7, "Drive,Metal", { { rigLevel, 2 },
+        make ("Split Drive", B, 7, "Drive,Metal", { { rigLevel, 2 },
             { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 },
             { driveOn, 1 }, { driveType, obsidian }, { driveGain, 7 }, { dualBlend, 8 }, { dualLevel, 4 }, { dualMod, 7 },
             { dualBass, 5 }, { dualMid, 5.8f }, { dualTreble, 7.5f }, { dualGrowl, 0 }, { dualBite, 1 },
             { driveSplit, 1 }, { driveSplitHz, 275 } },
-            "Nolly's split: everything below 275 Hz stays clean, so the low end is solid and tight while the drive above it "
-            "is pushed hard. Modelled on his FabFilter Saturn trick (band 1 bypassed, band 2 driven).\n"
-            "Amp: a clean Ampeg SVT capture, or none.\nCab: an SVT 8x10 IR.\n"
+            "Everything below 275 Hz stays clean, so the low end is solid and tight while the drive above it is pushed hard: the multiband trick of leaving the lows alone (inspired by a FabFilter Saturn setup, band 1 bypassed, band 2 driven).\n"
+            "Amp: a clean Ampeg SVT capture, or none.\n"
+            "Cab: an SVT 8x10 IR.\n"
             "Play: with a pick, on an extended-range bass. Try SPLIT off to hear what it does."),
+
+        // HALO (0.18.0), the germanium fuzz, the way the owner chose for bass:
+        // SPLIT on, so everything below 200 Hz stays clean under the fuzz.
+        make ("Germanium Split Fuzz", B, 8, "Drive,Fuzz", { { rigLevel, -3 },
+            { driveOn, 1 }, { driveType, halo }, { haloFuzz, 7 },
+            { driveSplit, 1 }, { driveSplitHz, 200 }, { driveSplitLows, 0 } },
+            "HALO, a germanium fuzz, on everything above 200 Hz: the fuzz's buzz and sputter on the notes' growl and "
+            "attack, with the low end clean and solid underneath. Turn SPLIT off to hear the fuzz on its own (it thins the "
+            "lows, as germanium fuzzes do on bass), or move SPLIT HZ to choose how much of the bass it gets.\n"
+            "Amp: a clean Ampeg SVT capture, or none.\nCab: an 8x10 or 4x10 IR.\n"
+            "Play: fingers or pick; dig in for more fuzz, play softer and it cleans up."),
 
         // ---- C: effects ---------------------------------------------------
         make ("Envelope Funk", C, 1, "Funk,Filter", { { rigLevel, 6.5f },
@@ -331,15 +342,15 @@ std::vector<Rig> makeFactoryRigs()
         // Muse, "Hysteria": producer Rich Costey described three amps at once,
         // one clean, one through a Big Muff, one through a Japanese
         // distortion; a synth reportedly doubles it. Fuzz over a clean low end.
-        make ("Hysteria (Muse)", E, 1, "Song,Fuzz,Drive", { { rigLevel, 5.5f },
+        make ("Buzzsaw Octave Fuzz", E, 1, "Song,Fuzz,Drive", { { rigLevel, 5.5f },
             { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 },
             { driveOn, 1 }, { driveType, obsidian }, { driveGain, 8.5f }, { dualMod, 9 }, { dualBlend, 5 }, { dualLevel, 4 },
             { dualGrowl, 1 }, { dualBite, 1 }, { dualMid, 6 },
             { octOn, 1 }, { octSubOne, 0.25f }, { octDry, 1 },
             { eqOn, 1 }, { eq300, -1 }, { eq900, 3 }, { eq2k, 3 }, { eq9k, -2 }, { eqLevel, -1.5f } },
-            "Chris Wolstenholme's fuzz: buzzy and mid-forward over a solid clean low end, with a hint of octave down for the synth "
-            "layer. The studio blended a clean amp with a Big Muff and a Japanese distortion (as producer Rich Costey described it).\n"
-            "Amp: a clean Ampeg SVT capture (Marshall bass captures are rare).\nCab: a 4x10 or 8x10 IR.\n"
+            "A buzzy, mid-forward fuzz over a solid clean low end, with a hint of octave down for a synth layer: a clean amp blended with a Big Muff-style fuzz and a Japanese distortion.\n"
+            "Amp: a clean Ampeg SVT capture (Marshall bass captures are rare).\n"
+            "Cab: a 4x10 or 8x10 IR.\n"
             "Play: with a pick, E standard, about 94 BPM."),
 
         // Tool, "Forty Six & 2", the intro: the clean, picked riff with a
@@ -347,122 +358,149 @@ std::vector<Rig> makeFactoryRigs()
         // is on Justin Chancellor's board, though no source ties it to this
         // song, so the AEON, modelled on it, plays it; its settings are ours). The GOTHAM is set up for the heavy part but left off:
         // footswitch 2 brings it in.
-        make ("Forty Six & 2 (Tool)", E, 2, "Song,Modulation,Clean", { { rigLevel, 0.5f },
+        make ("Flanged Prog Riff", E, 2, "Song,Modulation,Clean", { { rigLevel, 0.5f },
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 4 },
             { eqOn, 1 }, { eq80, 1 }, { eq300, -1 }, { eq900, 3 }, { eq2k, 3 }, { eq5k, 1 }, { eqLevel, -1.5f },
             { modOn, 1 }, { modType, flanger }, { modRate, 0.15f }, { modDepth, 0.7f }, { modManual, 4 }, { modRes, 4 },
             { driveOn, 0 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 5 }, { gothamDrive, 5.5f }, { gothamPresence, 6 },
             { gothamTreble, 6 } },
-            "The intro riff: Justin Chancellor's clean, picked, mid-forward Wal tone with a slow AEON sweep through it "
-            "(modelled on the Boss BF-2 on his board). "
-            "For the heavy part, press footswitch 2: the GOTHAM is set up for his grit (a SansAmp is in his chain).\n"
-            "Amp: a Gallien-Krueger (2001RB style) capture.\nCab: a Mesa 8x10 IR.\n"
+            "A clean, picked, mid-forward Wal-style tone with a slow AEON sweep through it (modelled on the Boss BF-2). For the heavy part, press footswitch 2: the GOTHAM is set up for the grit.\n"
+            "Amp: a Gallien-Krueger (2001RB style) capture.\n"
+            "Cab: a Mesa 8x10 IR.\n"
             "Play: with a hard pick, drop D, about 80 BPM."),
 
         // Korn, "Blind": Fieldy's percussive clank, an Ibanez 5-string tuned
         // a step down, Mesa M-2000s, mids "all the way off" and treble up,
         // no drive.
-        make ("Blind (Korn)", E, 3, "Song,Clean,Metal", { { rigLevel, -1 },
+        make ("Hollow Clank Slap", E, 3, "Song,Clean,Metal", { { rigLevel, -1 },
             { compOn, 1 }, { compThreshold, -26 }, { compRatio, 6 }, { compLevel, 4 },
             { gateThreshold, -60 },
             { eqOn, 1 }, { eq33, 1 }, { eq80, 3 }, { eq150, -6 }, { eq300, -8 }, { eq500, -6 }, { eq900, -2 }, { eq2k, 3 }, { eq5k, 6 },
             { eq9k, 4 }, { eqLevel, 2 }, { eqUltraHi, 1 } },
-            "Fieldy's clanky, percussive slap: bright attack, a hollow middle (he's said he turns the mids all the way off) and boom "
-            "underneath, no distortion.\n"
-            "Amp: a clean Mesa (M-2000 style) capture.\nCab: a 4x10 IR with a tweeter.\n"
+            "Clanky, percussive slap: a bright attack, a hollow middle (the mids turned right down) and boom underneath, no distortion.\n"
+            "Amp: a clean Mesa (M-2000 style) capture.\n"
+            "Cab: a 4x10 IR with a tweeter.\n"
             "Play: slapped hard, 5-string tuned a whole step down (A D G C F)."),
 
         // RATM, "Bulls on Parade": Tim Commerford, Fender Jazz with three
         // fingers, two Ampeg SVTs, one always clean, the other switched in
         // with a Marshall Guv'nor for dirt. Warm, mids kept in.
-        make ("Bulls on Parade (RATM)", E, 4, "Song,Drive,Rock", {
+        make ("Warm Grit Groove", E, 4, "Song,Drive,Rock", {
             { compOn, 1 }, { compThreshold, -18 }, { compRatio, 3 },
             { driveOn, 1 }, { driveType, obsidian }, { driveGain, 5 }, { dualMod, 2 }, { dualBlend, 5 }, { dualLevel, 4.5f }, { dualGrowl, 1 },
             { eqOn, 1 }, { eq80, 3 }, { eq150, 1 }, { eq500, 1 }, { eq900, 1 }, { eqLevel, -1.5f } },
-            "Tim Commerford's warm, round SVT tone that's always there, with crunchy dirt on top: on record, one amp stayed clean and "
-            "the other added a Guv'nor's distortion. The OBSIDIAN's blend does that split.\n"
-            "Amp: an Ampeg SVT capture.\nCab: an SVT 8x10 IR.\n"
+            "A warm, round SVT tone that's always there, with crunchy dirt on top, as two amps would give it: one clean, the other with a Guv'nor-style distortion. The OBSIDIAN's blend does that split.\n"
+            "Amp: an Ampeg SVT capture.\n"
+            "Cab: an SVT 8x10 IR.\n"
             "Play: fingers, E-flat standard (or TUNING -1), 83 BPM."),
 
         // Live, "Lakini's Juice": Patrick Dahlheimer's '58 P-bass, "a little
         // MXR overdrive" in line (his words, quoted). Thick, dark growl.
-        make ("Lakini's Juice (Live)", E, 5, "Song,Drive,Rock", { { rigLevel, 1 },
+        make ("Dark Overdrive Push", E, 5, "Song,Drive,Rock", { { rigLevel, 1 },
             { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 5 }, { gothamBlend, 7 }, { gothamDrive, 7 }, { gothamPresence, 4 },
             { gothamBass, 6 },
             { octOn, 1 }, { octSubOne, 0.15f }, { octDry, 1 },
             { eqOn, 1 }, { eq80, 3 }, { eq500, 2 }, { eq5k, -3 }, { eq9k, -4 }, { eqLevel, -1.5f } },
-            "Patrick Dahlheimer's thick, dark overdriven P-bass with a strong low-mid push (he's quoted as having \"a little MXR "
-            "overdrive\" in line). The faint octave down is our addition, for weight.\n"
-            "Amp: a Trace Elliot or mildly driven Ampeg SVT capture.\nCab: a 4x10 or 8x10 IR.\n"
+            "A thick, dark overdriven P-bass with a strong low-mid push, like a small MXR-style overdrive in line. The faint octave down is our addition, for weight.\n"
+            "Amp: a Trace Elliot or mildly driven Ampeg SVT capture.\n"
+            "Cab: a 4x10 or 8x10 IR.\n"
             "Play: tuned a half step down with the low string dropped (Db Ab Db Gb), about 91 BPM."),
 
         // Karnivool, "Simple Boy": Jon Stockman co-designed the Alpha·Omega
         // to recreate his Sound Awake tone, so the OBSIDIAN is the direct
         // match. Settings: our starting point (none published).
-        make ("Simple Boy (Karnivool)", E, 6, "Song,Drive,Prog", { { rigLevel, 5.5f },
+        make ("Thick Prog Grind", E, 6, "Song,Drive,Prog", { { rigLevel, 5.5f },
             { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 },
             { driveOn, 1 }, { driveType, obsidian }, { driveGain, 6 }, { dualMod, 3 }, { dualBlend, 4 }, { dualLevel, 5 }, { dualMid, 6 },
             { dualTreble, 4.5f }, { dualBite, 1 } },
-            "Jon Stockman's thick clean low end with a mid-forward grind on top. He co-designed the Alpha·Omega to recreate his Sound "
-            "Awake tone, so the OBSIDIAN is the direct match; no settings have been published, so these are our starting point.\n"
-            "Amp: a clean Ampeg SVT capture.\nCab: an SVT 8x10 IR.\n"
-            "Play: 6-string, roughly B F# B E G C (as fans report)."),
+            "A thick clean low end with a mid-forward grind on top: the sound the AlphaÂ·Omega was designed around, so the OBSIDIAN is the direct match. No settings have been published, so these are our starting point.\n"
+            "Amp: a clean Ampeg SVT capture.\n"
+            "Cab: an SVT 8x10 IR.\n"
+            "Play: 6-string, roughly B F# B E G C."),
 
         // Metallica, "Until It Sleeps": Jason Newsted's fretless 5-string Zon
         // (sold with the studio settings still taped on), Ampeg and Mesa
         // cabs, a tube DI. Warm fretless verses, driven layer for the heavy parts.
-        make ("Until It Sleeps (Metallica)", E, 7, "Song,Clean,Drive", { { rigLevel, 10 },
+        make ("Fretless Grit", E, 7, "Song,Clean,Drive", { { rigLevel, 10 },
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 }, { compLevel, 2 },
             { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 3 }, { gothamDrive, 3 }, { gothamPresence, 4 },
             { eqOn, 1 }, { eq80, 2 }, { eq150, 2 }, { eq900, 2 }, { eq2k, 2 }, { eq9k, -2 }, { eqLevel, -1.5f } },
-            "Jason Newsted's warm, round fretless \"mwah\": mostly clean, with a little GOTHAM grit standing in for the tube DI. "
-            "For the heavy choruses, raise BLEND and DRIVE.\n"
-            "Amp: an Ampeg SVT capture (or a Mesa bass head).\nCab: an SVT 8x10 IR (or a 4x10).\n"
+            "A warm, round fretless \"mwah\": mostly clean, with a little GOTHAM grit standing in for a tube DI. For the heavy parts, raise BLEND and DRIVE.\n"
+            "Amp: an Ampeg SVT capture (or a Mesa bass head).\n"
+            "Cab: an SVT 8x10 IR (or a 4x10).\n"
             "Play: fretless if you have one, E-flat standard (or TUNING -1), about 90 BPM."),
 
         // Periphery, "Absolomb" (Nolly on bass): the OBSIDIAN at the
         // settings seen on the pedal in Nolly's Darkglass demo, which plays
         // the song (the owner confirmed GROWL off and BITE on), after
         // Nolly's own 4:1 compression.
-        make ("Absolomb (Periphery)", E, 8, "Song,Bass,Distortion,Metal", { { rigLevel, 7.5f },
+        make ("Extended-Range Drive", E, 8, "Song,Bass,Distortion,Metal", { { rigLevel, 7.5f },
             { compOn, 1 }, { compThreshold, -20 }, { compRatio, 4 },
             { driveOn, 1 }, { driveType, obsidian }, { driveGain, 5.8f }, { dualBlend, 5.5f }, { dualLevel, 4 }, { dualMod, 7 },
             { dualBass, 5 }, { dualMid, 5.8f }, { dualTreble, 7.5f }, { dualGrowl, 0 }, { dualBite, 1 } },
-            "Nolly's Absolomb tone: the OBSIDIAN at the settings on the pedal in his Darkglass demo, after a gentle 4:1 compressor "
-            "(his own chain compresses before the drive).\n"
-            "Amp: a clean Ampeg SVT capture, or none.\nCab: an SVT 8x10 IR (MD421 at the cap edge, as he used).\n"
-            "Play: with a pick, on an extended-range bass (Nolly's Dingwall)."),
+            "The OBSIDIAN at the settings shown on the pedal in a Darkglass demo, after a gentle 4:1 compressor (compressing before the drive keeps it even).\n"
+            "Amp: a clean Ampeg SVT capture, or none.\n"
+            "Cab: an SVT 8x10 IR (an MD421 at the cap edge).\n"
+            "Play: with a pick, on an extended-range bass (a fanned-fret Dingwall suits it)."),
 
         // RHCP, "Higher Ground": Flea's Spector with EMGs, a GK 800RB over
         // Mesa cabs. Bright, scooped, snappy slap.
-        make ("Higher Ground (RHCP)", E, 9, "Song,Funk,Clean", {
+        make ("Bright Funk Slap", E, 9, "Song,Funk,Clean", {
             { compOn, 1 }, { compThreshold, -26 }, { compRatio, 6 }, { compLevel, 4 },
             { eqOn, 1 }, { eq33, 1 }, { eq80, 3 }, { eq300, -3 }, { eq500, -3 }, { eq900, -1 }, { eq2k, 2 }, { eq5k, 3 }, { eq9k, 2 },
             { eqLevel, -0.5f } },
-            "Flea's bright, scooped, snappy slap.\n"
-            "Amp: a Gallien-Krueger 800RB style capture.\nCab: a 2x15 or 4x10 IR.\n"
+            "Bright, scooped, snappy slap.\n"
+            "Amp: a Gallien-Krueger 800RB style capture.\n"
+            "Cab: a 2x15 or 4x10 IR.\n"
             "Play: slapped, E standard, about 140 BPM."),
 
         // Marvin Gaye, "What's Going On": James Jamerson's Precision with
         // heavy flatwounds and a foam mute. Warm, round, no treble.
-        make ("What's Going On (Jamerson)", E, 10, "Song,Clean,Vintage", { { rigLevel, -2 },
+        make ("Sixties Soul Groove", E, 10, "Song,Clean,Vintage", { { rigLevel, -2 },
             { compOn, 1 }, { compThreshold, -18 }, { compRatio, 2.5f },
             { eqOn, 1 }, { eq80, 3 }, { eq150, 3 }, { eq300, 1 }, { eq900, -2 }, { eq2k, -5 }, { eq5k, -9 }, { eq9k, -11 }, { eqLevel, 0.5f } },
-            "James Jamerson's warm, round, thumpy Motown tone with no treble. His flatwound strings and foam mute can't be "
-            "modelled: a muted thumb or palm gets you closer.\n"
-            "Amp: an Ampeg B-15 capture, or none (it may have gone straight to the desk).\nCab: a 1x15 IR, or none.\n"
+            "A warm, round, thumpy sixties soul tone with no treble. Flatwound strings and a foam mute can't be modelled: a muted thumb or palm gets you closer.\n"
+            "Amp: an Ampeg B-15 capture, or none (straight to the desk).\n"
+            "Cab: a 1x15 IR, or none.\n"
             "Play: one finger, E standard, about 102 BPM."),
 
         // Joy Division, "Love Will Tear Us Apart": Peter Hook's trebly,
         // picked lead bass with chorus (an EHX Clone Theory, reported).
-        make ("Love Will Tear Us Apart (Joy Division)", E, 11, "Song,Modulation,Clean", { { rigLevel, 11 },
+        make ("Melodic Chorus Lead", E, 11, "Song,Modulation,Clean", { { rigLevel, 11 },
             { compOn, 1 }, { compThreshold, -22 }, { compRatio, 3 },
             { driveOn, 1 }, { driveType, gotham }, { gothamLevel, 6 }, { gothamBlend, 3 }, { gothamDrive, 3 }, { gothamPresence, 6 },
             { gothamTreble, 7 }, { driveLevel, 8 },
             { eqOn, 1 }, { eq33, -3 }, { eq80, -1 }, { eq500, 2 }, { eq900, 3 }, { eq2k, 3 }, { eq5k, 2 }, { eqLevel, -1.5f },
             { modOn, 1 }, { modType, chorus }, { modRate, 0.8f }, { modDepth, 0.5f }, { modMix, 0.45f } },
-            "Peter Hook's trebly, picked, melodic lead bass with chorus, played high on the neck.\n"
-            "Amp: a Hiwatt capture at the edge of breakup.\nCab: a 4x12 or 4x15 IR.\n"
+            "A trebly, picked, melodic lead bass with chorus, played high on the neck.\n"
+            "Amp: a Hiwatt capture at the edge of breakup.\n"
+            "Cab: a 4x12 or 4x15 IR.\n"
             "Play: with a pick, high on the neck, E standard, about 150 BPM."),
     };
+}
+
+juce::String currentFactoryName (const juce::String& name)
+{
+    // Factory rigs renamed in 0.17.1 to our own names (no trademarks,
+    // artists or song titles), as PR7-G did. Projects and favourites saved
+    // before then still name the old ones.
+    static const std::pair<const char*, const char*> renamed[] {
+        { "Motown Thump", "Vintage Thump" },
+        { "Nolly Split", "Split Drive" },
+        { "Hysteria (Muse)", "Buzzsaw Octave Fuzz" },
+        { "Forty Six & 2 (Tool)", "Flanged Prog Riff" },
+        { "Blind (Korn)", "Hollow Clank Slap" },
+        { "Bulls on Parade (RATM)", "Warm Grit Groove" },
+        { "Lakini's Juice (Live)", "Dark Overdrive Push" },
+        { "Simple Boy (Karnivool)", "Thick Prog Grind" },
+        { "Until It Sleeps (Metallica)", "Fretless Grit" },
+        { "Absolomb (Periphery)", "Extended-Range Drive" },
+        { "Higher Ground (RHCP)", "Bright Funk Slap" },
+        { "What's Going On (Jamerson)", "Sixties Soul Groove" },
+        { "Love Will Tear Us Apart (Joy Division)", "Melodic Chorus Lead" },
+    };
+    for (const auto& [oldName, newName] : renamed)
+        if (name == oldName)
+            return newName;
+    return name;
 }

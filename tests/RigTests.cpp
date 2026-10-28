@@ -132,10 +132,23 @@ TEST_CASE ("The factory rigs are PR7-B's bass rigs, each with notes; song rigs s
                                    "Killing Solo (RATM)", "Numb Solo (Floyd)", "Jambi Talk Box (Tool)" })
         CHECK (std::none_of (rigs.begin(), rigs.end(), [guitarRig] (const Rig& rig) { return rig.name == guitarRig; }));
 
-    // The songs asked for are all there.
-    for (const auto* song : { "Hysteria (Muse)", "Forty Six & 2 (Tool)", "Blind (Korn)", "Bulls on Parade (RATM)",
-                              "Lakini's Juice (Live)", "Simple Boy (Karnivool)", "Until It Sleeps (Metallica)", "Absolomb (Periphery)" })
+    // The song-inspired rigs asked for are all there (under our own names since 0.17.1).
+    for (const auto* song : { "Buzzsaw Octave Fuzz", "Flanged Prog Riff", "Hollow Clank Slap", "Warm Grit Groove",
+                              "Dark Overdrive Push", "Thick Prog Grind", "Fretless Grit", "Extended-Range Drive" })
         CHECK (std::any_of (rigs.begin(), rigs.end(), [song] (const Rig& rig) { return rig.name == song; }));
+
+    // No artists, bands, song titles or record labels in what the rig browser
+    // shows: the names and notes are ours. (Gear brands in the amp and cab
+    // advice are fine.)
+    for (const auto& rig : rigs)
+        for (const auto* word : { "Muse", "Tool", "Korn", "RATM", "Live)", "Karnivool", "Metallica", "Periphery", "RHCP",
+                                  "Jamerson", "Joy Division", "Motown", "Nolly", "Wolstenholme", "Chancellor", "Fieldy",
+                                  "Commerford", "Dahlheimer", "Stockman", "Newsted", "Flea", "Peter Hook", "Costey", "Sound Awake" })
+        {
+            CAPTURE (rig.name, word);
+            CHECK_FALSE (rig.name.contains (word));
+            CHECK_FALSE (rig.notes.contains (word));
+        }
 }
 
 TEST_CASE ("A rig's notes are saved with it and kept by Save As", "[rigs]")
@@ -149,11 +162,11 @@ TEST_CASE ("A rig's notes are saved with it and kept by Save As", "[rigs]")
 
     // Saving a copy of a factory song rig keeps its amp and cab advice.
     RigRig r;
-    r.processor.loadRig (r.entryNamed ("Bulls on Parade (RATM)"));
-    REQUIRE (r.processor.saveCurrentRigAs ("My Bulls"));
+    r.processor.loadRig (r.entryNamed ("Warm Grit Groove"));
+    REQUIRE (r.processor.saveCurrentRigAs ("My Groove"));
     const auto* saved = r.processor.getRigLibrary().find (r.processor.getCurrentRig().file);
     REQUIRE (saved != nullptr);
-    CHECK (saved->rig.notes == r.entryNamed ("Bulls on Parade (RATM)").rig.notes);
+    CHECK (saved->rig.notes == r.entryNamed ("Warm Grit Groove").rig.notes);
 }
 
 TEST_CASE ("The rig library saves, finds, renames and deletes rigs", "[rigs]")
@@ -215,6 +228,50 @@ TEST_CASE ("Favourites stick, including on factory rigs", "[rigs]")
     RigLibrary reopened (temp.folder);
     CHECK (reopened.findFactory ("Dub Delay")->rig.favourite);
     CHECK_FALSE (reopened.findFactory ("Studio Bass")->rig.favourite);
+}
+
+TEST_CASE ("Renamed factory rigs are still found by their old names", "[rigs][state]")
+{
+    // Every old name leads to a real factory rig; other names pass through.
+    TempRigFolder temp;
+    {
+        RigLibrary library (temp.folder);
+        for (auto name : { "Motown Thump", "Nolly Split", "Hysteria (Muse)", "Forty Six & 2 (Tool)", "Blind (Korn)",
+                           "Bulls on Parade (RATM)", "Lakini's Juice (Live)", "Simple Boy (Karnivool)",
+                           "Until It Sleeps (Metallica)", "Absolomb (Periphery)", "Higher Ground (RHCP)",
+                           "What's Going On (Jamerson)", "Love Will Tear Us Apart (Joy Division)" })
+        {
+            CAPTURE (name);
+            CHECK (library.findFactory (name) == nullptr);
+            CHECK (library.findFactory (currentFactoryName (name)) != nullptr);
+        }
+        CHECK (currentFactoryName ("Dub Delay") == "Dub Delay");
+        CHECK (currentFactoryName ("My Own Rig") == "My Own Rig");
+    }
+
+    // A favourite saved under an old name stays a favourite.
+    temp.folder.createDirectory();
+    temp.folder.getChildFile ("factory-favourites.txt").replaceWithText ("Absolomb (Periphery)\nDub Delay");
+    {
+        RigLibrary library (temp.folder);
+        CHECK (library.findFactory ("Extended-Range Drive")->rig.favourite);
+        CHECK (library.findFactory ("Dub Delay")->rig.favourite);
+    }
+
+    // A project saved with a factory rig under its old name opens on the renamed one.
+    RigRig r;
+    r.processor.loadRig (r.entryNamed ("Bright Funk Slap"));
+    juce::MemoryBlock state;
+    r.processor.getStateInformation (state);
+    auto xml = juce::AudioProcessor::getXmlFromBinary (state.getData(), (int) state.getSize());
+    REQUIRE (xml != nullptr);
+    xml->setAttribute ("rigName", "Higher Ground (RHCP)");
+    xml->setAttribute ("rigFactory", "Higher Ground (RHCP)");
+    juce::MemoryBlock oldState;
+    juce::AudioProcessor::copyXmlToBinary (*xml, oldState);
+    r.processor.setStateInformation (oldState.getData(), (int) oldState.getSize());
+    CHECK (r.processor.getCurrentRig().name == "Bright Funk Slap");
+    CHECK (r.processor.getCurrentRig().factoryName == "Bright Funk Slap");
 }
 
 TEST_CASE ("Rigs are sorted by bank and number, and < > wrap round", "[rigs]")

@@ -51,7 +51,7 @@ namespace EqPresets
           { -2.0f, 1.0f, 0.0f, -2.0f, 0.0f, 1.0f, 1.0f, 2.0f, 1.0f }, -0.5f },
         { "Slap Funk",            "Full lows, scooped mids and ULTRA HI's sparkle, for slap and pop.",
           { 2.0f, 3.0f, -1.0f, -3.0f, -2.0f, 0.0f, 1.0f, 1.0f, 0.0f }, -1.0f, false, true },
-        { "Motown Thump",         "Round, warm and dark, like flatwound strings: the lows full and the highs rolled right off.",
+        { "Vintage Thump",        "Round, warm and dark, like flatwound strings: the lows full and the highs rolled right off.",
           { 1.0f, 4.0f, 2.0f, 0.0f, -1.0f, -2.0f, -4.0f, -6.0f, -8.0f }, -0.5f },
         { "Fingerstyle Growl",    "Warm lows and a woody 500-900 Hz growl for fingerstyle rock.",
           { 0.0f, 2.0f, 0.0f, -1.0f, 2.0f, 3.0f, 1.0f, 0.0f, -1.0f }, -1.5f },

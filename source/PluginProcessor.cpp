@@ -2,9 +2,14 @@
 
 #include "Parameters.h"
 #include "PluginEditor.h"
+#include "rigs/FactoryRigs.h"
 
 namespace
 {
+    // Face Fuzz's number in the drive MODEL list of PR7-B 0.1.0 to 0.3.0
+    // (Classic, Screamer, Muff Fuzz, Face Fuzz). Rig.cpp knows it too.
+    constexpr int oldFaceFuzzModel = 3;
+
     constexpr double gainRampSeconds = 0.02;
 
     // Where file paths are kept in the saved state (DAW project or preset).
@@ -319,6 +324,8 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     gotham.drive = param (ParamIDs::gothamDrive);
     gotham.presence = param (ParamIDs::gothamPresence);
     gotham.outputDb = param (ParamIDs::driveLevel);
+    driveSettings.halo.fuzz = param (ParamIDs::haloFuzz);
+    driveSettings.halo.outputDb = param (ParamIDs::driveLevel);
     drive.process (monoBlock, driveSettings);
 
     amp.process (mono, numSamples, ampOn->load() > 0.5f, ampNormalise->load() > 0.5f);
@@ -890,6 +897,30 @@ void ParagonX1AudioProcessor::setStateInformation (const void* data, int sizeInB
         state.appendChild (parameter, nullptr);
     };
     addIfMissing (ParamIDs::reverbType, (int) effects::Reverb::Type::classic);    // before the reverb had a TYPE
+
+    // A project from PR7-B 0.1.0 to 0.3.0 with Face Fuzz chosen (the old
+    // driveModel's 3; the guitar drives were removed in 0.4.0, and driveType
+    // came in 0.5.0): HALO, the germanium fuzz that replaces it, with the
+    // same FUZZ. Without this it would open on the OBSIDIAN.
+    if (const auto oldModel = state.getChildWithProperty ("id", "driveModel");
+        oldModel.isValid() && juce::roundToInt ((double) oldModel["value"]) == oldFaceFuzzModel
+            && ! state.getChildWithProperty ("id", ParamIDs::driveType).isValid())
+    {
+        const auto set = [&state] (const char* id, double value)
+        {
+            auto parameter = state.getChildWithProperty ("id", id);
+            if (! parameter.isValid())
+            {
+                parameter = juce::ValueTree ("PARAM");
+                parameter.setProperty ("id", id, nullptr);
+                state.appendChild (parameter, nullptr);
+            }
+            parameter.setProperty ("value", value, nullptr);
+        };
+        const auto oldFuzz = state.getChildWithProperty ("id", ParamIDs::driveGain);
+        set (ParamIDs::driveType, (int) effects::Drive::Model::halo);
+        set (ParamIDs::haloFuzz, oldFuzz.isValid() ? (double) oldFuzz["value"] : 5.0);
+    }
     parameters.replaceState (state);
 
     const auto restore = [] (const juce::var& path, auto load, auto clear)
@@ -905,10 +936,13 @@ void ParagonX1AudioProcessor::setStateInformation (const void* data, int sizeInB
 
     // Restoring the project changed parameters and files, which marked the
     // rig as modified; put back what was saved instead.
+    // A factory rig saved under a name it has since lost finds its new one.
     const auto rigFile = state[rigFileKey].toString();
-    currentRig = { state.getProperty (rigNameKey, "Untitled").toString(),
+    const auto savedFactoryName = state[rigFactoryKey].toString();
+    const auto savedName = state.getProperty (rigNameKey, "Untitled").toString();
+    currentRig = { savedName == savedFactoryName ? currentFactoryName (savedName) : savedName,
                    rigFile.isNotEmpty() ? juce::File (rigFile) : juce::File(),
-                   state[rigFactoryKey].toString() };
+                   currentFactoryName (savedFactoryName) };
     rigModified = (bool) state.getProperty (rigModifiedKey, false);
     tappedBpm = (double) state.getProperty (tappedBpmKey, 0.0);
     setExpressionCc ((int) state.getProperty (expressionCcKey, 11));

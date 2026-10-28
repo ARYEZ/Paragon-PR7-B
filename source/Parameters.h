@@ -36,6 +36,7 @@ namespace ParamIDs
     inline constexpr auto gothamDrive     = "gothamDrive";
     inline constexpr auto gothamPresence  = "gothamPresence";
     // SPLIT: the lows go around the drive, clean (both models).
+    inline constexpr auto haloFuzz        = "haloFuzz";   // HALO's FUZZ (the third MODEL)
     inline constexpr auto driveSplit      = "driveSplit";
     inline constexpr auto driveSplitHz    = "driveSplitHz";
     inline constexpr auto driveSplitLows  = "driveSplitLows";
