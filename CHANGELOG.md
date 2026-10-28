@@ -2,6 +2,26 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.17.1
+
+- **Our own names for the factory rigs that had trademarks, artists or song titles in them.** Every rig sounds exactly as before and stays in its slot; only the names and notes changed.
+  - **A5** Motown Thump is now **Vintage Thump**, and **B7** Nolly Split is now **Split Drive**.
+  - **The song rigs in bank E** are named for their sound:
+    - E1 **Buzzsaw Octave Fuzz**
+    - E2 **Flanged Prog Riff**
+    - E3 **Hollow Clank Slap**
+    - E4 **Warm Grit Groove**
+    - E5 **Dark Overdrive Push**
+    - E6 **Thick Prog Grind**
+    - E7 **Fretless Grit**
+    - E8 **Extended-Range Drive**
+    - E9 **Bright Funk Slap**
+    - E10 **Sixties Soul Groove**
+    - E11 **Melodic Chorus Lead**
+  - **The notes** in the rig browser describe the sound without naming artists or songs. The amp and cab advice still names gear (Ampeg SVT, Mesa 8x10 and so on), and the tuning and tempo tips are unchanged.
+  - **Nothing to redo:** projects, saved rigs and favourites that used the old names find the renamed rigs automatically.
+- **The graphic EQ's preset** Motown Thump is now **Vintage Thump**, to match.
+
 ## 0.17.0
 
 - **GRAPHIC EQ: the fader lights now light up like the PR7's other keys.** While the EQ is on, the light on each fader's cap (all nine bands and LEVEL) is the same bright neon bar as the lit ON key, with its white-hot core and glow. Before, it was a thin pink line that looked the same whether the EQ was on or off.
