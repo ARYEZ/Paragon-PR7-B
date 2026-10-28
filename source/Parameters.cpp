@@ -276,5 +276,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     constexpr int v29 = 29;
     layout.add (makeFloat (ParamIDs::modManual, "AEON Manual", { 0.0f, 10.0f, 0.1f }, 5.0f, v29, asKnob));
     layout.add (makeFloat (ParamIDs::modRes, "AEON Res", { 0.0f, 10.0f, 0.1f }, 5.0f, v29, asKnob));
+
+    // Added in PR7-B 0.18.0: HALO's FUZZ (0 to 10), for OD / DISTORTION's
+    // third MODEL, the germanium fuzz.
+    constexpr int v30 = 30;
+    layout.add (makeFloat (ParamIDs::haloFuzz, "Halo Fuzz", { 0.0f, 10.0f, 0.1f }, 5.0f, v30, asKnob));
     return layout;
 }

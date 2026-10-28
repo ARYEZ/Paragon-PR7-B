@@ -564,6 +564,7 @@ TEST_CASE ("GOTHAM: the bass preamp follows the Bass Driver DI's circuit", "[eff
         rig.set (ParamIDs::driveType, (float) effects::Drive::Model::gotham);
         rig.set (ParamIDs::gothamBlend, 10.0f);
         rig.set (ParamIDs::gothamDrive, 9.0f);
+        rig.set (ParamIDs::haloFuzz, 8.0f);
         const auto output = rig.runMono (sine (110.0, 0.3f, 0.6));
         REQUIRE (allFinite (output));
         CHECK (dB (levelAt (output, 330.0, 0.3) / levelAt (output, 110.0, 0.3)) > -25.0f);
@@ -1883,7 +1884,7 @@ TEST_CASE ("SPLIT: everything below the split stays clean, the rest is driven", 
     const auto harmonic = [] (const std::vector<float>& output, double hz, int n) { return dB (levelAt (output, hz * n, 0.4) / levelAt (output, hz, 0.4)); };
     const auto gain = [] (const std::pair<std::vector<float>, std::vector<float>>& io, double hz) { return dB (levelAt (io.second, hz, 0.4) / levelAt (io.first, hz, 0.4)); };
 
-    for (const auto model : { effects::Drive::Model::obsidian, effects::Drive::Model::gotham })
+    for (const auto model : { effects::Drive::Model::obsidian, effects::Drive::Model::gotham, effects::Drive::Model::halo })
     {
         DYNAMIC_SECTION ("Model " << effects::Drive::modelNames[(int) model])
         {
@@ -1911,12 +1912,14 @@ TEST_CASE ("SPLIT: everything below the split stays clean, the rest is driven", 
             SECTION ("SPLIT HZ moves the split: a loud 150 Hz note is far cleaner split at 275 Hz than at 80 Hz")
             {
                 // (Not perfectly clean at 275: the crossover is a slope, not a
-                // wall, and 150 Hz is under an octave below it.)
+                // wall, and 150 Hz is under an octave below it. HALO's gain is
+                // so high that even what leaks through saturates, so for it the
+                // difference is smaller, though still clear.)
                 const auto at275 = harmonic (run (model, true, 150.0, 0.3f).second, 150.0, 3);
                 const auto at80 = harmonic (run (model, true, 150.0, 0.3f, [] (EffectRig& r) { r.set (ParamIDs::driveSplitHz, 80.0f); }).second, 150.0, 3);
                 CAPTURE (at275, at80);
                 CHECK (at80 > -30.0f);
-                CHECK (at275 < at80 - 15.0f);
+                CHECK (at275 < at80 - (model == effects::Drive::Model::halo ? 6.0f : 15.0f));
             }
         }
     }
@@ -2086,4 +2089,114 @@ TEST_CASE ("AEON: the flanger follows the BF-2's circuit and specifications", "[
         };
         CHECK (swing (envelope (0.3f, 5.0)) > swing (envelope (8.0f, 5.0)) + 2.0f);
     }
+}
+
+TEST_CASE ("HALO: the germanium fuzz circuit, its working point, FUZZ and clean-up", "[effects][drive]")
+{
+    SECTION ("At rest it sits where the circuit's analysis says")
+    {
+        // Q1's collector is one germanium junction (about 0.2 V) above Q2's
+        // emitter, and Q2's collector sits mid-supply with room to swing.
+        effects::Halo halo;
+        halo.prepare (384000.0);
+        CHECK_THAT (halo.q1CollectorVolts() - halo.q2EmitterVolts(), WithinAbs (0.2, 0.05));
+        CHECK_THAT (halo.q2EmitterVolts(), WithinAbs (0.41, 0.05));
+        CHECK (halo.q2CollectorVolts() > 4.0);
+        CHECK (halo.q2CollectorVolts() < 6.5);
+    }
+
+    // A note through OD / DIST with HALO chosen (SPLIT off: the fuzz alone).
+    const auto play = [] (float amplitude, float fuzz, double hz = 110.0)
+    {
+        EffectRig rig;
+        rig.set (ParamIDs::driveOn, 1.0f);
+        rig.set (ParamIDs::driveType, (float) effects::Drive::Model::halo);
+        rig.set (ParamIDs::haloFuzz, fuzz);
+        const auto output = rig.runMono (sine (hz, amplitude, 1.0));
+        REQUIRE (allFinite (output));
+        return output;
+    };
+    const auto gainDb = [&] (float amplitude, float fuzz, double hz = 110.0)
+    {
+        return dB (rms (play (amplitude, fuzz, hz), 0.3) / (amplitude / std::sqrt (2.0f)));
+    };
+
+    SECTION ("FUZZ takes the emitter resistance out of Q2: over 20 dB more gain for a quiet note")
+    {
+        CHECK (gainDb (0.002f, 10.0f) - gainDb (0.002f, 0.0f) > 20.0f);
+        CHECK (gainDb (0.002f, 5.0f) > gainDb (0.002f, 0.0f) + 3.0f);
+    }
+
+    SECTION ("Played hard it's saturated: FUZZ hardly changes the level, and harder playing barely gets louder")
+    {
+        CHECK (std::abs (gainDb (0.3f, 10.0f) - gainDb (0.3f, 0.0f)) < 2.0f);
+        const auto level = [&] (float amplitude) { return dB (rms (play (amplitude, 5.0f), 0.3)); };
+        CHECK (level (1.0f) - level (0.1f) < 6.0f);
+    }
+
+    SECTION ("A hard note is about the dry level at FUZZ noon (OUTPUT at 0 dB)")
+    {
+        CHECK (std::abs (gainDb (0.3f, 5.0f)) < 3.0f);
+    }
+
+    SECTION ("It cleans up: a light touch is almost clean, a hard one is fuzz; the uneven clipping makes a strong 2nd")
+    {
+        const auto harmonics = [&] (float amplitude)
+        {
+            const auto output = play (amplitude, 5.0f);
+            return dB ((levelAt (output, 220.0, 0.3) + levelAt (output, 330.0, 0.3)) / levelAt (output, 110.0, 0.3));
+        };
+        CHECK (harmonics (0.01f) < -40.0f);
+        CHECK (harmonics (0.3f) > -10.0f);
+        const auto output = play (0.3f, 5.0f);
+        CHECK (levelAt (output, 220.0, 0.3) > 0.1f * levelAt (output, 110.0, 0.3));   // a 2nd within 20 dB of the note
+    }
+
+    SECTION ("Its 2.2 uF input into the low input impedance thins the lowest bass (what SPLIT is for)")
+    {
+        CHECK (gainDb (0.002f, 5.0f, 220.0) - gainDb (0.002f, 5.0f, 41.2) > 2.0f);
+    }
+}
+
+TEST_CASE ("Projects and rigs saved with Face Fuzz (PR7-B 0.1.0 to 0.3.0) open on HALO", "[effects][drive][state]")
+{
+    // A project from back then: driveModel 3 (Face Fuzz), FUZZ on driveGain, no driveType.
+    EffectRig rig;
+    juce::MemoryBlock current;
+    rig.processor.getStateInformation (current);
+    auto xml = juce::AudioProcessor::getXmlFromBinary (current.getData(), (int) current.getSize());
+    REQUIRE (xml != nullptr);
+    for (auto* parameter : xml->getChildWithTagNameIterator ("PARAM"))
+    {
+        if (parameter->getStringAttribute ("id") == ParamIDs::driveGain)
+            parameter->setAttribute ("value", 7.5);
+    }
+    if (auto* type = xml->getChildByAttribute ("id", ParamIDs::driveType))
+        xml->removeChildElement (type, true);
+    auto* oldModel = xml->createNewChildElement ("PARAM");
+    oldModel->setAttribute ("id", "driveModel");
+    oldModel->setAttribute ("value", 3);
+    juce::MemoryBlock old;
+    juce::AudioProcessor::copyXmlToBinary (*xml, old);
+    rig.processor.setStateInformation (old.getData(), (int) old.getSize());
+    const auto value = [&rig] (const char* id) { return rig.processor.getParameters().getRawParameterValue (id)->load(); };
+    CHECK (juce::roundToInt (value (ParamIDs::driveType)) == (int) effects::Drive::Model::halo);
+    CHECK_THAT (value (ParamIDs::haloFuzz), WithinAbs (7.5, 0.01));
+
+    // The same from a project saved since (driveType present) leaves the MODEL alone.
+    rig.set (ParamIDs::driveType, (float) effects::Drive::Model::gotham);
+    juce::MemoryBlock newer;
+    rig.processor.getStateInformation (newer);
+    rig.processor.setStateInformation (newer.getData(), (int) newer.getSize());
+    CHECK (juce::roundToInt (value (ParamIDs::driveType)) == (int) effects::Drive::Model::gotham);
+
+    // A rig file from then (only the parameters it had).
+    Rig oldRig;
+    oldRig.name = "Old Fuzz";
+    oldRig.parameters = { { "driveModel", 3.0f }, { "driveGain", 6.0f }, { "driveOn", 1.0f } };
+    const auto rigXml = oldRig.toXml();
+    const auto loaded = Rig::fromXml (*rigXml);
+    REQUIRE (loaded.has_value());
+    CHECK (juce::exactlyEqual (loaded->parameters.at ("driveType"), (float) effects::Drive::Model::halo));
+    CHECK (juce::exactlyEqual (loaded->parameters.at ("haloFuzz"), 6.0f));
 }

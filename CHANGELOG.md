@@ -2,6 +2,22 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.18.0
+
+- **HALO, a germanium fuzz, is OD / DISTORTION's third MODEL**, after Obsidian and Gotham. It's PR7-G's Halo: the original two-transistor germanium fuzz of the late '60s, solved part by part with the published component values, at 8x oversampling.
+  - **Its knobs, as on the original:** FUZZ and its volume (our OUTPUT). There's no tone control, because the original has none.
+  - **It reacts to how you play:** dig in for full fuzz, and play softer and it cleans up. Its uneven clipping gives the strong 2nd harmonic germanium fuzzes are known for.
+- **Clean lows under the fuzz, as you chose:** HALO works with OD / DISTORTION's **SPLIT** (on the EQ / SPLIT page). With SPLIT on:
+  - everything below SPLIT HZ goes around the fuzz, clean;
+  - LOWS sets that clean band's level.
+  - This matters more for a fuzz like this than for the other models: its circuit thins the deepest bass on its own, as the original does.
+- **New rig: B8 Germanium Split Fuzz.** HALO at FUZZ 7, with SPLIT on at 200 Hz.
+- **Old Face Fuzz projects now open on HALO:**
+  - This covers projects and rigs saved with Face Fuzz in PR7-B 0.1.0 to 0.3.0, before the guitar drives were removed. They used to open on Obsidian.
+  - They keep the same FUZZ setting.
+  - Nothing else changes: rigs and projects saved since then keep their model.
+- **Not modelled:** a passive bass is assumed. An active bass, with its much lower output impedance, makes the real circuit fuzz harder than this model does.
+
 ## 0.17.1
 
 - **Our own names for the factory rigs that had trademarks, artists or song titles in them.** Every rig sounds exactly as before and stays in its slot; only the names and notes changed.

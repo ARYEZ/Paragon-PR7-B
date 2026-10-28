@@ -82,5 +82,15 @@ std::optional<Rig> Rig::fromXml (const juce::XmlElement& xml)
     if (savedWith < 15 && rig.parameters.count ("reverbType") == 0)
         rig.parameters["reverbType"] = 0.0f;
 
+    // Saved by PR7-B 0.1.0 to 0.3.0 with Face Fuzz (the old driveModel's 3,
+    // from before driveType): HALO, its successor, with the same FUZZ, as
+    // PluginProcessor::setStateInformation does for projects.
+    if (const auto oldModel = rig.parameters.find ("driveModel");
+        oldModel != rig.parameters.end() && juce::roundToInt (oldModel->second) == 3 && rig.parameters.count ("driveType") == 0)
+    {
+        rig.parameters["driveType"] = 2.0f;   // effects::Drive::Model::halo
+        rig.parameters["haloFuzz"] = rig.parameters.count ("driveGain") != 0 ? rig.parameters["driveGain"] : 5.0f;
+    }
+
     return rig;
 }

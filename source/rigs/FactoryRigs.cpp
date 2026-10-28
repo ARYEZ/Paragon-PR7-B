@@ -53,7 +53,7 @@ std::vector<Rig> makeFactoryRigs()
 {
     using namespace ParamIDs;
     constexpr int A = 0, B = 1, C = 2, D = 3;
-    constexpr float obsidian = 0, gotham = 1;   // OD / DISTORTION's MODEL
+    constexpr float obsidian = 0, gotham = 1, halo = 2;   // OD / DISTORTION's MODEL
 
     // The bass factory rigs (PR7-B 0.8.0; PR7-G's guitar rigs are gone).
     // A: clean and basics. B: drive. C: effects. D: genres. E: songs.
@@ -153,6 +153,17 @@ std::vector<Rig> makeFactoryRigs()
             "Amp: a clean Ampeg SVT capture, or none.\n"
             "Cab: an SVT 8x10 IR.\n"
             "Play: with a pick, on an extended-range bass. Try SPLIT off to hear what it does."),
+
+        // HALO (0.18.0), the germanium fuzz, the way the owner chose for bass:
+        // SPLIT on, so everything below 200 Hz stays clean under the fuzz.
+        make ("Germanium Split Fuzz", B, 8, "Drive,Fuzz", { { rigLevel, -3 },
+            { driveOn, 1 }, { driveType, halo }, { haloFuzz, 7 },
+            { driveSplit, 1 }, { driveSplitHz, 200 }, { driveSplitLows, 0 } },
+            "HALO, a germanium fuzz, on everything above 200 Hz: the fuzz's buzz and sputter on the notes' growl and "
+            "attack, with the low end clean and solid underneath. Turn SPLIT off to hear the fuzz on its own (it thins the "
+            "lows, as germanium fuzzes do on bass), or move SPLIT HZ to choose how much of the bass it gets.\n"
+            "Amp: a clean Ampeg SVT capture, or none.\nCab: an 8x10 or 4x10 IR.\n"
+            "Play: fingers or pick; dig in for more fuzz, play softer and it cleans up."),
 
         // ---- C: effects ---------------------------------------------------
         make ("Envelope Funk", C, 1, "Funk,Filter", { { rigLevel, 6.5f },
