@@ -290,5 +290,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::ampDiBlend, "DI Blend", { 0.0f, 1.0f, 0.01f }, 0.0f, v31, asPercent));
     layout.add (makeChoice (ParamIDs::ampDiPoint, "DI Point", v31, juce::StringArray { "After Pedals", "Before Pedals" }, 0));
     layout.add (makeSwitch (ParamIDs::ampDiPhase, "DI Phase", v31, false));
+
+    // Added in PR7-B 0.20.0: LUMEN, the optical compressor (COMP / GATE's
+    // TYPE "Lumen"). COMPRESSION and RELEASE 0 to 10 as on the pedal
+    // (ratio 1:1 to 10:1, release 75 to 600 ms); PAD turns it down 15 dB
+    // going in, for hot basses.
+    constexpr int v32 = 32;
+    layout.add (makeFloat (ParamIDs::lumenCompression, "Lumen Compression", { 0.0f, 10.0f, 0.1f }, 5.0f, v32, asKnob));
+    layout.add (makeFloat (ParamIDs::lumenRelease, "Lumen Release", { 0.0f, 10.0f, 0.1f }, 5.0f, v32, asKnob));
+    layout.add (makeSwitch (ParamIDs::lumenPad, "Lumen Pad", v32, false));
     return layout;
 }

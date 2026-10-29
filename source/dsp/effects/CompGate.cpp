@@ -36,6 +36,25 @@ namespace effects
             return slope * over;
         }
 
+        // LUMEN's guesses (the manual gives none of these): where it starts
+        // working, how softly, how fast the light cell reacts, and how much
+        // a long stretch of hard compression slows its recovery.
+        constexpr float lumenThresholdDb = -24.0f, lumenKneeDb = 12.0f;
+        constexpr float lumenAttackSeconds = 0.01f, lumenMemorySeconds = 1.5f;
+        constexpr float lumenMemoryFullDb = -12.0f;   // at this much recent reduction, recovery takes half as long again
+        constexpr float lumenMemorySlowdown = 0.5f;
+        // The detector: the lamp's light follows the rectified bass a little
+        // smoothed, so a low B's cycles don't make the gain wobble.
+        constexpr float lumenDetectAttackSeconds = 0.005f, lumenDetectReleaseSeconds = 0.03f;
+        constexpr float lumenCleanLimit = 1.6f;       // the input stage is straight wire below this
+
+        Curve lumenCurve (float compression, bool pad) noexcept
+        {
+            // The PAD turns the bass down 15 dB going in (and we give it
+            // back after), so it takes 15 dB more to reach the threshold.
+            return { lumenThresholdDb - (pad ? CompGate::padDb : 0.0f), CompGate::lumenRatio (compression), lumenKneeDb };
+        }
+
         float coefficientFor (double sampleRate, float seconds) noexcept
         {
             return 1.0f - std::exp (-1.0f / (seconds * (float) sampleRate));
@@ -45,6 +64,36 @@ namespace effects
     float CompGate::daybreakCurveDb (float inputDb, float amount, bool intensity) noexcept
     {
         return gainFor (inputDb, daybreakCurve (amount, intensity));
+    }
+
+    float CompGate::lumenRatio (float compression) noexcept
+    {
+        // The manual: 1:1 at minimum to 10:1 at maximum, exponentially, so
+        // noon is about 3:1.
+        return std::pow (10.0f, juce::jlimit (0.0f, 10.0f, compression) / 10.0f);
+    }
+
+    float CompGate::lumenReleaseMs (float release) noexcept
+    {
+        // The manual: 75 ms to 600 ms. Exponential too (our reading), so
+        // noon is about 210 ms.
+        return 75.0f * std::pow (8.0f, juce::jlimit (0.0f, 10.0f, release) / 10.0f);
+    }
+
+    float CompGate::lumenCurveDb (float inputDb, float compression, bool pad) noexcept
+    {
+        return gainFor (inputDb, lumenCurve (compression, pad));
+    }
+
+    float CompGate::lumenInputStage (float sample) noexcept
+    {
+        const auto size = std::abs (sample);
+        if (size <= lumenCleanLimit)
+            return sample;
+        // Same level and slope where it starts, then flattening towards the
+        // headroom, never past it.
+        const auto room = lumenHeadroom - lumenCleanLimit;
+        return std::copysign (lumenCleanLimit + room * std::tanh ((size - lumenCleanLimit) / room), sample);
     }
 
     void CompGate::prepare (double newSampleRate, int maxBlockSize)
@@ -67,6 +116,9 @@ namespace effects
         mix.reset (sampleRate, 0.05);
         daybreakMakeUp.reset (sampleRate, 0.05);
         envelope = sidechainState = 0.0f;
+        padIn.reset (sampleRate, 0.02);
+        padIn.setCurrentAndTargetValue (1.0f);
+        lumenLevel = lumenGainDb = lumenMemoryDb = 0.0f;
         bypass.prepare (sampleRate, maxBlockSize);
     }
 
@@ -88,6 +140,10 @@ namespace effects
             if (settings.type == Type::daybreak)
             {
                 processDaybreak (block, settings);
+            }
+            else if (settings.type == Type::lumen)
+            {
+                processLumen (block, settings);
             }
             else
             {
@@ -146,6 +202,44 @@ namespace effects
             const auto compressed = dry * juce::Decibels::decibelsToGain (reductionDb) * daybreakMakeUp.getNextValue();
             const auto mixNow = mix.getNextValue();
             samples[i] = dry * (1.0f - mixNow) + compressed * mixNow;
+        }
+        gainReductionDb.store (mostReduction);
+    }
+
+    void CompGate::processLumen (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept
+    {
+        const auto curve = lumenCurve (settings.compression, false);   // the PAD is applied to the signal itself
+        const auto detectAttack = coefficientFor (sampleRate, lumenDetectAttackSeconds);
+        const auto detectRelease = coefficientFor (sampleRate, lumenDetectReleaseSeconds);
+        const auto attack = coefficientFor (sampleRate, lumenAttackSeconds);
+        const auto releaseSeconds = lumenReleaseMs (settings.release) / 1000.0f;
+        const auto memory = coefficientFor (sampleRate, lumenMemorySeconds);
+        padIn.setTargetValue (settings.pad ? juce::Decibels::decibelsToGain (padDb) : 1.0f);
+
+        auto* samples = block.getChannelPointer (0);
+        auto mostReduction = 0.0f;
+        for (size_t i = 0; i < block.getNumSamples(); ++i)
+        {
+            // PAD, then the input stage's headroom. The detector hears the
+            // input (feed-forward), rectified both ways like the pedal's.
+            const auto pad = padIn.getNextValue();
+            const auto in = lumenInputStage (samples[i] * pad);
+            const auto detected = std::abs (in);
+            lumenLevel += (detected - lumenLevel) * (detected > lumenLevel ? detectAttack : detectRelease);
+            const auto targetDb = gainFor (juce::Decibels::gainToDecibels (lumenLevel, -120.0f), curve);
+
+            // The light cell: quick to turn the bass down; RELEASE sets how
+            // fast it gives the level back, slower still the harder it has
+            // been working over the last second or two.
+            const auto linger = 1.0f + lumenMemorySlowdown * juce::jlimit (0.0f, 1.0f, lumenMemoryDb / lumenMemoryFullDb);
+            const auto release = coefficientFor (sampleRate, releaseSeconds * linger);
+            lumenGainDb += (targetDb - lumenGainDb) * (targetDb < lumenGainDb ? attack : release);
+            lumenMemoryDb += (lumenGainDb - lumenMemoryDb) * memory;
+            mostReduction = juce::jmin (mostReduction, lumenGainDb);
+
+            // Give the PAD's 15 dB back after the gain cell (our choice:
+            // the pedal leaves that to LEVEL).
+            samples[i] = in * juce::Decibels::decibelsToGain (lumenGainDb) / pad;
         }
         gainReductionDb.store (mostReduction);
     }

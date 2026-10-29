@@ -245,6 +245,129 @@ TEST_CASE ("Daybreak compressor: COMP, DETAIL, MIX and INTENSITY do what they sa
     }
 }
 
+TEST_CASE ("LUMEN optical compressor: the Opto Comp's ranges, release, PAD and headroom", "[effects][comp][lumen]")
+{
+    const auto lumen = [] (EffectRig& rig, float compression, float release = 5.0f, bool pad = false)
+    {
+        rig.set (ParamIDs::compOn, 1.0f);
+        rig.set (ParamIDs::compType, (float) effects::CompGate::Type::lumen);
+        rig.set (ParamIDs::lumenCompression, compression);
+        rig.set (ParamIDs::lumenRelease, release);
+        rig.set (ParamIDs::lumenPad, pad ? 1.0f : 0.0f);
+    };
+    // A steady note's level coming out, in dB, after it has settled.
+    const auto levelOut = [&] (float inputDb, float compression, bool pad = false, double hz = 220.0)
+    {
+        EffectRig rig;
+        lumen (rig, compression, 5.0f, pad);
+        return dB (rms (rig.runMono (sine (hz, juce::Decibels::decibelsToGain (inputDb), 1.5)), 1.0));
+    };
+
+    SECTION ("The knobs cover the manual's ranges: ratio 1:1 to 10:1, release 75 ms to 600 ms")
+    {
+        CHECK_THAT (effects::CompGate::lumenRatio (0.0f), WithinAbs (1.0, 1.0e-4));
+        CHECK_THAT (effects::CompGate::lumenRatio (5.0f), WithinAbs (3.162, 0.01));
+        CHECK_THAT (effects::CompGate::lumenRatio (10.0f), WithinAbs (10.0, 1.0e-3));
+        CHECK_THAT (effects::CompGate::lumenReleaseMs (0.0f), WithinAbs (75.0, 1.0e-3));
+        CHECK_THAT (effects::CompGate::lumenReleaseMs (10.0f), WithinAbs (600.0, 1.0e-2));
+    }
+
+    SECTION ("Well above the threshold, 10 dB more in gives 10 / ratio dB more out")
+    {
+        for (auto [compression, expected] : { std::pair { 0.0f, 10.0f }, std::pair { 5.0f, 3.16f }, std::pair { 10.0f, 1.0f } })
+        {
+            CAPTURE (compression);
+            CHECK_THAT (levelOut (0.0f, compression) - levelOut (-10.0f, compression), WithinAbs (expected, 0.6));
+        }
+    }
+
+    SECTION ("Quiet playing passes untouched, and the meter shows it working on loud playing")
+    {
+        CHECK_THAT (levelOut (-45.0f, 10.0f) - (-45.0f - 3.01f), WithinAbs (0.0, 0.2));
+
+        EffectRig rig;
+        lumen (rig, 10.0f);
+        rig.runMono (sine (220.0, 0.5f, 1.0));
+        CHECK (rig.processor.getCompGainReductionDb() < -10.0f);
+    }
+
+    SECTION ("RELEASE: a quiet note after a loud one comes back faster at 0 than at 10")
+    {
+        // A loud burst, then a quiet note below the threshold: how far down
+        // the quiet note still is 150 ms after the burst stops.
+        auto input = sine (220.0, 0.8f, 1.0);
+        const auto quiet = sine (220.0, 0.02f, 3.5);
+        input.insert (input.end(), quiet.begin(), quiet.end());
+        const auto stillDown = [&] (float release, double after)
+        {
+            EffectRig rig;
+            lumen (rig, 5.0f, release);
+            const auto output = rig.runMono (input);
+            return dB (rms (output, 1.0 + after, 1.0 + after + 0.05) / rms (input, 1.0 + after, 1.0 + after + 0.05));
+        };
+        const auto fast = stillDown (0.0f, 0.15), slow = stillDown (10.0f, 0.15);
+        CAPTURE (fast, slow);
+        CHECK (slow < fast - 4.0f);
+        // Both are back to the quiet note's own level in the end.
+        CHECK_THAT (stillDown (0.0f, 3.3), WithinAbs (0.0, 0.3));
+        CHECK_THAT (stillDown (10.0f, 3.3), WithinAbs (0.0, 0.5));
+    }
+
+    SECTION ("The light cell lingers: after long hard compression it lets go more slowly")
+    {
+        const auto stillDown = [&] (double burstSeconds)
+        {
+            auto input = sine (220.0, 0.8f, burstSeconds);
+            const auto quiet = sine (220.0, 0.02f, 0.5);
+            input.insert (input.end(), quiet.begin(), quiet.end());
+            EffectRig rig;
+            lumen (rig, 8.0f, 2.0f);
+            const auto output = rig.runMono (input);
+            return dB (rms (output, burstSeconds + 0.15, burstSeconds + 0.2) / rms (input, burstSeconds + 0.15, burstSeconds + 0.2));
+        };
+        const auto afterShort = stillDown (0.05), afterLong = stillDown (3.0);
+        CAPTURE (afterShort, afterLong);
+        CHECK (afterLong < afterShort - 1.5f);
+    }
+
+    SECTION ("PAD: hot playing is squeezed less, quiet playing keeps its level")
+    {
+        CHECK (levelOut (-6.0f, 10.0f, true) > levelOut (-6.0f, 10.0f, false) + 8.0f);
+        CHECK_THAT (levelOut (-45.0f, 10.0f, true) - levelOut (-45.0f, 10.0f, false), WithinAbs (0.0, 0.1));
+    }
+
+    SECTION ("Its input stage is clean within the bass's range and rounds off near 2.1 V")
+    {
+        CHECK (effects::CompGate::lumenInputStage (1.0f) == 1.0f);
+        CHECK (effects::CompGate::lumenInputStage (-1.5f) == -1.5f);
+        CHECK (effects::CompGate::lumenInputStage (2.0f) > 1.9f);
+        CHECK (effects::CompGate::lumenInputStage (10.0f) <= effects::CompGate::lumenHeadroom);
+        CHECK (effects::CompGate::lumenInputStage (-10.0f) >= -effects::CompGate::lumenHeadroom);
+
+        // With COMPRESSION at 0 (1:1) a very hot signal comes out no
+        // bigger than the headroom (once the on-switch's short fade is done).
+        EffectRig rig;
+        lumen (rig, 0.0f);
+        const auto output = rig.runMono (sine (110.0, 4.0f, 0.5));
+        const auto peak = std::abs (*std::max_element (output.begin() + (std::ptrdiff_t) (0.1 * sampleRate), output.end(), [] (float a, float b) { return std::abs (a) < std::abs (b); }));
+        CHECK (peak <= effects::CompGate::lumenHeadroom + 1.0e-3f);
+        CHECK (peak > 1.9f);
+        CHECK (allFinite (output));
+    }
+
+    SECTION ("A low E stays clean enough: the gain doesn't wobble with each cycle")
+    {
+        // A 41 Hz note hard into it at the fastest RELEASE, where the
+        // ripple is worst: its third harmonic well under the note.
+        EffectRig rig;
+        lumen (rig, 10.0f, 0.0f);
+        const auto output = rig.runMono (sine (41.2, 0.5f, 1.5));
+        const auto harmonicDb = dB (levelAt (output, 3.0 * 41.2, 0.8) / levelAt (output, 41.2, 0.8));
+        CAPTURE (harmonicDb);
+        CHECK (harmonicDb < -26.0f);
+    }
+}
+
 TEST_CASE ("GLITCH: each mode chops, repeats or smears the guitar as it says", "[effects][glitch]")
 {
     const auto glitchRig = [] (EffectRig& rig, effects::Glitch::Mode mode, float density, float chaos, float pitch = 0.0f, float mixAmount = 1.0f)

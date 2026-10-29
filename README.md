@@ -42,9 +42,10 @@ so the guide below still describes the guitar version's effects.
 - **Footswitches 1-4** turn the effect blocks on and off. Click a footswitch's name to show its knobs
   below. Signal chain: comp/gate → filter / pitch → overdrive → amp → cabinet → presence → graphic EQ → modulation
   → delay → reverb → lo-fi.
-  - **1 Comp / Gate:** a compressor and a noise gate (threshold; all the way down is off). The compressor has two TYPEs:
+  - **1 Comp / Gate:** a compressor and a noise gate (threshold; all the way down is off). The compressor has three TYPEs:
     **Classic** (threshold, ratio, level) and **Daybreak**, a modern pedal compressor: COMP (how much, with automatic make-up),
-    DETAIL (how much pick attack gets through), MIX (parallel compression), INTENSITY (smooth or hard) and LEVEL. The panel shows a
+    DETAIL (how much pick attack gets through), MIX (parallel compression), INTENSITY (smooth or hard) and LEVEL; and **Lumen**, an optical bass compressor modelled on the Ampeg
+    Opto Comp: COMPRESSION (1:1 to 10:1), RELEASE (75 to 600 ms), LEVEL and a -15 dB PAD. The panel shows a
     gain-reduction meter.
   - **Lo-Fi** (last in the chain; no footswitch): telephone, AM radio, megaphone, cassette (wow, flutter, hiss)
     or bitcrusher, for intros and breakdowns. AMOUNT, NOISE, MIX and LEVEL.

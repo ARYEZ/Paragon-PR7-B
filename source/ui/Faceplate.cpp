@@ -191,7 +191,13 @@ Faceplate::Look Faceplate::getLook() const
         case Unit::amp:      return Look::amp;
         case Unit::cabinet:  return Look::cabinet;
         case Unit::pitch:    return Look::pitch;
-        case Unit::dynamics: return juce::roundToInt (raw (ParamIDs::compType)) == (int) effects::CompGate::Type::daybreak ? Look::daybreak : Look::classic;
+        case Unit::dynamics:
+        {
+            const auto type = juce::roundToInt (raw (ParamIDs::compType));
+            return type == (int) effects::CompGate::Type::daybreak ? Look::daybreak
+                 : type == (int) effects::CompGate::Type::lumen    ? Look::lumen
+                                                                   : Look::classic;
+        }
         case Unit::delay:    return Look::delay;
         case Unit::reverb:   return Look::reverb;
         case Unit::modulation: return Look::modulation;
@@ -343,6 +349,7 @@ void Faceplate::paint (juce::Graphics& g)
         case Look::pitch:    paintPitch (g, header, content); break;
         case Look::classic:  paintClassic (g, header, content); break;
         case Look::daybreak: paintDaybreak (g, header, content); break;
+        case Look::lumen: paintLumen (g, header, content); break;
         case Look::delay:    paintDelay (g, header, content); break;
         case Look::reverb:   paintReverb (g, header, content); break;
         case Look::modulation:  paintModulation (g, header, content); break;
@@ -771,6 +778,68 @@ void Faceplate::paintDaybreak (juce::Graphics& g, juce::Rectangle<float> header,
     const auto glass = screen (g, meter);
     bars (g, glass.reduced (glass.getWidth() * 0.03f, glass.getHeight() * 0.28f), isOn() ? -shownReduction / 20.0f : 0.0f, 24);
     finish (g, glass);
+}
+
+void Faceplate::paintLumen (juce::Graphics& g, juce::Rectangle<float> header, juce::Rectangle<float> body)
+{
+    // An optical compressor: a lamp shines on a light cell, and the
+    // brighter it shines the more the bass is turned down. The screen shows
+    // that lamp glowing as hard as it's working, with the reading.
+    nameplate (g, header, "LUMEN", "OPTICAL COMPRESSOR");
+    const auto db = isOn() ? shownReduction : 0.0f;
+    const auto glow = juce::jlimit (0.0f, 1.0f, -db / 15.0f);
+
+    const auto paintScreen = [&] (juce::Rectangle<float> area, bool big)
+    {
+        const auto glass = screen (g, area);
+        auto plot = glass.reduced (glass.getWidth() * 0.05f, glass.getHeight() * 0.12f);
+        caption (g, plot, "LIGHT CELL  /  GAIN REDUCTION");
+
+        // The lamp: a dim ring at rest, a bloom of light as it works.
+        auto lampArea = plot.removeFromLeft (juce::jmin (plot.getHeight(), plot.getWidth() * 0.4f));
+        const auto lamp = lampArea.withSizeKeepingCentre (lampArea.getHeight() * 0.62f, lampArea.getHeight() * 0.62f);
+        for (int ring = 4; ring >= 1; --ring)
+        {
+            g.setColour (orange.withAlpha (glow * 0.12f * (float) (5 - ring)));
+            g.fillEllipse (lamp.expanded (lamp.getWidth() * 0.16f * (float) ring * glow));
+        }
+        g.setColour (orange.withAlpha (0.25f + 0.75f * glow));
+        g.fillEllipse (lamp.reduced (lamp.getWidth() * 0.2f));
+        g.setColour (orange.withAlpha (0.5f));
+        g.drawEllipse (lamp, 1.2f);
+
+        plot.removeFromLeft (plot.getWidth() * 0.06f);
+        g.setColour (orange);
+        g.setFont (font (juce::jmin (big ? 26.0f : 18.0f, plot.getHeight() * 0.3f)));
+        g.drawText (juce::String (db, 1) + " dB", plot.removeFromTop (plot.getHeight() * 0.45f), juce::Justification::centredRight, false);
+        bars (g, plot.reduced (0.0f, plot.getHeight() * 0.18f), -db / 20.0f, big ? 20 : 16);
+        finish (g, glass);
+    };
+
+    if (isRack())
+    {
+        // The real knobs and PAD are beside it.
+        paintScreen (body, true);
+        return;
+    }
+
+    auto meter = body.removeFromBottom (juce::jmin (64.0f, body.getHeight() * 0.38f));
+    body.removeFromBottom (6.0f);
+
+    // PAD on one of the unit's small keys, the GATE under it.
+    auto side = body.removeFromRight (150.0f);
+    readout (g, side.removeFromBottom (26.0f), "GATE", text (ParamIDs::gateThreshold));
+    side.removeFromBottom (4.0f);
+    smallKey (g, side.withSizeKeepingCentre (78.0f, juce::jmin (side.getHeight(), 52.0f)), "PAD -15", raw (ParamIDs::lumenPad) > 0.5f);
+    body.removeFromRight (8.0f);
+
+    // COMPRESSION, RELEASE and LEVEL: the pedal's three knobs.
+    const auto cellWidth = body.getWidth() / 3.0f;
+    for (auto [id, name] : { std::pair { ParamIDs::lumenCompression, "COMPRESSION" }, std::pair { ParamIDs::lumenRelease, "RELEASE" },
+                             std::pair { ParamIDs::compLevel, "LEVEL" } })
+        bigKnob (g, body.removeFromLeft (cellWidth).reduced (2.0f, 0.0f), name, normalised (id));
+
+    paintScreen (meter, false);
 }
 
 void Faceplate::paintDelay (juce::Graphics& g, juce::Rectangle<float> header, juce::Rectangle<float> body)

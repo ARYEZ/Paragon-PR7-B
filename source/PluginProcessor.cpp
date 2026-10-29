@@ -280,7 +280,8 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     compGate.process (monoBlock, { isOn (ParamIDs::compOn), param (ParamIDs::compThreshold), param (ParamIDs::compRatio),
                                    param (ParamIDs::compLevel), param (ParamIDs::gateThreshold),
                                    (effects::CompGate::Type) (int) param (ParamIDs::compType), param (ParamIDs::compAmount),
-                                   param (ParamIDs::compDetail), param (ParamIDs::compMix), isOn (ParamIDs::compIntensity) });
+                                   param (ParamIDs::compDetail), param (ParamIDs::compMix), isOn (ParamIDs::compIntensity),
+                                   param (ParamIDs::lumenCompression), param (ParamIDs::lumenRelease), isOn (ParamIDs::lumenPad) });
     // PITCH / WHAMMY: the pedal bends the pitch shifter from no shift at
     // the heel to its INTERVAL at the toe, like a DigiTech Whammy.
     // WHAMMY-WAH: the pedal plays the Whammy-Wah type. Unassigned, it rests at the heel.

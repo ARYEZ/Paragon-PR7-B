@@ -253,7 +253,10 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     footswitches[0] = std::make_unique<Footswitch> (1, "COMP / GATE", state, juce::StringArray { ParamIDs::compOn });
     footswitches[0]->describe = [this]
     {
-        auto text = valueText (ParamIDs::compThreshold) + "  " + valueText (ParamIDs::compRatio);
+        const auto type = juce::roundToInt (rawValue (ParamIDs::compType));
+        auto text = type == (int) effects::CompGate::Type::lumen    ? "Lumen  Comp " + valueText (ParamIDs::lumenCompression) + "  Release " + valueText (ParamIDs::lumenRelease)
+                  : type == (int) effects::CompGate::Type::daybreak ? "Daybreak  Comp " + valueText (ParamIDs::compAmount)
+                                                                     : valueText (ParamIDs::compThreshold) + "  " + valueText (ParamIDs::compRatio);
         if (audioProcessor.getParameters().getRawParameterValue (ParamIDs::gateThreshold)->load() > effects::CompGate::gateOffDb)
             text << "  + gate";
         return text;
@@ -305,7 +308,8 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     // starts with the block's on switch.
     using Group = EffectPanel::Group;
     // The compressor's TYPE shows only its own knobs: Classic's THRESHOLD and
-    // RATIO, or Daybreak's COMP, DETAIL, MIX and INTENSITY.
+    // RATIO, Daybreak's COMP, DETAIL, MIX and INTENSITY, or Lumen's
+    // COMPRESSION, RELEASE and PAD.
     panels[pitchBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "TUNING", { { ParamIDs::pitchTune, "TUNING" } } },
         { "OCTAVER", { { ParamIDs::octOn, "ON" }, { ParamIDs::octSubTwo, "2 DOWN" }, { ParamIDs::octSubOne, "1 DOWN" },
@@ -316,12 +320,15 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     {
         return [this, type] { return juce::roundToInt (rawValue (ParamIDs::compType)) == (int) type; };
     };
-    const auto classic = compIs (effects::CompGate::Type::classic), daybreak = compIs (effects::CompGate::Type::daybreak);
+    const auto classic = compIs (effects::CompGate::Type::classic), daybreak = compIs (effects::CompGate::Type::daybreak),
+               lumen = compIs (effects::CompGate::Type::lumen);
     panels[compBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "COMPRESSOR", { { ParamIDs::compOn, "ON" }, { ParamIDs::compType, "TYPE" },
                           { ParamIDs::compThreshold, "THRESHOLD", classic, true }, { ParamIDs::compRatio, "RATIO", classic, true },
                           { ParamIDs::compAmount, "COMP", daybreak, true }, { ParamIDs::compDetail, "DETAIL", daybreak, true },
                           { ParamIDs::compMix, "MIX", daybreak, true }, { ParamIDs::compIntensity, "INTENSITY", daybreak, true },
+                          { ParamIDs::lumenCompression, "COMPRESSION", lumen, true }, { ParamIDs::lumenRelease, "RELEASE", lumen, true },
+                          { ParamIDs::lumenPad, "PAD -15", lumen, true },
                           { ParamIDs::compLevel, "LEVEL" } } },
         { "NOISE GATE", { { ParamIDs::gateThreshold, "THRESHOLD" } } } });
     panels[compBlock]->setMeter ([this] { return audioProcessor.getCompGainReductionDb(); });

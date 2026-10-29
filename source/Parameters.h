@@ -14,6 +14,12 @@ namespace ParamIDs
     inline constexpr auto ampDiBlend = "ampDiBlend";
     inline constexpr auto ampDiPoint = "ampDiPoint";
     inline constexpr auto ampDiPhase = "ampDiPhase";
+
+    // Version 32: LUMEN, COMP / GATE's third TYPE (modelled on the Ampeg
+    // Opto Comp). LEVEL is the shared compLevel.
+    inline constexpr auto lumenCompression = "lumenCompression";
+    inline constexpr auto lumenRelease     = "lumenRelease";
+    inline constexpr auto lumenPad         = "lumenPad";
     inline constexpr auto cabOn        = "cabOn";
 
     // Phase 3

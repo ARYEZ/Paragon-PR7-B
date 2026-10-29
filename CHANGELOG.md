@@ -2,6 +2,21 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.20.0
+
+- **LUMEN, an optical bass compressor, is COMP / GATE's third TYPE**, after Classic and Daybreak. It's modelled on the Ampeg Opto Comp, from its manual. An optical compressor turns the bass down with a small lamp shining on a light-sensitive cell: the harder you play, the brighter the lamp and the more it turns down. That gives the smooth, even squeeze bass players like optos for.
+  - **Its knobs, as on the pedal:**
+    - **COMPRESSION** sets the ratio, from 1:1 (none) to 10:1, spread exponentially as the manual says, so noon is about 3:1.
+    - **RELEASE** sets how fast it lets go, from 75 ms to 600 ms (about 210 ms at noon).
+    - **LEVEL** sets the output (the compressor's shared LEVEL).
+    - **PAD -15** turns the bass down 15 dB going in, for hot active basses, so it compresses and clips less.
+  - **Like the pedal:** it listens to the bass before it turns it down (feed-forward) and to both halves of the wave. Its input stage stays clean up to near the pedal's headroom, then rounds off peaks rather than clipping hard.
+  - **The light cell lingers:** after a long stretch of hard compression it lets go up to half as slowly again, as real light cells do.
+  - **Its own faceplate:** the light cell glows on the screen as hard as it's working, with the gain reduction in dB and LED bars.
+- **Our guesses, not from the manual:** the manual gives the ratio, release and level ranges but not where it starts compressing (we use -24 dB), how soft the knee is, how fast it grabs (about 10 ms), or how much the cell lingers. Those are our best reading of how optos behave.
+- **Our choice:** the real PAD leaves you to make up its 15 dB with LEVEL. Ours gives the 15 dB back after the compressor, so switching it on doesn't make the bass drop in volume.
+- **Footswitch 1's description now follows the TYPE:** it shows Lumen's or Daybreak's own knobs instead of always showing the Classic's threshold and ratio.
+
 ## 0.19.0
 
 - **Amp/DI blend in the AMP (NAM) block:** the classic studio bass sound, a clean DI signal mixed with the amp and cab. The DI gives tight, solid lows and a clear attack; the amp gives the character.

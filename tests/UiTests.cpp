@@ -653,10 +653,13 @@ TEST_CASE ("The FACEPLATE shows the selected block, and the bass's level going i
         CHECK (faceplate.createComponentSnapshot (faceplate.getLocalBounds()).isValid());
     }
 
-    // COMP / GATE follows its TYPE: Daybreak has its own faceplate.
+    // COMP / GATE follows its TYPE: Daybreak and Lumen have their own faceplates.
     chains[0]->onSelect (1);
     set (processor, ParamIDs::compType, 1.0f);
     CHECK (faceplate.getLook() == Look::daybreak);
+    set (processor, ParamIDs::compType, 2.0f);
+    CHECK (faceplate.getLook() == Look::lumen);
+    CHECK (faceplate.createComponentSnapshot (faceplate.getLocalBounds()).isValid());
     set (processor, ParamIDs::compType, 0.0f);
     CHECK (faceplate.getLook() == Look::classic);
 
