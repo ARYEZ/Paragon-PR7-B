@@ -180,6 +180,8 @@ public:
     LevelMeterSource& getFaceplateMeter() noexcept { return faceplateMeter; }
     // How hard the compressor is working (dB, 0 or less), for its meter.
     float getCompGainReductionDb() const noexcept { return compGate.getGainReductionDb(); }
+    // Where MORPH's filter is now (Hz), for its faceplate.
+    float getMorphFrequency() const noexcept { return filterPitch.getMorphFrequency(); }
     LevelMeterSource& getOutputMeter() noexcept { return outputMeter; }
 
 private:

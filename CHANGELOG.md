@@ -2,6 +2,29 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.21.0
+
+- **MORPH, a bass envelope filter, is FILTER / PITCH's fifth TYPE.** It's modelled on the MXR M82 Bass Envelope Filter, built from the specifications in its manual. An envelope filter is a wah that your playing works instead of your foot: dig in and it opens up and quacks, play softly and it closes.
+  - **Its five knobs, as on the pedal.** They all start at noon, as the manual suggests.
+    - **DRY:** your clean bass, from off to +6 dB. This is the M82's big idea: the filter doesn't have to carry your low end, so the lows stay solid however wild the filter gets.
+    - **FX:** the filter's level.
+    - **DECAY:** where the filter rests when you're not playing, and where it falls back to as a note fades: from 76 Hz (deep and round) to 1.3 kHz (bright and vocal).
+    - **Q:** how sharp and vowel-like the filter's peak is. As in the manual, its peak goes from +8 dB up to +18 dB low down and +26 dB at the top of the sweep.
+    - **SENS:** how hard you have to play to open it, over the manual's 46 dB range. At full SENS a medium-strong note opens it all the way, to 3.2 kHz.
+  - **Its output** rounds off near the pedal's maximum output instead of clipping hard.
+  - **Its own faceplate:** the screen shows what MORPH is doing to your bass right now, the dry level plus the filter's peak, moving as you play, with the filter's frequency. A faint line marks where DECAY rests it.
+- **Three new rigs, from the manual's sample settings**, read off its knob drawings, under our own names:
+  - **C8 Synth Bass Filter:** almost all filter, resting low: round, synthy notes.
+  - **C9 Seventies Funk Filter:** the classic funk quack, with dry bass underneath.
+  - **C10 Dance Filter:** resting high, so it stays bright and squelchy between notes, for techno and dance. It has so little dry bass that it's a quiet sound, so it uses the EQ's level (flat) on top of RIG LEVEL to match the other rigs.
+  - As the manual says, adjust SENS to suit your bass's output.
+- **Our guesses, not from the manual:**
+  - There's no schematic, so the filter type is our reading. We use a band-pass, because the manual says DRY is there to keep the low end.
+  - How fast the envelope rises (3 ms) and falls (120 ms).
+  - How many dB of playing take it from closed to fully open (24 dB).
+  - The knob curves.
+- **A name to sort out:** the expression pedal already has a **MORPH / FX** setting, which blends the delay, reverb and modulation in. It has nothing to do with this filter.
+
 ## 0.20.0
 
 - **LUMEN, an optical bass compressor, is COMP / GATE's third TYPE**, after Classic and Daybreak. It's modelled on the Ampeg Opto Comp, from its manual. An optical compressor turns the bass down with a small lamp shining on a light-sensitive cell: the harder you play, the brighter the lamp and the more it turns down. That gives the smooth, even squeeze bass players like optos for.

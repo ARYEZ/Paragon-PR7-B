@@ -27,7 +27,7 @@ namespace
     constexpr float chorus = 0, flanger = 1, phaser = 2, tremolo = 3, dimension = 4, uniVibe = 5, rotary = 6, vibrato = 7,
                     harmonicTremolo = 8, autoPan = 9, doubler = 10;
     // FILTER / PITCH types.
-    constexpr float autoWah = 0, pitchShifter = 1, whammyWah = 2, talkBoxType = 3;
+    constexpr float autoWah = 0, pitchShifter = 1, whammyWah = 2, talkBoxType = 3, morphType = 4;
     constexpr float pedalTalkBox = 8;   // the expression pedal's TALK BOX setting
     constexpr float daybreakComp = 1;   // COMP / GATE's TYPE
     constexpr float glitchSequence = 1, glitchTexturizer = 3, glitchSixteenth = 3;   // GLITCH's MODE and LENGTH
@@ -217,6 +217,25 @@ std::vector<Rig> makeFactoryRigs()
             { modOn, 1 }, { modType, tremolo }, { modSync, eighth }, { modDepth, 0.7f } },
             "Tremolo in time with the song: chopping eighth notes.\n"
             "Amp: a clean amp capture.\nCab: a 4x10 IR."),
+
+        // MORPH (modelled on the MXR M82): the three sample settings from
+        // its manual, read off the drawn knobs, under our own names.
+        make ("Synth Bass Filter", C, 8, "Synth,Filter", { { rigLevel, 8.3f },
+            { fpOn, 1 }, { fpType, morphType }, { morphDry, 1 }, { morphFx, 9 }, { morphDecay, 0.5f }, { morphQ, 4 }, { morphSens, 6 } },
+            "MORPH almost all filter, resting right down low: round, synthy notes that bloom open as you play. "
+            "Turn SENS up or down to suit your bass's output.\n"
+            "Amp: a clean amp capture, or none.\nCab: an 8x10 IR, or none."),
+
+        make ("Seventies Funk Filter", C, 9, "Funk,Filter", { { rigLevel, 9.9f },
+            { fpOn, 1 }, { fpType, morphType }, { morphDry, 4 }, { morphFx, 9 }, { morphDecay, 3.5f }, { morphQ, 6.5f }, { morphSens, 9.5f } },
+            "MORPH's classic funk quack, with some dry bass underneath for the low end. Dig in for the full sweep.\n"
+            "Amp: a clean Ampeg or GK capture.\nCab: a 4x10 IR."),
+
+        make ("Dance Filter", C, 10, "Filter,Electronic", { { rigLevel, 12 }, { eqOn, 1 }, { eqLevel, 9 },
+            { fpOn, 1 }, { fpType, morphType }, { morphDry, 2 }, { morphFx, 9.5f }, { morphDecay, 8 }, { morphQ, 5.5f }, { morphSens, 9 } },
+            "MORPH resting high, so it stays bright and vocal between notes: a squelchy techno and dance bass. With so little "
+            "dry bass it's a quiet sound, so the EQ (flat) adds 9 dB of level on top of RIG LEVEL.\n"
+            "Amp: a clean amp capture, or none.\nCab: a 4x10 IR, or none."),
 
         // ---- D: genres ----------------------------------------------------
         // Each genre's typical bass sound, as it's commonly played, recorded

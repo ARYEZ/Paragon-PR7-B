@@ -299,5 +299,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     layout.add (makeFloat (ParamIDs::lumenCompression, "Lumen Compression", { 0.0f, 10.0f, 0.1f }, 5.0f, v32, asKnob));
     layout.add (makeFloat (ParamIDs::lumenRelease, "Lumen Release", { 0.0f, 10.0f, 0.1f }, 5.0f, v32, asKnob));
     layout.add (makeSwitch (ParamIDs::lumenPad, "Lumen Pad", v32, false));
+
+    // Added in PR7-B 0.21.0: MORPH, the bass envelope filter (FILTER /
+    // PITCH's TYPE "Morph"). Its five knobs 0 to 10, all at noon to start,
+    // as its manual says.
+    constexpr int v33 = 33;
+    layout.add (makeFloat (ParamIDs::morphDry, "Morph Dry", { 0.0f, 10.0f, 0.1f }, 5.0f, v33, asKnob));
+    layout.add (makeFloat (ParamIDs::morphFx, "Morph FX", { 0.0f, 10.0f, 0.1f }, 5.0f, v33, asKnob));
+    layout.add (makeFloat (ParamIDs::morphDecay, "Morph Decay", { 0.0f, 10.0f, 0.1f }, 5.0f, v33, asKnob));
+    layout.add (makeFloat (ParamIDs::morphQ, "Morph Q", { 0.0f, 10.0f, 0.1f }, 5.0f, v33, asKnob));
+    layout.add (makeFloat (ParamIDs::morphSens, "Morph Sens", { 0.0f, 10.0f, 0.1f }, 5.0f, v33, asKnob));
     return layout;
 }

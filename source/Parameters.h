@@ -20,6 +20,14 @@ namespace ParamIDs
     inline constexpr auto lumenCompression = "lumenCompression";
     inline constexpr auto lumenRelease     = "lumenRelease";
     inline constexpr auto lumenPad         = "lumenPad";
+
+    // Version 33: MORPH, FILTER / PITCH's fifth TYPE (modelled on the MXR
+    // M82 Bass Envelope Filter).
+    inline constexpr auto morphDry   = "morphDry";
+    inline constexpr auto morphFx    = "morphFx";
+    inline constexpr auto morphDecay = "morphDecay";
+    inline constexpr auto morphQ     = "morphQ";
+    inline constexpr auto morphSens  = "morphSens";
     inline constexpr auto cabOn        = "cabOn";
 
     // Phase 3
