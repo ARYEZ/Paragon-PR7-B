@@ -15,67 +15,67 @@ namespace effects
 
     namespace
     {
-        // MORPH's guesses (the manual doesn't give them): how fast the
+        // MAGNETAR's guesses (the manual doesn't give them): how fast the
         // envelope rises and falls, and how many dB of playing take the
         // filter from rest to fully open.
-        constexpr float morphAttackSeconds = 0.003f, morphReleaseSeconds = 0.12f;
-        constexpr float morphSweepSpanDb = 24.0f;
+        constexpr float magnetarAttackSeconds = 0.003f, magnetarReleaseSeconds = 0.12f;
+        constexpr float magnetarSweepSpanDb = 24.0f;
         // From the manual: SENS covers 46 dB; at full SENS a 500 Hz note at
         // -23 dBV (0.1 V peak, -20 dBFS) opens it fully.
-        constexpr float morphSensRangeDb = 46.0f, morphMostSensitiveDb = -20.0f;
+        constexpr float magnetarSensRangeDb = 46.0f, magnetarMostSensitiveDb = -20.0f;
         // From the manual: the filter's gain at its peak, Q at minimum
         // +8 dB; at maximum +18 dB at 76 Hz rising to +26 dB at 3.2 kHz.
-        constexpr float morphQMinDb = 8.0f, morphQMaxLowDb = 18.0f, morphQMaxHighDb = 26.0f;
+        constexpr float magnetarQMinDb = 8.0f, magnetarQMaxLowDb = 18.0f, magnetarQMaxHighDb = 26.0f;
 
-        float morphOutputStage (float sample) noexcept
+        float magnetarOutputStage (float sample) noexcept
         {
             // Clean up to 80% of the pedal's maximum output, then rounding
             // off towards it, never past it.
-            const auto clean = 0.8f * FilterPitch::morphMaxOutput;
+            const auto clean = 0.8f * FilterPitch::magnetarMaxOutput;
             const auto size = std::abs (sample);
             if (size <= clean)
                 return sample;
-            const auto room = FilterPitch::morphMaxOutput - clean;
+            const auto room = FilterPitch::magnetarMaxOutput - clean;
             return std::copysign (clean + room * std::tanh ((size - clean) / room), sample);
         }
     }
 
     FilterPitch::FilterPitch() = default;
 
-    float FilterPitch::morphStopHz (float decay) noexcept
+    float FilterPitch::magnetarStopHz (float decay) noexcept
     {
         // Exponential (our reading), so each step of the knob moves it by
         // the same musical interval.
-        return morphLowestStopHz * std::pow (morphHighestStopHz / morphLowestStopHz, juce::jlimit (0.0f, 10.0f, decay) / 10.0f);
+        return magnetarLowestStopHz * std::pow (magnetarHighestStopHz / magnetarLowestStopHz, juce::jlimit (0.0f, 10.0f, decay) / 10.0f);
     }
 
-    float FilterPitch::morphFrequencyFor (float position, float decay) noexcept
+    float FilterPitch::magnetarFrequencyFor (float position, float decay) noexcept
     {
-        const auto stop = morphStopHz (decay);
-        return stop * std::pow (morphTopHz / stop, juce::jlimit (0.0f, 1.0f, position));
+        const auto stop = magnetarStopHz (decay);
+        return stop * std::pow (magnetarTopHz / stop, juce::jlimit (0.0f, 1.0f, position));
     }
 
-    float FilterPitch::morphPeakDb (float q, float frequencyHz) noexcept
+    float FilterPitch::magnetarPeakDb (float q, float frequencyHz) noexcept
     {
-        const auto along = juce::jlimit (0.0f, 1.0f, std::log (frequencyHz / morphLowestStopHz) / std::log (morphTopHz / morphLowestStopHz));
-        const auto maximumDb = morphQMaxLowDb + (morphQMaxHighDb - morphQMaxLowDb) * along;
-        return morphQMinDb + (maximumDb - morphQMinDb) * juce::jlimit (0.0f, 10.0f, q) / 10.0f;
+        const auto along = juce::jlimit (0.0f, 1.0f, std::log (frequencyHz / magnetarLowestStopHz) / std::log (magnetarTopHz / magnetarLowestStopHz));
+        const auto maximumDb = magnetarQMaxLowDb + (magnetarQMaxHighDb - magnetarQMaxLowDb) * along;
+        return magnetarQMinDb + (maximumDb - magnetarQMinDb) * juce::jlimit (0.0f, 10.0f, q) / 10.0f;
     }
 
-    float FilterPitch::morphDryGain (float dry) noexcept
+    float FilterPitch::magnetarDryGain (float dry) noexcept
     {
         // -inf to +6 dB (the manual), on an audio-taper curve (our guess).
         return 2.0f * juce::square (juce::jlimit (0.0f, 10.0f, dry) / 10.0f);
     }
 
-    float FilterPitch::morphFxGain (float fx) noexcept
+    float FilterPitch::magnetarFxGain (float fx) noexcept
     {
         return juce::square (juce::jlimit (0.0f, 10.0f, fx) / 10.0f);
     }
 
-    float FilterPitch::morphFullyOpenDb (float sens) noexcept
+    float FilterPitch::magnetarFullyOpenDb (float sens) noexcept
     {
-        return morphMostSensitiveDb + morphSensRangeDb * (10.0f - juce::jlimit (0.0f, 10.0f, sens)) / 10.0f;
+        return magnetarMostSensitiveDb + magnetarSensRangeDb * (10.0f - juce::jlimit (0.0f, 10.0f, sens)) / 10.0f;
     }
 
     juce::StringArray FilterPitch::xpProgramNames()
@@ -100,11 +100,11 @@ namespace effects
         wahFilter.setType (juce::dsp::StateVariableTPTFilterType::bandpass);
         envelope = sweep = 0.0f;
 
-        morphFilter.prepare (spec);
-        morphFilter.setType (juce::dsp::StateVariableTPTFilterType::bandpass);
-        morphEnvelope = morphSweep = 0.0f;
-        morphDry.reset (sampleRate, 0.03);
-        morphFx.reset (sampleRate, 0.03);
+        magnetarFilter.prepare (spec);
+        magnetarFilter.setType (juce::dsp::StateVariableTPTFilterType::bandpass);
+        magnetarEnvelope = magnetarSweep = 0.0f;
+        magnetarDry.reset (sampleRate, 0.03);
+        magnetarFx.reset (sampleRate, 0.03);
 
         shifter.prepare (sampleRate);
         ratio.reset (sampleRate, 0.05);
@@ -122,8 +122,8 @@ namespace effects
                 processPitch (block, settings);
             else if (settings.type == Type::whammyWah)
                 processWhammyWah (block, settings);
-            else if (settings.type == Type::morph)
-                processMorph (block, settings);
+            else if (settings.type == Type::magnetar)
+                processMagnetar (block, settings);
             else
                 processAutoWah (block, settings);
         });
@@ -171,44 +171,44 @@ namespace effects
         }
     }
 
-    void FilterPitch::processMorph (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept
+    void FilterPitch::processMagnetar (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept
     {
         // The envelope follows the bass (both halves of the wave); its level
         // in dB, against SENS, says how far the filter opens: from DECAY's
-        // stop frequency at rest to 3.2 kHz, morphSweepSpanDb further up.
-        const auto attack = coefficientFor (sampleRate, morphAttackSeconds), release = coefficientFor (sampleRate, morphReleaseSeconds);
+        // stop frequency at rest to 3.2 kHz, magnetarSweepSpanDb further up.
+        const auto attack = coefficientFor (sampleRate, magnetarAttackSeconds), release = coefficientFor (sampleRate, magnetarReleaseSeconds);
         const auto sweepSmoothing = coefficientFor (sampleRate, 0.004f);
-        const auto openDb = morphFullyOpenDb (settings.morphSens);
-        morphDry.setTargetValue (morphDryGain (settings.morphDry));
-        morphFx.setTargetValue (morphFxGain (settings.morphFx));
+        const auto openDb = magnetarFullyOpenDb (settings.magnetarSens);
+        magnetarDry.setTargetValue (magnetarDryGain (settings.magnetarDry));
+        magnetarFx.setTargetValue (magnetarFxGain (settings.magnetarFx));
 
         auto* samples = block.getChannelPointer (0);
         const auto numSamples = (int) block.getNumSamples();
-        auto frequency = morphFrequency.load();
+        auto frequency = magnetarFrequency.load();
         for (int start = 0; start < numSamples; start += retuneEvery)
         {
             const auto count = juce::jmin (retuneEvery, numSamples - start);
             for (int i = start; i < start + count; ++i)
             {
                 const auto level = std::abs (samples[i]);
-                morphEnvelope += (level - morphEnvelope) * (level > morphEnvelope ? attack : release);
+                magnetarEnvelope += (level - magnetarEnvelope) * (level > magnetarEnvelope ? attack : release);
             }
-            const auto levelDb = juce::Decibels::gainToDecibels (morphEnvelope, -120.0f);
-            const auto target = juce::jlimit (0.0f, 1.0f, (levelDb - (openDb - morphSweepSpanDb)) / morphSweepSpanDb);
-            morphSweep += (target - morphSweep) * (1.0f - std::pow (1.0f - sweepSmoothing, (float) count));
-            frequency = morphFrequencyFor (morphSweep, settings.morphDecay);
-            morphFilter.setCutoffFrequency (juce::jmin (frequency, 0.45f * (float) sampleRate));
+            const auto levelDb = juce::Decibels::gainToDecibels (magnetarEnvelope, -120.0f);
+            const auto target = juce::jlimit (0.0f, 1.0f, (levelDb - (openDb - magnetarSweepSpanDb)) / magnetarSweepSpanDb);
+            magnetarSweep += (target - magnetarSweep) * (1.0f - std::pow (1.0f - sweepSmoothing, (float) count));
+            frequency = magnetarFrequencyFor (magnetarSweep, settings.magnetarDecay);
+            magnetarFilter.setCutoffFrequency (juce::jmin (frequency, 0.45f * (float) sampleRate));
             // JUCE's band-pass peaks at a gain of its resonance (Q).
-            morphFilter.setResonance (juce::Decibels::decibelsToGain (morphPeakDb (settings.morphQ, frequency)));
+            magnetarFilter.setResonance (juce::Decibels::decibelsToGain (magnetarPeakDb (settings.magnetarQ, frequency)));
 
             for (int i = start; i < start + count; ++i)
             {
                 const auto dry = samples[i];
-                const auto wet = morphFilter.processSample (0, dry);
-                samples[i] = morphOutputStage (dry * morphDry.getNextValue() + wet * morphFx.getNextValue());
+                const auto wet = magnetarFilter.processSample (0, dry);
+                samples[i] = magnetarOutputStage (dry * magnetarDry.getNextValue() + wet * magnetarFx.getNextValue());
             }
         }
-        morphFrequency.store (frequency);
+        magnetarFrequency.store (frequency);
     }
 
     void FilterPitch::processPitch (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept

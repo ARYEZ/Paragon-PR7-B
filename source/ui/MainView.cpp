@@ -336,8 +336,8 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
     {
         return [this, type] { return juce::roundToInt (rawValue (ParamIDs::fpType)) == (int) type; };
     };
-    // MORPH has its own DRY and FX levels instead of MIX, as on its pedal.
-    const auto morph = fpIs (effects::FilterPitch::Type::morph);
+    // MAGNETAR has its own DRY and FX levels instead of MIX, as on its pedal.
+    const auto magnetar = fpIs (effects::FilterPitch::Type::magnetar);
     panels[filterPitchBlock] = std::make_unique<EffectPanel> (state, std::vector<Group> {
         { "FILTER / PITCH", { { ParamIDs::fpOn, "ON" }, { ParamIDs::fpType, "TYPE" },
                               { ParamIDs::fpSensitivity, "SENSITIVITY", fpIs (effects::FilterPitch::Type::autoWah) },
@@ -345,10 +345,10 @@ MainView::MainView (ParagonX1AudioProcessor& processorToShow)
                                                                       talkBox = fpIs (effects::FilterPitch::Type::talkBox)] { return autoWah() || talkBox(); } },
                               { ParamIDs::fpInterval, "INTERVAL", fpIs (effects::FilterPitch::Type::pitchShifter) },
                               { ParamIDs::fpXpProgram, "PROGRAM", fpIs (effects::FilterPitch::Type::whammyWah) },
-                              { ParamIDs::morphDry, "DRY", morph, true }, { ParamIDs::morphFx, "FX", morph, true },
-                              { ParamIDs::morphDecay, "DECAY", morph, true }, { ParamIDs::morphQ, "Q", morph, true },
-                              { ParamIDs::morphSens, "SENS", morph, true },
-                              { ParamIDs::fpMix, "MIX", [morph] { return ! morph(); }, true } } } });
+                              { ParamIDs::magnetarDry, "DRY", magnetar, true }, { ParamIDs::magnetarFx, "FX", magnetar, true },
+                              { ParamIDs::magnetarDecay, "DECAY", magnetar, true }, { ParamIDs::magnetarQ, "Q", magnetar, true },
+                              { ParamIDs::magnetarSens, "SENS", magnetar, true },
+                              { ParamIDs::fpMix, "MIX", [magnetar] { return ! magnetar(); }, true } } } });
     // Each model's knobs, in the order of the pedal it's modelled on; OUTPUT is shared.
     const auto isGotham = [this] { return juce::roundToInt (rawValue (ParamIDs::driveType)) == (int) effects::Drive::Model::gotham; };
     const auto isObsidian = [this] { return juce::roundToInt (rawValue (ParamIDs::driveType)) == (int) effects::Drive::Model::obsidian; };

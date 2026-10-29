@@ -2,6 +2,19 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.22.0
+
+- **MORPH is now called MAGNETAR**, the name you chose. You'll see it in FILTER / PITCH's TYPE menu, on its faceplate and in the parameter names your DAW shows ("Magnetar Dry" and so on).
+  - It sounds the same, and projects and rigs saved with 0.21.0 open with their settings, because the parameters are saved under their original IDs.
+  - No more name clash: the expression pedal's **MORPH / FX** setting (which blends the delay, reverb and modulation in) keeps its name, and is now the only MORPH.
+- **Four LUMEN rigs, from the Opto Comp manual's suggested settings**, read off its knob drawings, under our own names:
+  - **A8 Easy Opto:** gentle (COMPRESSION 2.5, RELEASE 3.5), smoothing the peaks without you hearing it work.
+  - **A9 Fretless Opto:** a high ratio with a medium release (9.5, 4.5), for long, singing fretless notes.
+  - **A10 Opto Squash:** fully squashed (9.5, 9.5), every note at the same level.
+  - **A11 Opto Slap:** light and fast (2.5, 1.5), taming slap's pops and thumps.
+  - The manual leaves the output level to taste, so each rig's LEVEL makes up what its compression takes, matched to the other rigs.
+- **The manual confirms LUMEN's ranges:** a ratio of 1:1 to 10:1 with 3:1 at the centre (ours is 3.2:1 at noon), and a release of 75 to 600 ms.
+
 ## 0.21.0
 
 - **MORPH, a bass envelope filter, is FILTER / PITCH's fifth TYPE.** It's modelled on the MXR M82 Bass Envelope Filter, built from the specifications in its manual. An envelope filter is a wah that your playing works instead of your foot: dig in and it opens up and quacks, play softly and it closes.

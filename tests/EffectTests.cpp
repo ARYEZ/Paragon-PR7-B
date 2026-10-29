@@ -368,39 +368,39 @@ TEST_CASE ("LUMEN optical compressor: the Opto Comp's ranges, release, PAD and h
     }
 }
 
-TEST_CASE ("MORPH bass envelope filter: the M82's sweep, Q, SENS, DECAY and DRY / FX", "[effects][filter][morph]")
+TEST_CASE ("MAGNETAR bass envelope filter: the M82's sweep, Q, SENS, DECAY and DRY / FX", "[effects][filter][magnetar]")
 {
     using effects::FilterPitch;
-    const auto morph = [] (EffectRig& rig, float dry, float fx, float decay, float q, float sens)
+    const auto magnetar = [] (EffectRig& rig, float dry, float fx, float decay, float q, float sens)
     {
         rig.set (ParamIDs::fpOn, 1.0f);
-        rig.set (ParamIDs::fpType, (float) FilterPitch::Type::morph);
-        rig.set (ParamIDs::morphDry, dry);
-        rig.set (ParamIDs::morphFx, fx);
-        rig.set (ParamIDs::morphDecay, decay);
-        rig.set (ParamIDs::morphQ, q);
-        rig.set (ParamIDs::morphSens, sens);
+        rig.set (ParamIDs::fpType, (float) FilterPitch::Type::magnetar);
+        rig.set (ParamIDs::magnetarDry, dry);
+        rig.set (ParamIDs::magnetarFx, fx);
+        rig.set (ParamIDs::magnetarDecay, decay);
+        rig.set (ParamIDs::magnetarQ, q);
+        rig.set (ParamIDs::magnetarSens, sens);
     };
     // How much louder (dB) a steady note comes out, after it settles.
     const auto gainFor = [&] (double hz, float inputDb, float dry, float fx, float decay, float q, float sens)
     {
         EffectRig rig;
-        morph (rig, dry, fx, decay, q, sens);
+        magnetar (rig, dry, fx, decay, q, sens);
         const auto input = sine (hz, juce::Decibels::decibelsToGain (inputDb), 1.0);
         return dB (rms (rig.runMono (input), 0.6) / rms (input, 0.6));
     };
 
     SECTION ("The knobs cover the manual's ranges")
     {
-        CHECK_THAT (FilterPitch::morphStopHz (0.0f), WithinAbs (76.0, 0.01));
-        CHECK_THAT (FilterPitch::morphStopHz (10.0f), WithinAbs (1300.0, 0.1));
-        CHECK_THAT (FilterPitch::morphFrequencyFor (1.0f, 3.0f), WithinAbs (3200.0, 0.1));
-        CHECK_THAT (FilterPitch::morphPeakDb (0.0f, 76.0f), WithinAbs (8.0, 0.01));
-        CHECK_THAT (FilterPitch::morphPeakDb (10.0f, 76.0f), WithinAbs (18.0, 0.01));
-        CHECK_THAT (FilterPitch::morphPeakDb (10.0f, 3200.0f), WithinAbs (26.0, 0.01));
-        CHECK_THAT (FilterPitch::morphDryGain (10.0f), WithinAbs (2.0, 1.0e-4));   // +6 dB
-        CHECK (FilterPitch::morphDryGain (0.0f) == 0.0f);
-        CHECK (FilterPitch::morphFxGain (0.0f) == 0.0f);
+        CHECK_THAT (FilterPitch::magnetarStopHz (0.0f), WithinAbs (76.0, 0.01));
+        CHECK_THAT (FilterPitch::magnetarStopHz (10.0f), WithinAbs (1300.0, 0.1));
+        CHECK_THAT (FilterPitch::magnetarFrequencyFor (1.0f, 3.0f), WithinAbs (3200.0, 0.1));
+        CHECK_THAT (FilterPitch::magnetarPeakDb (0.0f, 76.0f), WithinAbs (8.0, 0.01));
+        CHECK_THAT (FilterPitch::magnetarPeakDb (10.0f, 76.0f), WithinAbs (18.0, 0.01));
+        CHECK_THAT (FilterPitch::magnetarPeakDb (10.0f, 3200.0f), WithinAbs (26.0, 0.01));
+        CHECK_THAT (FilterPitch::magnetarDryGain (10.0f), WithinAbs (2.0, 1.0e-4));   // +6 dB
+        CHECK (FilterPitch::magnetarDryGain (0.0f) == 0.0f);
+        CHECK (FilterPitch::magnetarFxGain (0.0f) == 0.0f);
     }
 
     SECTION ("At rest the filter sits at DECAY's stop frequency, with the manual's peak gain")
@@ -419,9 +419,9 @@ TEST_CASE ("MORPH bass envelope filter: the M82's sweep, Q, SENS, DECAY and DRY 
         const auto frequencyAfter = [&] (float inputDb, float sens, float decay = 0.0f)
         {
             EffectRig rig;
-            morph (rig, 5.0f, 5.0f, decay, 5.0f, sens);
+            magnetar (rig, 5.0f, 5.0f, decay, 5.0f, sens);
             rig.runMono (sine (220.0, juce::Decibels::decibelsToGain (inputDb), 0.5));
-            return rig.processor.getMorphFrequency();
+            return rig.processor.getMagnetarFrequency();
         };
         CHECK (frequencyAfter (-16.0f, 10.0f) > 3000.0f);   // the manual: about -23 dBV opens it fully at full SENS
         CHECK (frequencyAfter (-70.0f, 10.0f) < 80.0f);
@@ -433,19 +433,19 @@ TEST_CASE ("MORPH bass envelope filter: the M82's sweep, Q, SENS, DECAY and DRY 
 
         // After a loud note stops, it settles back where DECAY says.
         EffectRig rig;
-        morph (rig, 5.0f, 5.0f, 10.0f, 5.0f, 10.0f);
+        magnetar (rig, 5.0f, 5.0f, 10.0f, 5.0f, 10.0f);
         auto input = sine (220.0, 0.3f, 0.5);
         const auto quiet = silence (1.0);
         input.insert (input.end(), quiet.begin(), quiet.end());
         rig.runMono (input);
-        CHECK_THAT (rig.processor.getMorphFrequency(), Catch::Matchers::WithinRel (1300.0, 0.02));
+        CHECK_THAT (rig.processor.getMagnetarFrequency(), Catch::Matchers::WithinRel (1300.0, 0.02));
     }
 
     SECTION ("A loud note through the open filter: the highs come up, the dry lows stay")
     {
         // With the filter open (full SENS), a 3.2 kHz note is on its peak:
         // about the manual's peak gain there (17 dB with Q at noon).
-        CHECK_THAT (gainFor (3200.0, -16.0f, 0.0f, 10.0f, 0.0f, 5.0f, 10.0f), WithinAbs (FilterPitch::morphPeakDb (5.0f, 3200.0f), 1.5));
+        CHECK_THAT (gainFor (3200.0, -16.0f, 0.0f, 10.0f, 0.0f, 5.0f, 10.0f), WithinAbs (FilterPitch::magnetarPeakDb (5.0f, 3200.0f), 1.5));
         // The same note with SENS at 0: the filter stays at 76 Hz, far below.
         CHECK (gainFor (3200.0, -16.0f, 0.0f, 10.0f, 0.0f, 5.0f, 0.0f) < -10.0f);
     }
@@ -455,18 +455,18 @@ TEST_CASE ("MORPH bass envelope filter: the M82's sweep, Q, SENS, DECAY and DRY 
         CHECK_THAT (gainFor (110.0, -20.0f, 10.0f, 0.0f, 5.0f, 5.0f, 5.0f), WithinAbs (6.02, 0.05));
         CHECK_THAT (gainFor (110.0, -20.0f, 5.0f, 0.0f, 5.0f, 5.0f, 5.0f), WithinAbs (-6.02, 0.05));
         EffectRig rig;
-        morph (rig, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f);
+        magnetar (rig, 0.0f, 0.0f, 5.0f, 5.0f, 5.0f);
         CHECK (rms (rig.runMono (sine (110.0, 0.3f, 0.5)), 0.2) < 1.0e-4f);
     }
 
     SECTION ("Its output never goes past the pedal's maximum, and stays finite")
     {
         EffectRig rig;
-        morph (rig, 10.0f, 10.0f, 3.0f, 10.0f, 10.0f);
+        magnetar (rig, 10.0f, 10.0f, 3.0f, 10.0f, 10.0f);
         const auto output = rig.runMono (sine (900.0, 2.0f, 0.5));
         const auto peak = std::abs (*std::max_element (output.begin() + (std::ptrdiff_t) (0.1 * sampleRate), output.end(),
                                                        [] (float a, float b) { return std::abs (a) < std::abs (b); }));
-        CHECK (peak <= FilterPitch::morphMaxOutput + 1.0e-3f);
+        CHECK (peak <= FilterPitch::magnetarMaxOutput + 1.0e-3f);
         CHECK (allFinite (output));
     }
 }

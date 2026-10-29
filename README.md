@@ -66,7 +66,7 @@ so the guide below still describes the guitar version's effects.
     a volume pedal, five wahs, six auto-wahs (the pedal sets sensitivity or attack), eight pitch bends (heel: no shift,
     toe: the interval, as far as six octaves down) and eight harmonies (your note plus a voice the pedal moves between two intervals);
     or a **Talk Box**: the amp's sound, after the cab, shaped into vowels (oo to ee) by the expression pedal (TALK BOX),
-    with RESONANCE and MIX; or **Morph**, a bass envelope filter modelled on the MXR M82: DRY and FX levels (so the lows
+    with RESONANCE and MIX; or **Magnetar**, a bass envelope filter modelled on the MXR M82: DRY and FX levels (so the lows
     stay solid), DECAY (where the filter rests, 76 Hz to 1.3 kHz), Q and SENS, sweeping up to 3.2 kHz as you dig in.
   - **2 OD / Distortion:** two bass preamps/distortions, each built from a trace of the pedal's circuit with its real
     component values. Pick one with MODEL.

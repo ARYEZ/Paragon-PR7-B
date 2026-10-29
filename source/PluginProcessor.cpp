@@ -294,8 +294,8 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
                                       param (ParamIDs::fpInterval) * whammy, param (ParamIDs::fpMix),
                                       (int) param (ParamIDs::fpXpProgram),
                                       expressionTarget == ExpressionTargets::whammyWah ? pedal : 0.0f,
-                                      param (ParamIDs::morphDry), param (ParamIDs::morphFx), param (ParamIDs::morphDecay),
-                                      param (ParamIDs::morphQ), param (ParamIDs::morphSens) });
+                                      param (ParamIDs::magnetarDry), param (ParamIDs::magnetarFx), param (ParamIDs::magnetarDecay),
+                                      param (ParamIDs::magnetarQ), param (ParamIDs::magnetarSens) });
     // GLITCH: before the amp (PRE) or after the EQ (POST). The pedal, on
     // GLITCH, fades it in: dry at the heel, its MIX at the toe.
     const effects::Glitch::Settings glitchSettings { isOn (ParamIDs::glitchOn), (effects::Glitch::Mode) (int) param (ParamIDs::glitchMode),

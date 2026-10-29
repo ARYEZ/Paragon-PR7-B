@@ -27,9 +27,9 @@ namespace
     constexpr float chorus = 0, flanger = 1, phaser = 2, tremolo = 3, dimension = 4, uniVibe = 5, rotary = 6, vibrato = 7,
                     harmonicTremolo = 8, autoPan = 9, doubler = 10;
     // FILTER / PITCH types.
-    constexpr float autoWah = 0, pitchShifter = 1, whammyWah = 2, talkBoxType = 3, morphType = 4;
+    constexpr float autoWah = 0, pitchShifter = 1, whammyWah = 2, talkBoxType = 3, magnetarType = 4;
     constexpr float pedalTalkBox = 8;   // the expression pedal's TALK BOX setting
-    constexpr float daybreakComp = 1;   // COMP / GATE's TYPE
+    constexpr float daybreakComp = 1, lumenComp = 2;   // COMP / GATE's TYPE
     constexpr float glitchSequence = 1, glitchTexturizer = 3, glitchSixteenth = 3;   // GLITCH's MODE and LENGTH
     constexpr float pedalGlitch = 7;   // the expression pedal's GLITCH setting
     constexpr float pedalWah = 2;      // the expression pedal's WAH / FILTER setting
@@ -109,6 +109,34 @@ std::vector<Rig> makeFactoryRigs()
             "for solid, tight lows and a clear attack under the amp's character. Raise DI BLEND for more punch and "
             "definition, lower it for more amp. If the lows sound thin, try PHASE.\n"
             "Amp: any bass amp capture (an Ampeg SVT works well).\nCab: an 8x10 or 4x10 IR."),
+
+        // LUMEN (modelled on the Ampeg Opto Comp): the four suggested
+        // settings from its manual, read off the drawn knobs, under our own
+        // names. The manual leaves the output level to taste: LEVEL makes
+        // up what the compression takes, matched to Clean DI.
+        make ("Easy Opto", A, 8, "Clean,Compressor", { { rigLevel, 0 },
+            { compOn, 1 }, { compType, lumenComp }, { lumenCompression, 2.5f }, { lumenRelease, 3.5f }, { compLevel, 2.9f } },
+            "LUMEN, the optical compressor, gently: a low ratio and a medium-fast release that smooths out the peaks "
+            "without you hearing it work.\n"
+            "Amp: any clean bass amp capture, or none.\nCab: an 8x10 or 4x10 IR, or none."),
+
+        make ("Fretless Opto", A, 9, "Clean,Compressor", { { rigLevel, 0 },
+            { compOn, 1 }, { compType, lumenComp }, { lumenCompression, 9.5f }, { lumenRelease, 4.5f }, { compLevel, 5.7f } },
+            "LUMEN near its highest ratio with a medium release: long, even notes that sing and sustain, for fretless "
+            "lines.\n"
+            "Amp: a clean, warm amp capture.\nCab: a 1x15 or 4x10 IR."),
+
+        make ("Opto Squash", A, 10, "Compressor", { { rigLevel, 0 },
+            { compOn, 1 }, { compType, lumenComp }, { lumenCompression, 9.5f }, { lumenRelease, 9.5f }, { compLevel, 6.6f } },
+            "LUMEN fully squashed: the highest ratio and the slowest release, so every note comes out at the same level, "
+            "with the light cell's slow breathing.\n"
+            "Amp: any bass amp capture.\nCab: an 8x10 IR."),
+
+        make ("Opto Slap", A, 11, "Funk,Compressor", { { rigLevel, 0 },
+            { compOn, 1 }, { compType, lumenComp }, { lumenCompression, 2.5f }, { lumenRelease, 1.5f }, { compLevel, 2.7f } },
+            "LUMEN light and fast, for slap: a low ratio and a quick release that tames the pops and thumps and lets "
+            "go before the next one.\n"
+            "Amp: a bright, clean amp capture, or none.\nCab: a 4x10 IR."),
 
         // ---- B: drive -----------------------------------------------------
         make ("Gotham Grit", B, 1, "Drive", { { rigLevel, 7 },
@@ -218,22 +246,22 @@ std::vector<Rig> makeFactoryRigs()
             "Tremolo in time with the song: chopping eighth notes.\n"
             "Amp: a clean amp capture.\nCab: a 4x10 IR."),
 
-        // MORPH (modelled on the MXR M82): the three sample settings from
+        // MAGNETAR (modelled on the MXR M82): the three sample settings from
         // its manual, read off the drawn knobs, under our own names.
         make ("Synth Bass Filter", C, 8, "Synth,Filter", { { rigLevel, 8.3f },
-            { fpOn, 1 }, { fpType, morphType }, { morphDry, 1 }, { morphFx, 9 }, { morphDecay, 0.5f }, { morphQ, 4 }, { morphSens, 6 } },
-            "MORPH almost all filter, resting right down low: round, synthy notes that bloom open as you play. "
+            { fpOn, 1 }, { fpType, magnetarType }, { magnetarDry, 1 }, { magnetarFx, 9 }, { magnetarDecay, 0.5f }, { magnetarQ, 4 }, { magnetarSens, 6 } },
+            "MAGNETAR almost all filter, resting right down low: round, synthy notes that bloom open as you play. "
             "Turn SENS up or down to suit your bass's output.\n"
             "Amp: a clean amp capture, or none.\nCab: an 8x10 IR, or none."),
 
         make ("Seventies Funk Filter", C, 9, "Funk,Filter", { { rigLevel, 9.9f },
-            { fpOn, 1 }, { fpType, morphType }, { morphDry, 4 }, { morphFx, 9 }, { morphDecay, 3.5f }, { morphQ, 6.5f }, { morphSens, 9.5f } },
-            "MORPH's classic funk quack, with some dry bass underneath for the low end. Dig in for the full sweep.\n"
+            { fpOn, 1 }, { fpType, magnetarType }, { magnetarDry, 4 }, { magnetarFx, 9 }, { magnetarDecay, 3.5f }, { magnetarQ, 6.5f }, { magnetarSens, 9.5f } },
+            "MAGNETAR's classic funk quack, with some dry bass underneath for the low end. Dig in for the full sweep.\n"
             "Amp: a clean Ampeg or GK capture.\nCab: a 4x10 IR."),
 
         make ("Dance Filter", C, 10, "Filter,Electronic", { { rigLevel, 12 }, { eqOn, 1 }, { eqLevel, 9 },
-            { fpOn, 1 }, { fpType, morphType }, { morphDry, 2 }, { morphFx, 9.5f }, { morphDecay, 8 }, { morphQ, 5.5f }, { morphSens, 9 } },
-            "MORPH resting high, so it stays bright and vocal between notes: a squelchy techno and dance bass. With so little "
+            { fpOn, 1 }, { fpType, magnetarType }, { magnetarDry, 2 }, { magnetarFx, 9.5f }, { magnetarDecay, 8 }, { magnetarQ, 5.5f }, { magnetarSens, 9 } },
+            "MAGNETAR resting high, so it stays bright and vocal between notes: a squelchy techno and dance bass. With so little "
             "dry bass it's a quiet sound, so the EQ (flat) adds 9 dB of level on top of RIG LEVEL.\n"
             "Amp: a clean amp capture, or none.\nCab: a 4x10 IR, or none."),
 

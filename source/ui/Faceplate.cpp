@@ -1068,21 +1068,21 @@ void Faceplate::paintFilterPitch (juce::Graphics& g, juce::Rectangle<float> head
     auto knobs = isRack() ? juce::Rectangle<float>() : settingsColumn (body, 0.4f);
     const auto glass = screen (g, body);
     auto plot = glass.reduced (glass.getWidth() * 0.05f, glass.getHeight() * 0.12f);
-    if (type == Type::morph)
+    if (type == Type::magnetar)
     {
-        // What MORPH does to the bass right now: DRY plus the filter's peak
+        // What MAGNETAR does to the bass right now: DRY plus the filter's peak
         // (at FX's level), across 40 Hz to 6 kHz, the peak where the filter
         // is now. A faint line marks DECAY's stop frequency, where it rests.
-        caption (g, plot, "ENVELOPE FILTER  " + juce::String (juce::roundToInt (on ? processor.getMorphFrequency()
-                                                                                    : effects::FilterPitch::morphStopHz (raw (ParamIDs::morphDecay)))) + " Hz");
+        caption (g, plot, "ENVELOPE FILTER  " + juce::String (juce::roundToInt (on ? processor.getMagnetarFrequency()
+                                                                                    : effects::FilterPitch::magnetarStopHz (raw (ParamIDs::magnetarDecay)))) + " Hz");
         const auto lowHz = 40.0f, highHz = 6000.0f, topDb = 30.0f, bottomDb = -24.0f;
         const auto xFor = [&] (float hz) { return plot.getX() + plot.getWidth() * std::log (hz / lowHz) / std::log (highHz / lowHz); };
         const auto yFor = [&] (float db) { return plot.getBottom() - plot.getHeight() * (juce::jlimit (bottomDb, topDb, db) - bottomDb) / (topDb - bottomDb); };
-        const auto stopHz = effects::FilterPitch::morphStopHz (raw (ParamIDs::morphDecay));
-        const auto centreHz = on ? juce::jlimit (stopHz, effects::FilterPitch::morphTopHz, processor.getMorphFrequency()) : stopHz;
-        const auto q = juce::Decibels::decibelsToGain (effects::FilterPitch::morphPeakDb (raw (ParamIDs::morphQ), centreHz));
-        const auto dry = effects::FilterPitch::morphDryGain (raw (ParamIDs::morphDry));
-        const auto fx = effects::FilterPitch::morphFxGain (raw (ParamIDs::morphFx));
+        const auto stopHz = effects::FilterPitch::magnetarStopHz (raw (ParamIDs::magnetarDecay));
+        const auto centreHz = on ? juce::jlimit (stopHz, effects::FilterPitch::magnetarTopHz, processor.getMagnetarFrequency()) : stopHz;
+        const auto q = juce::Decibels::decibelsToGain (effects::FilterPitch::magnetarPeakDb (raw (ParamIDs::magnetarQ), centreHz));
+        const auto dry = effects::FilterPitch::magnetarDryGain (raw (ParamIDs::magnetarDry));
+        const auto fx = effects::FilterPitch::magnetarFxGain (raw (ParamIDs::magnetarFx));
 
         g.setColour (orange.withAlpha (0.15f));
         g.drawHorizontalLine (juce::roundToInt (yFor (0.0f)), plot.getX(), plot.getRight());
@@ -1145,16 +1145,16 @@ void Faceplate::paintFilterPitch (juce::Graphics& g, juce::Rectangle<float> head
         return;
 
     // SENSITIVITY and RESONANCE (auto-wah), RESONANCE (talk box), and MIX;
-    // MORPH's five knobs as on its pedal.
+    // MAGNETAR's five knobs as on its pedal.
     std::vector<std::pair<const char*, const char*>> list;
-    if (type == Type::morph)
-        list = { { ParamIDs::morphDry, "DRY" }, { ParamIDs::morphFx, "FX" }, { ParamIDs::morphDecay, "DECAY" },
-                 { ParamIDs::morphQ, "Q" }, { ParamIDs::morphSens, "SENS" } };
+    if (type == Type::magnetar)
+        list = { { ParamIDs::magnetarDry, "DRY" }, { ParamIDs::magnetarFx, "FX" }, { ParamIDs::magnetarDecay, "DECAY" },
+                 { ParamIDs::magnetarQ, "Q" }, { ParamIDs::magnetarSens, "SENS" } };
     else if (type == Type::autoWah)
         list = { { ParamIDs::fpSensitivity, "SENS" }, { ParamIDs::fpResonance, "RES" } };
     else if (type == Type::talkBox)
         list = { { ParamIDs::fpResonance, "RES" } };
-    if (type != Type::morph)
+    if (type != Type::magnetar)
         list.push_back ({ ParamIDs::fpMix, "MIX" });
     const auto cellWidth = knobs.getWidth() / (float) juce::jmax (2, (int) list.size());   // a lone MIX as big as two would be
     knobs = knobs.withSizeKeepingCentre (cellWidth * (float) list.size(), knobs.getHeight());
