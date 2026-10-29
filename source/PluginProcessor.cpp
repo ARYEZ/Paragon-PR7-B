@@ -96,6 +96,15 @@ void ParagonX1AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     preparedBlockSize = juce::jmax (1, samplesPerBlock);
     bypassDelay.prepare ({ sampleRate, (juce::uint32) preparedBlockSize, 1 });
     bypassDry.setSize (1, preparedBlockSize);
+    diBeforePedals.setSize (1, preparedBlockSize);
+    diAfterPedals.setSize (1, preparedBlockSize);
+    diDelay.prepare ({ sampleRate, (juce::uint32) preparedBlockSize, 1 });
+    diDelay.reset();
+    for (auto* smoothed : { &diBlend, &diPoint, &diPhase })
+        smoothed->reset (sampleRate, gainRampSeconds);
+    diBlend.setCurrentAndTargetValue (param (ParamIDs::ampDiBlend));
+    diPoint.setCurrentAndTargetValue (juce::roundToInt (param (ParamIDs::ampDiPoint)) == 1 ? 1.0f : 0.0f);
+    diPhase.setCurrentAndTargetValue (isOn (ParamIDs::ampDiPhase) ? -1.0f : 1.0f);
     bypassAmount.reset (sampleRate, gainRampSeconds);
     bypassAmount.setCurrentAndTargetValue (isOn (ParamIDs::bypass) ? 1.0f : 0.0f);
     amp.prepare (sampleRate, preparedBlockSize);
@@ -255,6 +264,7 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     inputGain.setTargetValue (juce::Decibels::decibelsToGain (inputGainDb->load()));
     inputGain.applyGain (mono, numSamples);
     inputMeter.pushSamples (mono, numSamples);
+    diBeforePedals.copyFrom (0, 0, mono, numSamples);   // the DI before the pedals: the bass, at the INPUT level
     faceplateMeter.pushSamples (mono, numSamples);
 
     // PITCH: TUNING, OCTAVER and FREEZE, before anything else shapes the guitar.
@@ -327,10 +337,35 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     driveSettings.halo.fuzz = param (ParamIDs::haloFuzz);
     driveSettings.halo.outputDb = param (ParamIDs::driveLevel);
     drive.process (monoBlock, driveSettings);
+    diAfterPedals.copyFrom (0, 0, mono, numSamples);    // the DI after the pedals: what goes into the amp
 
-    amp.process (mono, numSamples, ampOn->load() > 0.5f, ampNormalise->load() > 0.5f);
+    const auto ampActive = ampOn->load() > 0.5f;
+    amp.process (mono, numSamples, ampActive, ampNormalise->load() > 0.5f);
     cab.process (mono, numSamples, cabOn->load() > 0.5f);
     presence.process (monoBlock, param (ParamIDs::presence));
+
+    // DI BLEND: the clean DI mixed with the amp and cab, delayed by what the
+    // amp model delays its sound (none with it off, or for a model at this
+    // sample rate) so the two line up rather than comb-filtering. At 0 the
+    // amp's sound is left exactly as it was.
+    {
+        diBlend.setTargetValue (param (ParamIDs::ampDiBlend));
+        diPoint.setTargetValue (juce::roundToInt (param (ParamIDs::ampDiPoint)) == 1 ? 1.0f : 0.0f);
+        diPhase.setTargetValue (isOn (ParamIDs::ampDiPhase) ? -1.0f : 1.0f);
+        const auto ampDelay = (float) juce::jlimit (0, diDelay.getMaximumDelayInSamples() - 1, ampActive ? amp.getLatencySamples() : 0);
+        const auto mixing = diBlend.getTargetValue() > 0.0f || diBlend.isSmoothing();
+        const auto* before = diBeforePedals.getReadPointer (0);
+        const auto* after = diAfterPedals.getReadPointer (0);
+        for (int i = 0; i < numSamples; ++i)
+        {
+            const auto point = diPoint.getNextValue();
+            diDelay.pushSample (0, after[i] + point * (before[i] - after[i]));
+            const auto di = diDelay.popSample (0, ampDelay) * diPhase.getNextValue();
+            const auto blend = diBlend.getNextValue();
+            if (mixing)
+                mono[i] += blend * (di - mono[i]);
+        }
+    }
 
     // TALK BOX: the amp's sound shaped into vowels by the pedal (its TALK BOX
     // setting; unassigned, it rests at the heel: "oo").

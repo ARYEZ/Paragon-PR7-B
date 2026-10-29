@@ -263,6 +263,13 @@ private:
     juce::AudioBuffer<float> bypassDry;
     juce::SmoothedValue<float> bypassAmount;
 
+    // The amp/DI blend: the bass taken clean before the pedals and again
+    // after them, the chosen one delayed by what the amp model delays its
+    // sound (so they line up), then mixed in after the cab and PRESENCE.
+    juce::AudioBuffer<float> diBeforePedals, diAfterPedals;
+    juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::None> diDelay { 8192 };
+    juce::SmoothedValue<float> diBlend, diPoint, diPhase;   // diPoint: 0 after the pedals, 1 before; diPhase: 1 or -1
+
     // The expression pedal's VOLUME, and the tuner's mute.
     juce::SmoothedValue<float> expressionVolume, tunerOpen;
 

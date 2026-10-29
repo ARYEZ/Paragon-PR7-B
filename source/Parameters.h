@@ -10,6 +10,10 @@ namespace ParamIDs
     inline constexpr auto outputGain   = "outputGain";
     inline constexpr auto ampOn        = "ampOn";
     inline constexpr auto ampNormalise = "ampNormalise";
+    // The amp/DI blend: a clean DI mixed with the amp and cab, as in a studio.
+    inline constexpr auto ampDiBlend = "ampDiBlend";
+    inline constexpr auto ampDiPoint = "ampDiPoint";
+    inline constexpr auto ampDiPhase = "ampDiPhase";
     inline constexpr auto cabOn        = "cabOn";
 
     // Phase 3

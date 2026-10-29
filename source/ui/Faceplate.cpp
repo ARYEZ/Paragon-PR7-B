@@ -504,7 +504,13 @@ void Faceplate::paintAmp (juce::Graphics& g, juce::Rectangle<float> header, juce
     auto inside = glass.reduced (glass.getWidth() * 0.06f, glass.getHeight() * 0.14f);
     g.setColour (orange.withAlpha (0.7f));
     g.setFont (font (9.0f));
-    g.drawText ("MODEL", inside.removeFromTop (12.0f), juce::Justification::topLeft, false);
+    auto topLine = inside.removeFromTop (12.0f);
+    g.drawText ("MODEL", topLine, juce::Justification::topLeft, false);
+    // The DI blended in, when it is: how much, from where, and if it's flipped.
+    if (raw (ParamIDs::ampDiBlend) > 0.0f)
+        g.drawText ("DI " + text (ParamIDs::ampDiBlend) + "  " + text (ParamIDs::ampDiPoint).toUpperCase()
+                        + (raw (ParamIDs::ampDiPhase) > 0.5f ? "  PHASE" : ""),
+                    topLine, juce::Justification::topRight, false);
     g.setColour (orange.withAlpha (isOn() ? 1.0f : 0.45f));
     g.setFont (font (juce::jmin (22.0f, inside.getHeight() * 0.3f)));
     g.drawFittedText (status.loading ? juce::String ("LOADING...") : hasModel ? status.file.getFileNameWithoutExtension().toUpperCase() : juce::String ("NO MODEL LOADED"),

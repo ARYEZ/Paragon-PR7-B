@@ -418,3 +418,94 @@ TEST_CASE ("A project whose model file is missing keeps the path and says so", "
     // And the plugin still passes audio.
     CHECK (allFinite (restored.play (10)));
 }
+
+TEST_CASE ("DI BLEND: a clean DI mixed with the amp and cab, in time with it", "[amp]")
+{
+    // The 220 Hz sine TestRig::play sends, sample by sample.
+    const auto input = [] (long n, double rate) { return 0.3f * (float) std::sin (juce::MathConstants<double>::twoPi * 220.0 * (double) n / rate); };
+    const auto heavyDrive = [] (TestRig& rig)
+    {
+        rig.set (ParamIDs::driveOn, 1.0f);
+        rig.set (ParamIDs::driveGain, 10.0f);
+        rig.set (ParamIDs::dualBlend, 10.0f);
+        rig.set (ParamIDs::dualMod, 10.0f);
+    };
+    const auto maxDifference = [] (const std::vector<float>& a, const std::vector<float>& b, size_t from)
+    {
+        float most = 0.0f;
+        for (size_t i = from; i < std::min (a.size(), b.size()); ++i)
+            most = std::max (most, std::abs (a[i] - b[i]));
+        return most;
+    };
+
+    SECTION ("BLEND at 0 leaves the sound exactly as it was, whatever POINT and PHASE say")
+    {
+        TestRig plain, set;
+        heavyDrive (plain);
+        heavyDrive (set);
+        set.set (ParamIDs::ampDiPoint, 1.0f);
+        set.set (ParamIDs::ampDiPhase, 1.0f);
+        const auto a = plain.play (40), b = set.play (40);
+        CHECK (maxDifference (a, b, 0) == 0.0f);
+    }
+
+    SECTION ("BEFORE PEDALS at full BLEND is the bass itself, clean, even with a heavy drive on")
+    {
+        TestRig rig;
+        heavyDrive (rig);
+        rig.set (ParamIDs::ampDiBlend, 1.0f);
+        rig.set (ParamIDs::ampDiPoint, 1.0f);
+        const auto output = rig.play (40);
+        std::vector<float> clean (output.size());
+        for (size_t i = 0; i < clean.size(); ++i)
+            clean[i] = input ((long) i, rig.sampleRate);
+        CHECK (maxDifference (output, clean, 4096) < 1.0e-4f);   // after the knobs' glide
+
+        TestRig driven;
+        heavyDrive (driven);
+        CHECK (maxDifference (driven.play (40), clean, 4096) > 0.05f);   // without the DI: clearly the drive
+    }
+
+    SECTION ("AFTER PEDALS is what goes into the amp: with no amp model or IR loaded it matches the amp's path")
+    {
+        TestRig amp, di;
+        heavyDrive (amp);
+        heavyDrive (di);
+        di.set (ParamIDs::ampDiBlend, 1.0f);
+        CHECK (maxDifference (amp.play (40), di.play (40), 4096) < 1.0e-5f);
+    }
+
+    SECTION ("PHASE flips the DI: half and half, flipped, against an identical amp path, they cancel")
+    {
+        TestRig rig;
+        heavyDrive (rig);
+        rig.set (ParamIDs::ampDiBlend, 0.5f);
+        rig.set (ParamIDs::ampDiPhase, 1.0f);
+        const auto output = rig.play (40);
+        CHECK (rms (output, 4096) < 1.0e-5f);
+    }
+
+    SECTION ("With an amp model that delays its sound (resampled at 44.1 kHz), the DI is delayed by the same amount")
+    {
+        TestRig rig (44100.0);
+        rig.processor.loadAmpModel (wavenetModel);
+        rig.waitForLoads();
+        rig.processor.prepareToPlay (44100.0, blockSize);
+        const auto latency = rig.processor.getLatencySamples();
+        REQUIRE (latency > 0);
+        rig.set (ParamIDs::ampDiBlend, 1.0f);
+        rig.play (40);   // let BLEND glide all the way up
+
+        std::vector<float> click ((size_t) blockSize * 4, 0.0f);
+        click[10] = 0.5f;
+        std::vector<float> output;
+        for (size_t start = 0; start < click.size(); start += (size_t) blockSize)
+        {
+            const auto block = rig.playBlock ({ click.begin() + (long) start, click.begin() + (long) start + blockSize });
+            output.insert (output.end(), block.begin(), block.end());
+        }
+        const auto peak = (int) std::distance (output.begin(), std::max_element (output.begin(), output.end(),
+                                                                                [] (float a, float b) { return std::abs (a) < std::abs (b); }));
+        CHECK (peak == 10 + latency);
+    }
+}

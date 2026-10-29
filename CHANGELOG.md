@@ -2,6 +2,17 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.19.0
+
+- **Amp/DI blend in the AMP (NAM) block:** the classic studio bass sound, a clean DI signal mixed with the amp and cab. The DI gives tight, solid lows and a clear attack; the amp gives the character.
+  - **BLEND** (0 to 100%) sets how much DI goes in. At 0%, the default, the sound is exactly as before, so your rigs and projects don't change.
+  - **POINT** sets where the DI is taken:
+    - **After Pedals:** what goes into the amp, like a DI box between your pedalboard and the amp. This is the usual studio way.
+    - **Before Pedals:** your bass itself, clean, whatever the drives are doing.
+  - **PHASE** flips the DI, as on a mixing desk: if a blend sounds thin or hollow, the two are partly cancelling, and flipping one fixes it.
+  - **In time with the amp:** when an amp model delays its sound (one made at another sample rate), the DI is delayed by the same amount, so the two line up instead of comb-filtering. The amp's screen shows the DI setting while it's in use.
+- **New rig: A7 Amp + DI Blend.** A compressed clean bass with 40% DI taken after the pedals. It keeps your amp model and cab IR, like the other factory rigs.
+
 ## 0.18.0
 
 - **HALO, a germanium fuzz, is OD / DISTORTION's third MODEL**, after Obsidian and Gotham. It's PR7-G's Halo: the original two-transistor germanium fuzz of the late '60s, solved part by part with the published component values, at 8x oversampling.

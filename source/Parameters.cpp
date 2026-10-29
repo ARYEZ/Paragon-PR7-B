@@ -281,5 +281,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
     // third MODEL, the germanium fuzz.
     constexpr int v30 = 30;
     layout.add (makeFloat (ParamIDs::haloFuzz, "Halo Fuzz", { 0.0f, 10.0f, 0.1f }, 5.0f, v30, asKnob));
+
+    // Added in PR7-B 0.19.0: the amp/DI blend. BLEND at 0 (the default) is
+    // the amp alone, as before. POINT: where the DI is taken, after the
+    // pedals (a DI box between the board and the amp, the usual studio way)
+    // or before them (the bass itself). Only ever add to its list.
+    constexpr int v31 = 31;
+    layout.add (makeFloat (ParamIDs::ampDiBlend, "DI Blend", { 0.0f, 1.0f, 0.01f }, 0.0f, v31, asPercent));
+    layout.add (makeChoice (ParamIDs::ampDiPoint, "DI Point", v31, juce::StringArray { "After Pedals", "Before Pedals" }, 0));
+    layout.add (makeSwitch (ParamIDs::ampDiPhase, "DI Phase", v31, false));
     return layout;
 }
