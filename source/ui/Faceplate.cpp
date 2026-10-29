@@ -1,5 +1,7 @@
 #include "Faceplate.h"
 
+#include <complex>
+
 #include "Finish.h"
 #include "LedDisplay.h"
 #include "Parameters.h"
@@ -191,7 +193,13 @@ Faceplate::Look Faceplate::getLook() const
         case Unit::amp:      return Look::amp;
         case Unit::cabinet:  return Look::cabinet;
         case Unit::pitch:    return Look::pitch;
-        case Unit::dynamics: return juce::roundToInt (raw (ParamIDs::compType)) == (int) effects::CompGate::Type::daybreak ? Look::daybreak : Look::classic;
+        case Unit::dynamics:
+        {
+            const auto type = juce::roundToInt (raw (ParamIDs::compType));
+            return type == (int) effects::CompGate::Type::daybreak ? Look::daybreak
+                 : type == (int) effects::CompGate::Type::lumen    ? Look::lumen
+                                                                   : Look::classic;
+        }
         case Unit::delay:    return Look::delay;
         case Unit::reverb:   return Look::reverb;
         case Unit::modulation: return Look::modulation;
@@ -343,6 +351,7 @@ void Faceplate::paint (juce::Graphics& g)
         case Look::pitch:    paintPitch (g, header, content); break;
         case Look::classic:  paintClassic (g, header, content); break;
         case Look::daybreak: paintDaybreak (g, header, content); break;
+        case Look::lumen: paintLumen (g, header, content); break;
         case Look::delay:    paintDelay (g, header, content); break;
         case Look::reverb:   paintReverb (g, header, content); break;
         case Look::modulation:  paintModulation (g, header, content); break;
@@ -773,6 +782,68 @@ void Faceplate::paintDaybreak (juce::Graphics& g, juce::Rectangle<float> header,
     finish (g, glass);
 }
 
+void Faceplate::paintLumen (juce::Graphics& g, juce::Rectangle<float> header, juce::Rectangle<float> body)
+{
+    // An optical compressor: a lamp shines on a light cell, and the
+    // brighter it shines the more the bass is turned down. The screen shows
+    // that lamp glowing as hard as it's working, with the reading.
+    nameplate (g, header, "LUMEN", "OPTICAL COMPRESSOR");
+    const auto db = isOn() ? shownReduction : 0.0f;
+    const auto glow = juce::jlimit (0.0f, 1.0f, -db / 15.0f);
+
+    const auto paintScreen = [&] (juce::Rectangle<float> area, bool big)
+    {
+        const auto glass = screen (g, area);
+        auto plot = glass.reduced (glass.getWidth() * 0.05f, glass.getHeight() * 0.12f);
+        caption (g, plot, "LIGHT CELL  /  GAIN REDUCTION");
+
+        // The lamp: a dim ring at rest, a bloom of light as it works.
+        auto lampArea = plot.removeFromLeft (juce::jmin (plot.getHeight(), plot.getWidth() * 0.4f));
+        const auto lamp = lampArea.withSizeKeepingCentre (lampArea.getHeight() * 0.62f, lampArea.getHeight() * 0.62f);
+        for (int ring = 4; ring >= 1; --ring)
+        {
+            g.setColour (orange.withAlpha (glow * 0.12f * (float) (5 - ring)));
+            g.fillEllipse (lamp.expanded (lamp.getWidth() * 0.16f * (float) ring * glow));
+        }
+        g.setColour (orange.withAlpha (0.25f + 0.75f * glow));
+        g.fillEllipse (lamp.reduced (lamp.getWidth() * 0.2f));
+        g.setColour (orange.withAlpha (0.5f));
+        g.drawEllipse (lamp, 1.2f);
+
+        plot.removeFromLeft (plot.getWidth() * 0.06f);
+        g.setColour (orange);
+        g.setFont (font (juce::jmin (big ? 26.0f : 18.0f, plot.getHeight() * 0.3f)));
+        g.drawText (juce::String (db, 1) + " dB", plot.removeFromTop (plot.getHeight() * 0.45f), juce::Justification::centredRight, false);
+        bars (g, plot.reduced (0.0f, plot.getHeight() * 0.18f), -db / 20.0f, big ? 20 : 16);
+        finish (g, glass);
+    };
+
+    if (isRack())
+    {
+        // The real knobs and PAD are beside it.
+        paintScreen (body, true);
+        return;
+    }
+
+    auto meter = body.removeFromBottom (juce::jmin (64.0f, body.getHeight() * 0.38f));
+    body.removeFromBottom (6.0f);
+
+    // PAD on one of the unit's small keys, the GATE under it.
+    auto side = body.removeFromRight (150.0f);
+    readout (g, side.removeFromBottom (26.0f), "GATE", text (ParamIDs::gateThreshold));
+    side.removeFromBottom (4.0f);
+    smallKey (g, side.withSizeKeepingCentre (78.0f, juce::jmin (side.getHeight(), 52.0f)), "PAD -15", raw (ParamIDs::lumenPad) > 0.5f);
+    body.removeFromRight (8.0f);
+
+    // COMPRESSION, RELEASE and LEVEL: the pedal's three knobs.
+    const auto cellWidth = body.getWidth() / 3.0f;
+    for (auto [id, name] : { std::pair { ParamIDs::lumenCompression, "COMPRESSION" }, std::pair { ParamIDs::lumenRelease, "RELEASE" },
+                             std::pair { ParamIDs::compLevel, "LEVEL" } })
+        bigKnob (g, body.removeFromLeft (cellWidth).reduced (2.0f, 0.0f), name, normalised (id));
+
+    paintScreen (meter, false);
+}
+
 void Faceplate::paintDelay (juce::Graphics& g, juce::Rectangle<float> header, juce::Rectangle<float> body)
 {
     // The delay's TYPE as its name; its repeats on a screen; TIME in digits.
@@ -997,7 +1068,48 @@ void Faceplate::paintFilterPitch (juce::Graphics& g, juce::Rectangle<float> head
     auto knobs = isRack() ? juce::Rectangle<float>() : settingsColumn (body, 0.4f);
     const auto glass = screen (g, body);
     auto plot = glass.reduced (glass.getWidth() * 0.05f, glass.getHeight() * 0.12f);
-    if (type == Type::autoWah || type == Type::talkBox)
+    if (type == Type::magnetar)
+    {
+        // What MAGNETAR does to the bass right now: DRY plus the filter's peak
+        // (at FX's level), across 40 Hz to 6 kHz, the peak where the filter
+        // is now. A faint line marks DECAY's stop frequency, where it rests.
+        caption (g, plot, "ENVELOPE FILTER  " + juce::String (juce::roundToInt (on ? processor.getMagnetarFrequency()
+                                                                                    : effects::FilterPitch::magnetarStopHz (raw (ParamIDs::magnetarDecay)))) + " Hz");
+        const auto lowHz = 40.0f, highHz = 6000.0f, topDb = 30.0f, bottomDb = -24.0f;
+        const auto xFor = [&] (float hz) { return plot.getX() + plot.getWidth() * std::log (hz / lowHz) / std::log (highHz / lowHz); };
+        const auto yFor = [&] (float db) { return plot.getBottom() - plot.getHeight() * (juce::jlimit (bottomDb, topDb, db) - bottomDb) / (topDb - bottomDb); };
+        const auto stopHz = effects::FilterPitch::magnetarStopHz (raw (ParamIDs::magnetarDecay));
+        const auto centreHz = on ? juce::jlimit (stopHz, effects::FilterPitch::magnetarTopHz, processor.getMagnetarFrequency()) : stopHz;
+        const auto q = juce::Decibels::decibelsToGain (effects::FilterPitch::magnetarPeakDb (raw (ParamIDs::magnetarQ), centreHz));
+        const auto dry = effects::FilterPitch::magnetarDryGain (raw (ParamIDs::magnetarDry));
+        const auto fx = effects::FilterPitch::magnetarFxGain (raw (ParamIDs::magnetarFx));
+
+        g.setColour (orange.withAlpha (0.15f));
+        g.drawHorizontalLine (juce::roundToInt (yFor (0.0f)), plot.getX(), plot.getRight());
+        g.drawVerticalLine (juce::roundToInt (xFor (stopHz)), plot.getY(), plot.getBottom());
+
+        // The band-pass (peak gain Q at its centre) added to the dry bass,
+        // in phase at the centre: a sketch from the filter's formula.
+        juce::Path response;
+        for (auto x = 0.0f; x <= 1.0f; x += 1.0f / 200.0f)
+        {
+            const auto hz = lowHz * std::pow (highHz / lowHz, x);
+            const auto ratio = hz / centreHz;
+            const std::complex<float> s (0.0f, ratio);
+            const auto bandPass = s / (s * s + s / q + 1.0f);
+            const auto db = juce::Decibels::gainToDecibels (std::abs (dry + fx * bandPass), -60.0f);
+            const auto point = juce::Point<float> (plot.getX() + plot.getWidth() * x, yFor (db));
+            if (x <= 0.0f)
+                response.startNewSubPath (point);
+            else
+                response.lineTo (point);
+        }
+        g.setColour (orange.withAlpha (on ? 0.3f : 0.1f));
+        g.strokePath (response, juce::PathStrokeType (4.0f));
+        g.setColour (orange.withAlpha (on ? 1.0f : 0.4f));
+        g.strokePath (response, juce::PathStrokeType (1.5f));
+    }
+    else if (type == Type::autoWah || type == Type::talkBox)
     {
         // A filter's peak, as sharp as RESONANCE (a sketch of its shape,
         // not a measurement); the wah sweeps it with your playing.
@@ -1032,13 +1144,18 @@ void Faceplate::paintFilterPitch (juce::Graphics& g, juce::Rectangle<float> head
     if (isRack())
         return;
 
-    // SENSITIVITY and RESONANCE (auto-wah), RESONANCE (talk box), and MIX.
+    // SENSITIVITY and RESONANCE (auto-wah), RESONANCE (talk box), and MIX;
+    // MAGNETAR's five knobs as on its pedal.
     std::vector<std::pair<const char*, const char*>> list;
-    if (type == Type::autoWah)
+    if (type == Type::magnetar)
+        list = { { ParamIDs::magnetarDry, "DRY" }, { ParamIDs::magnetarFx, "FX" }, { ParamIDs::magnetarDecay, "DECAY" },
+                 { ParamIDs::magnetarQ, "Q" }, { ParamIDs::magnetarSens, "SENS" } };
+    else if (type == Type::autoWah)
         list = { { ParamIDs::fpSensitivity, "SENS" }, { ParamIDs::fpResonance, "RES" } };
     else if (type == Type::talkBox)
         list = { { ParamIDs::fpResonance, "RES" } };
-    list.push_back ({ ParamIDs::fpMix, "MIX" });
+    if (type != Type::magnetar)
+        list.push_back ({ ParamIDs::fpMix, "MIX" });
     const auto cellWidth = knobs.getWidth() / (float) juce::jmax (2, (int) list.size());   // a lone MIX as big as two would be
     knobs = knobs.withSizeKeepingCentre (cellWidth * (float) list.size(), knobs.getHeight());
     for (const auto& [id, knobName] : list)

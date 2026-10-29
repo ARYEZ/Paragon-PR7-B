@@ -25,7 +25,9 @@
 //               TUNING on a screen; keys for OCTAVER and FREEZE, lit while on.
 //   COMP / GATE Classic: a gain-reduction needle, THRESHOLD, RATIO, LEVEL,
 //               GATE. Daybreak: COMP, DETAIL, MIX knobs, INTENSITY on a key,
-//               GATE, gain reduction in LED bars.
+//               GATE, gain reduction in LED bars. Lumen: the light cell
+//               glowing as hard as it's working, COMPRESSION, RELEASE and
+//               LEVEL knobs, PAD on a key, GATE, gain reduction.
 //   DELAY       its TYPE as the name; the repeats laid out in time, fading
 //               by FEEDBACK, a light running along them at the delay time;
 //               TIME in seven-segment digits; FEEDBACK and MIX knobs.
@@ -54,7 +56,7 @@ public:
     enum class Unit { drive, amp, cabinet, pitch, dynamics, delay, reverb, modulation,
                       filterPitch, glitch, eq, loFi, other };
     // What's drawn now (for tests).
-    enum class Look { generic, drive, amp, cabinet, pitch, classic, daybreak, delay, reverb,
+    enum class Look { generic, drive, amp, cabinet, pitch, classic, daybreak, lumen, delay, reverb,
                       modulation, filterPitch, glitch, eq, loFi };
 
     // `onIds`: the block's on switches (comma separated); `typeId`: its TYPE
@@ -102,6 +104,7 @@ private:
     void paintPitch (juce::Graphics&, juce::Rectangle<float> header, juce::Rectangle<float> body);
     void paintClassic (juce::Graphics&, juce::Rectangle<float> header, juce::Rectangle<float> body);
     void paintDaybreak (juce::Graphics&, juce::Rectangle<float> header, juce::Rectangle<float> body);
+    void paintLumen (juce::Graphics&, juce::Rectangle<float> header, juce::Rectangle<float> body);
     void paintDelay (juce::Graphics&, juce::Rectangle<float> header, juce::Rectangle<float> body);
     void paintReverb (juce::Graphics&, juce::Rectangle<float> header, juce::Rectangle<float> body);
     void paintModulation (juce::Graphics&, juce::Rectangle<float> header, juce::Rectangle<float> body);

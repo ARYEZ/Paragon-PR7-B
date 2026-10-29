@@ -21,6 +21,12 @@ namespace effects
     //                 the heel, the interval at the toe, wet only) and eight
     //                 harmonies (the guitar plus a voice the pedal moves
     //                 between two intervals)
+    //   magnetar         a bass envelope filter modelled on the MXR M82, from
+    //                 its manual's specifications (no schematic): a resonant
+    //                 band-pass swept from DECAY's stop frequency (76 Hz to
+    //                 1.3 kHz) up to 3.2 kHz by how hard you play, SENS over
+    //                 a 46 dB range, Q from +8 dB to +18/+26 dB of peak, and
+    //                 separate DRY and FX levels so the lows stay solid
 
     // One of the XP-100's programs (see FilterPitch::xpPrograms).
     struct XpProgram
@@ -53,8 +59,8 @@ namespace effects
     public:
         // Saved by number in rigs and projects: only ever add to the end.
         // (talkBox is processed after the amp by the TalkBox class; here it passes the guitar through.)
-        enum class Type { autoWah, pitchShifter, whammyWah, talkBox };
-        static inline const juce::StringArray typeNames { "Auto-Wah", "Pitch Shifter", "Quasar", "Talk Box" };
+        enum class Type { autoWah, pitchShifter, whammyWah, talkBox, magnetar };
+        static inline const juce::StringArray typeNames { "Auto-Wah", "Pitch Shifter", "Quasar", "Talk Box", "Magnetar" };
 
         // The XP-100's factory programs 01 to 28, in its order (program n is
         // index n - 1), with what its pedal does in each. Saved by number:
@@ -105,6 +111,7 @@ namespace effects
             float mix = 1.0f;           // 0 to 1
             int xpProgram = 1;          // an index into xpPrograms (program 02, the Original Cry Wah)
             float pedal = 0.0f;         // the expression pedal for the Whammy-Wah, 0 (heel) to 1 (toe)
+            float magnetarDry = 5.0f, magnetarFx = 5.0f, magnetarDecay = 5.0f, magnetarQ = 5.0f, magnetarSens = 5.0f;   // MAGNETAR's knobs, 0 to 10
         };
 
         FilterPitch();
@@ -114,7 +121,23 @@ namespace effects
         // Exposed for tests: where the wah's filter is for an envelope level (0 to 1).
         static float wahFrequencyFor (float position) noexcept;
 
+        // MAGNETAR, from the M82's specifications. For tests and the faceplate.
+        static constexpr float magnetarTopHz = 3200.0f, magnetarLowestStopHz = 76.0f, magnetarHighestStopHz = 1300.0f;
+        static float magnetarStopHz (float decay) noexcept;                  // DECAY: where the filter rests
+        static float magnetarFrequencyFor (float position, float decay) noexcept;   // 0 (at rest) to 1 (fully open)
+        static float magnetarPeakDb (float q, float frequencyHz) noexcept;   // the filter's gain at its peak
+        static float magnetarDryGain (float dry) noexcept;                   // 0 to 2 (+6 dB)
+        static float magnetarFxGain (float fx) noexcept;                     // 0 to 1, of the filter's gain
+        // The input level (dBFS, a steady note's peak) that opens the filter fully.
+        static float magnetarFullyOpenDb (float sens) noexcept;
+        // The output stage's limit: the pedal's +8 dBV maximum output, as
+        // a peak, with full scale 1 V (as for the drives).
+        static constexpr float magnetarMaxOutput = 3.55f;
+        // Where the filter is now (Hz), for the faceplate.
+        float getMagnetarFrequency() const noexcept { return magnetarFrequency.load(); }
+
     private:
+        void processMagnetar (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept;
         void processAutoWah (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept;
         void processPitch (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept;
         void processWhammyWah (juce::dsp::AudioBlock<float> block, const Settings& settings) noexcept;
@@ -126,6 +149,12 @@ namespace effects
         // Auto-wah
         juce::dsp::StateVariableTPTFilter<float> wahFilter;
         float envelope = 0.0f, sweep = 0.0f;
+
+        // Magnetar
+        juce::dsp::StateVariableTPTFilter<float> magnetarFilter;
+        float magnetarEnvelope = 0.0f, magnetarSweep = 0.0f;
+        juce::SmoothedValue<float> magnetarDry, magnetarFx;
+        std::atomic<float> magnetarFrequency { magnetarLowestStopHz };
 
         // Pitch shifter
         PitchShifter shifter;

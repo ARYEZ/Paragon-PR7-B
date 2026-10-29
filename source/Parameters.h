@@ -14,6 +14,21 @@ namespace ParamIDs
     inline constexpr auto ampDiBlend = "ampDiBlend";
     inline constexpr auto ampDiPoint = "ampDiPoint";
     inline constexpr auto ampDiPhase = "ampDiPhase";
+
+    // Version 32: LUMEN, COMP / GATE's third TYPE (modelled on the Ampeg
+    // Opto Comp). LEVEL is the shared compLevel.
+    inline constexpr auto lumenCompression = "lumenCompression";
+    inline constexpr auto lumenRelease     = "lumenRelease";
+    inline constexpr auto lumenPad         = "lumenPad";
+
+    // Version 33: MAGNETAR, FILTER / PITCH's fifth TYPE (modelled on the MXR
+    // M82 Bass Envelope Filter). Released in 0.21.0 as MORPH: the IDs keep
+    // that name, as IDs never change.
+    inline constexpr auto magnetarDry   = "morphDry";
+    inline constexpr auto magnetarFx    = "morphFx";
+    inline constexpr auto magnetarDecay = "morphDecay";
+    inline constexpr auto magnetarQ     = "morphQ";
+    inline constexpr auto magnetarSens  = "morphSens";
     inline constexpr auto cabOn        = "cabOn";
 
     // Phase 3
@@ -174,7 +189,7 @@ namespace ExpressionTargets
 {
     // Saved by number: only ever add to the end.
     enum { off, volume, wah, morph, pitch, loFi, whammyWah, glitch, talkBox };
-    inline const juce::StringArray names { "Off", "Volume", "Wah / Filter", "Morph FX", "Pitch Bend", "Lo-Fi", "Quasar", "Glitch", "Talk Box" };
+    inline const juce::StringArray names { "Off", "Volume", "Wah / Filter", "Magnetar FX", "Pitch Bend", "Lo-Fi", "Quasar", "Glitch", "Talk Box" };
 }
 
 namespace ParamRanges

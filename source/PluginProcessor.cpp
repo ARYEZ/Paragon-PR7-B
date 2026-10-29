@@ -280,7 +280,8 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
     compGate.process (monoBlock, { isOn (ParamIDs::compOn), param (ParamIDs::compThreshold), param (ParamIDs::compRatio),
                                    param (ParamIDs::compLevel), param (ParamIDs::gateThreshold),
                                    (effects::CompGate::Type) (int) param (ParamIDs::compType), param (ParamIDs::compAmount),
-                                   param (ParamIDs::compDetail), param (ParamIDs::compMix), isOn (ParamIDs::compIntensity) });
+                                   param (ParamIDs::compDetail), param (ParamIDs::compMix), isOn (ParamIDs::compIntensity),
+                                   param (ParamIDs::lumenCompression), param (ParamIDs::lumenRelease), isOn (ParamIDs::lumenPad) });
     // PITCH / WHAMMY: the pedal bends the pitch shifter from no shift at
     // the heel to its INTERVAL at the toe, like a DigiTech Whammy.
     // WHAMMY-WAH: the pedal plays the Whammy-Wah type. Unassigned, it rests at the heel.
@@ -292,7 +293,9 @@ void ParagonX1AudioProcessor::processChunk (juce::AudioBuffer<float>& buffer, in
                                       param (ParamIDs::fpSensitivity), param (ParamIDs::fpResonance),
                                       param (ParamIDs::fpInterval) * whammy, param (ParamIDs::fpMix),
                                       (int) param (ParamIDs::fpXpProgram),
-                                      expressionTarget == ExpressionTargets::whammyWah ? pedal : 0.0f });
+                                      expressionTarget == ExpressionTargets::whammyWah ? pedal : 0.0f,
+                                      param (ParamIDs::magnetarDry), param (ParamIDs::magnetarFx), param (ParamIDs::magnetarDecay),
+                                      param (ParamIDs::magnetarQ), param (ParamIDs::magnetarSens) });
     // GLITCH: before the amp (PRE) or after the EQ (POST). The pedal, on
     // GLITCH, fades it in: dry at the heel, its MIX at the toe.
     const effects::Glitch::Settings glitchSettings { isOn (ParamIDs::glitchOn), (effects::Glitch::Mode) (int) param (ParamIDs::glitchMode),

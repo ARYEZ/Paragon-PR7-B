@@ -170,6 +170,23 @@ TEST_CASE ("Render the editor to a PNG", "[.][snapshot]")
     if (auto* faceplate = findType<Faceplate> (*editor))
     {
         const auto input = (float) juce::SystemStats::getEnvironmentVariable ("PARAGON_SNAPSHOT_INPUT", "0").getDoubleValue();
+        // The same note also goes through the processor for half a second,
+        // so the compressor's gain-reduction display shows it working.
+        if (input > 0.0f)
+        {
+            juce::AudioBuffer<float> block (2, 256);
+            juce::MidiBuffer midi;
+            for (int start = 0; start < 24000; start += 256)
+            {
+                for (int i = 0; i < 256; ++i)
+                {
+                    const auto sample = input * (float) std::sin (juce::MathConstants<double>::twoPi * 110.0 * (start + i) / 48000.0);
+                    block.setSample (0, i, sample);
+                    block.setSample (1, i, sample);
+                }
+                processor.processBlock (block, midi);
+            }
+        }
         for (int tick = 0; tick < 30; ++tick)
         {
             const float peak[] = { input };

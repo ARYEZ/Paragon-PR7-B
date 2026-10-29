@@ -2,6 +2,57 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.22.0
+
+- **MORPH is now called MAGNETAR**, the name you chose. You'll see it in FILTER / PITCH's TYPE menu, on its faceplate and in the parameter names your DAW shows ("Magnetar Dry" and so on).
+  - It sounds the same, and projects and rigs saved with 0.21.0 open with their settings, because the parameters are saved under their original IDs.
+  - No more name clash: the expression pedal's **MORPH / FX** setting (which blends the delay, reverb and modulation in) keeps its name, and is now the only MORPH.
+- **Four LUMEN rigs, from the Opto Comp manual's suggested settings**, read off its knob drawings, under our own names:
+  - **A8 Easy Opto:** gentle (COMPRESSION 2.5, RELEASE 3.5), smoothing the peaks without you hearing it work.
+  - **A9 Fretless Opto:** a high ratio with a medium release (9.5, 4.5), for long, singing fretless notes.
+  - **A10 Opto Squash:** fully squashed (9.5, 9.5), every note at the same level.
+  - **A11 Opto Slap:** light and fast (2.5, 1.5), taming slap's pops and thumps.
+  - The manual leaves the output level to taste, so each rig's LEVEL makes up what its compression takes, matched to the other rigs.
+- **The manual confirms LUMEN's ranges:** a ratio of 1:1 to 10:1 with 3:1 at the centre (ours is 3.2:1 at noon), and a release of 75 to 600 ms.
+
+## 0.21.0
+
+- **MORPH, a bass envelope filter, is FILTER / PITCH's fifth TYPE.** It's modelled on the MXR M82 Bass Envelope Filter, built from the specifications in its manual. An envelope filter is a wah that your playing works instead of your foot: dig in and it opens up and quacks, play softly and it closes.
+  - **Its five knobs, as on the pedal.** They all start at noon, as the manual suggests.
+    - **DRY:** your clean bass, from off to +6 dB. This is the M82's big idea: the filter doesn't have to carry your low end, so the lows stay solid however wild the filter gets.
+    - **FX:** the filter's level.
+    - **DECAY:** where the filter rests when you're not playing, and where it falls back to as a note fades: from 76 Hz (deep and round) to 1.3 kHz (bright and vocal).
+    - **Q:** how sharp and vowel-like the filter's peak is. As in the manual, its peak goes from +8 dB up to +18 dB low down and +26 dB at the top of the sweep.
+    - **SENS:** how hard you have to play to open it, over the manual's 46 dB range. At full SENS a medium-strong note opens it all the way, to 3.2 kHz.
+  - **Its output** rounds off near the pedal's maximum output instead of clipping hard.
+  - **Its own faceplate:** the screen shows what MORPH is doing to your bass right now, the dry level plus the filter's peak, moving as you play, with the filter's frequency. A faint line marks where DECAY rests it.
+- **Three new rigs, from the manual's sample settings**, read off its knob drawings, under our own names:
+  - **C8 Synth Bass Filter:** almost all filter, resting low: round, synthy notes.
+  - **C9 Seventies Funk Filter:** the classic funk quack, with dry bass underneath.
+  - **C10 Dance Filter:** resting high, so it stays bright and squelchy between notes, for techno and dance. It has so little dry bass that it's a quiet sound, so it uses the EQ's level (flat) on top of RIG LEVEL to match the other rigs.
+  - As the manual says, adjust SENS to suit your bass's output.
+- **Our guesses, not from the manual:**
+  - There's no schematic, so the filter type is our reading. We use a band-pass, because the manual says DRY is there to keep the low end.
+  - How fast the envelope rises (3 ms) and falls (120 ms).
+  - How many dB of playing take it from closed to fully open (24 dB).
+  - The knob curves.
+- **A name to sort out:** the expression pedal already has a **MORPH / FX** setting, which blends the delay, reverb and modulation in. It has nothing to do with this filter.
+
+## 0.20.0
+
+- **LUMEN, an optical bass compressor, is COMP / GATE's third TYPE**, after Classic and Daybreak. It's modelled on the Ampeg Opto Comp, from its manual. An optical compressor turns the bass down with a small lamp shining on a light-sensitive cell: the harder you play, the brighter the lamp and the more it turns down. That gives the smooth, even squeeze bass players like optos for.
+  - **Its knobs, as on the pedal:**
+    - **COMPRESSION** sets the ratio, from 1:1 (none) to 10:1, spread exponentially as the manual says, so noon is about 3:1.
+    - **RELEASE** sets how fast it lets go, from 75 ms to 600 ms (about 210 ms at noon).
+    - **LEVEL** sets the output (the compressor's shared LEVEL).
+    - **PAD -15** turns the bass down 15 dB going in, for hot active basses, so it compresses and clips less.
+  - **Like the pedal:** it listens to the bass before it turns it down (feed-forward) and to both halves of the wave. Its input stage stays clean up to near the pedal's headroom, then rounds off peaks rather than clipping hard.
+  - **The light cell lingers:** after a long stretch of hard compression it lets go up to half as slowly again, as real light cells do.
+  - **Its own faceplate:** the light cell glows on the screen as hard as it's working, with the gain reduction in dB and LED bars.
+- **Our guesses, not from the manual:** the manual gives the ratio, release and level ranges but not where it starts compressing (we use -24 dB), how soft the knee is, how fast it grabs (about 10 ms), or how much the cell lingers. Those are our best reading of how optos behave.
+- **Our choice:** the real PAD leaves you to make up its 15 dB with LEVEL. Ours gives the 15 dB back after the compressor, so switching it on doesn't make the bass drop in volume.
+- **Footswitch 1's description now follows the TYPE:** it shows Lumen's or Daybreak's own knobs instead of always showing the Classic's threshold and ratio.
+
 ## 0.19.0
 
 - **Amp/DI blend in the AMP (NAM) block:** the classic studio bass sound, a clean DI signal mixed with the amp and cab. The DI gives tight, solid lows and a clear attack; the amp gives the character.

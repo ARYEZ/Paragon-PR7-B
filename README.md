@@ -42,9 +42,10 @@ so the guide below still describes the guitar version's effects.
 - **Footswitches 1-4** turn the effect blocks on and off. Click a footswitch's name to show its knobs
   below. Signal chain: comp/gate → filter / pitch → overdrive → amp → cabinet → presence → graphic EQ → modulation
   → delay → reverb → lo-fi.
-  - **1 Comp / Gate:** a compressor and a noise gate (threshold; all the way down is off). The compressor has two TYPEs:
+  - **1 Comp / Gate:** a compressor and a noise gate (threshold; all the way down is off). The compressor has three TYPEs:
     **Classic** (threshold, ratio, level) and **Daybreak**, a modern pedal compressor: COMP (how much, with automatic make-up),
-    DETAIL (how much pick attack gets through), MIX (parallel compression), INTENSITY (smooth or hard) and LEVEL. The panel shows a
+    DETAIL (how much pick attack gets through), MIX (parallel compression), INTENSITY (smooth or hard) and LEVEL; and **Lumen**, an optical bass compressor modelled on the Ampeg
+    Opto Comp: COMPRESSION (1:1 to 10:1), RELEASE (75 to 600 ms), LEVEL and a -15 dB PAD. The panel shows a
     gain-reduction meter.
   - **Lo-Fi** (last in the chain; no footswitch): telephone, AM radio, megaphone, cassette (wow, flutter, hiss)
     or bitcrusher, for intros and breakdowns. AMOUNT, NOISE, MIX and LEVEL.
@@ -65,7 +66,8 @@ so the guide below still describes the guitar version's effects.
     a volume pedal, five wahs, six auto-wahs (the pedal sets sensitivity or attack), eight pitch bends (heel: no shift,
     toe: the interval, as far as six octaves down) and eight harmonies (your note plus a voice the pedal moves between two intervals);
     or a **Talk Box**: the amp's sound, after the cab, shaped into vowels (oo to ee) by the expression pedal (TALK BOX),
-    with RESONANCE and MIX.
+    with RESONANCE and MIX; or **Magnetar**, a bass envelope filter modelled on the MXR M82: DRY and FX levels (so the lows
+    stay solid), DECAY (where the filter rests, 76 Hz to 1.3 kHz), Q and SENS, sweeping up to 3.2 kHz as you dig in.
   - **2 OD / Distortion:** two bass preamps/distortions, each built from a trace of the pedal's circuit with its real
     component values. Pick one with MODEL.
   - **GOTHAM**, modelled on the Tech 21 SansAmp Bass Driver DI (Version 1), from madbeanpedals' SludgeHammer schematic:
