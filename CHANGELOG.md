@@ -2,6 +2,22 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.22.1
+
+- **Much lighter on the CPU with the window open.** This is PR7-G 0.58.1's fix, brought to PR7-B. With the window open and nothing happening, PR7-B was using about **90% of a processor core** just to draw itself, whichever block was showing. That's what made a DAW's CPU meter jump as soon as the plugin was opened. The sound processing itself takes only about 0.3%.
+  - **What was wrong:** the unit at the bottom of the window (the faceplate) redrew itself completely 30 times a second, even when nothing on it had changed, including its slow-to-draw soft shadows.
+  - **What changed:** it now redraws only what changed. A setting redraws the whole unit. A meter or a moving display redraws just its screen, with the unit behind it drawn from a saved picture. When nothing changes, nothing is redrawn. The LCD screens' shadows are also worked out once per size and kept.
+  - **Measured** (window open, software drawing, Linux):
+
+    | | Before | After |
+    |---|---|---|
+    | Idle, any block showing | about 90% of a core | about 5% |
+    | DELAY, MOD or GLITCH on (their screens move by themselves) | about 90% | about 16-17% |
+    | LUMEN or MAGNETAR on | about 90% | about 5% |
+
+  - **Nothing looks different.** LUMEN's gain-reduction light and MAGNETAR's moving filter still follow your playing, and the meters still move. Compared pixel by pixel with 0.22.0, every block's panel in all three finishes matches to within 1-2 parts in 255 (rounding you can't see).
+- **Your numbers will differ:** on Windows the window draws differently, so they won't be the same as these Linux ones. The drop should be similar, since the same needless redrawing is gone.
+
 ## 0.22.0
 
 - **MORPH is now called MAGNETAR**, the name you chose. You'll see it in FILTER / PITCH's TYPE menu, on its faceplate and in the parameter names your DAW shows ("Magnetar Dry" and so on).
