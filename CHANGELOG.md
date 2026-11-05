@@ -2,6 +2,18 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.23.0
+
+- **Pearl Black and Pearl White + Neon get black keys in neon rings**, your design, as PR7-G 0.59.0 has it.
+  - **Every key and knob is now black on all three finishes**, as on Pearl White. The pink-to-orange keys and knobs are gone.
+  - **The neon moves to the rings round them:**
+    - The bezels round the big keys (the four footswitches, and AMP, CABINET and RIG) carry the pink-to-red-to-orange gradient, lit along the top and darker at the front like the chrome they replace.
+    - So do the small keys' surrounds.
+    - Each knob's glowing ring runs through the gradient, a little brighter because it's a light.
+  - **The expression pedal's tread is black rubber**, with the gradient along its ribs.
+  - **The small keys' names** (UNDO, REDO, BYPASS, TUNER, MUTE, TAP) stay in the unit's ink beside the rings: white on Pearl Black, dark on Pearl White + Neon.
+  - **Pearl White doesn't change at all.** Compared pixel by pixel with 0.22.1, every view matches, apart from the TAP light blinking and MOD's moving wave. The FINISH description in SETTINGS now reads "pearl white with chrome rings, or pearl white or pearl black with neon pink-to-orange rings round the black keys and knobs".
+
 ## 0.22.1
 
 - **Much lighter on the CPU with the window open.** This is PR7-G 0.58.1's fix, brought to PR7-B. With the window open and nothing happening, PR7-B was using about **90% of a processor core** just to draw itself, whichever block was showing. That's what made a DAW's CPU meter jump as soon as the plugin was opened. The sound processing itself takes only about 0.3%.
