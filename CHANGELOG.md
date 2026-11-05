@@ -2,6 +2,20 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.24.0
+
+- **Two finishes, OBSIDIAN and AURORA**, your choice, as PR7-G 0.60.0 has them.
+  - **OBSIDIAN** is the pearl black unit (Pearl Black renamed), and the default.
+  - **AURORA** is the pearl white unit with neon rings (Pearl White + Neon renamed).
+  - Both have black keys and knobs in neon pink-to-orange rings.
+  - **Pearl White, with chrome rings, is gone.** If you were on it, or never picked a finish, PR7-B opens in Obsidian. If you picked Aurora (White + Neon), it stays Aurora.
+  - SETTINGS > FINISH has just the two buttons.
+- **The rack opens hidden in every new window, every time**, so PR7-B starts small and clean. SHOW RACK, or clicking a block in the signal chain, opens it. It isn't remembered, and each window has its own: showing it in one doesn't change another.
+- **The expression pedal starts half way** instead of heel down.
+  - Nothing changes in the sound until you assign it: its target starts as OFF.
+  - On VOLUME, half way is -12 dB.
+  - Projects you've saved keep their own pedal position.
+
 ## 0.23.0
 
 - **Pearl Black and Pearl White + Neon get black keys in neon rings**, your design, as PR7-G 0.59.0 has it.
