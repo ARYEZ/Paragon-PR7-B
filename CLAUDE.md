@@ -26,7 +26,9 @@ Until these are done, PR7-B *is* PR7-G as far as a DAW is concerned. The two wou
 
 ## The project
 
-- An AGPLv3 **JUCE VST3** plugin: a NAM (Neural Amp Modeler) player with a full multi-effects chain, drawn as a pearl-white floor processor with an expression pedal.
+- An AGPLv3 **JUCE VST3** plugin: a NAM (Neural Amp Modeler) player with a full multi-effects chain, drawn as a floor processor with an expression pedal.
+  - **Finishes** (0.24.0, from PR7-G 0.60.0, the owner's choice): OBSIDIAN (pearl black, the default) and AURORA (pearl white), both with black keys and knobs in neon pink-to-orange rings (`Finish::Type { retiredPearlWhite, obsidian, aurora }`, saved by number: an old Pearl White setting, or none, opens as Obsidian). Pearl White, with chrome rings, is retired.
+  - **Every window opens with the rack hidden** (`MainView::isRackShown` / `setRackShown`, per window and not saved); SHOW RACK or a block clicked in the signal chain shows it. The expression pedal starts half way (`expression` defaults to 0.5; its target defaults to OFF, so the sound doesn't change until it's assigned).
   - The chain: PITCH → (WAH pedal) → COMP/GATE → FILTER/PITCH → GLITCH (Pre) → OD/DIST → AMP (NAM) → CAB (IR) → PRESENCE → TALK BOX → GRAPHIC EQ → GLITCH (Post) → MOD → DELAY → REVERB → LO-FI.
 - **Code layout:** DSP in `source/dsp/effects/`, UI in `source/ui/`, parameters in `source/Parameters.*`, rigs in `source/rigs/`, tests in `tests/`.
 - **Parameters:**
@@ -39,11 +41,13 @@ Until these are done, PR7-B *is* PR7-G as far as a DAW is concerned. The two wou
 
 - **Build:** `cmake -B build && cmake --build build -j8`.
 - **Tests (Catch2):** `xvfb-run -a build/tests/ParagonX1Tests`. All must pass. New features get tests that check what the feature really does to the sound (levels, frequencies, harmonics), not just that it runs.
+- **CPU benchmarks** (hidden, 0.24.1, from PR7-G 0.82.1): `[rigcpu]` (every factory rig, dearest first; `PARAGON_RIGCPU_SECONDS`), `[drivecpu]` (each drive model at 30%/80% of its drive knob and each modulation type; `PARAGON_CPU_ONLY=text` picks one), `[rigrender]` (every rig's output to `PARAGON_RIGRENDER/<slot>.f32`, a bass phrase, to compare two builds sample by sample; render the old build twice first to set aside rigs that use randomness). Wall-clock timing on the cloud machine wanders by up to 50%, so compare builds by instruction count: `valgrind --tool=callgrind --toggle-collect='ParagonX1AudioProcessor::processBlock*'` with `PARAGON_CPU_ONLY`, old and new side by side, an untouched effect (Chorus) as the control. 0.24.1: `opAmpClip` without `pow()` (OBSIDIAN -30%, GOTHAM -24%), AEON's diodes on one `exp` (-35%), HALO's linear part built once a sample (-5 to -7%); HALO is now the dearest drive (its Newton solve: 4 `exp` and a 4x4 solve a step, already predicted from the trend and stopping at 1 uV; its tolerance stays, the circuit is sensitive).
 - **pluginval:** `xvfb-run -a <pluginval> --strictness-level 10 --validate-in-process "build/ParagonX1_artefacts/Release/VST3/<name>.vst3"`. CI runs it too.
 - **Screenshots** for checking the UI, via `xvfb-run -a build/tests/ParagonX1Tests "[snapshot]"` with environment variables:
   - `PARAGON_SNAPSHOT` (output path), `PARAGON_SNAPSHOT_WIDTH` (e.g. 2560 for 2x).
   - `PARAGON_SNAPSHOT_BLOCK=n` (open block n's panel), `PARAGON_SNAPSHOT_PARAMS=id=value,...`.
-  - `PARAGON_SNAPSHOT_EXPRESSION`, `PARAGON_SNAPSHOT_PAGE=presets`.
+  - `PARAGON_SNAPSHOT_EXPRESSION`, `PARAGON_SNAPSHOT_PAGE=presets|settings`.
+  - The finish is Obsidian unless `PARAGON_SNAPSHOT_FINISH=aurora`; the rack is shown unless `PARAGON_SNAPSHOT_RACK=hidden` (a real window opens with it hidden).
   - Render, look, crop and zoom before claiming a visual change is right.
 
 ## Releases

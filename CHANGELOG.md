@@ -2,6 +2,42 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.24.1
+
+An optimisation round, brought over from PR7-G 0.82.1: the drives and AEON take much less of your computer, and **the sound is the same**.
+
+- **OBSIDIAN about 30% less work, GOTHAM about 25%.** Both model their op-amps running out of headroom, and that curve was worked out with two slow power functions several times a sample (at 8x oversampling). It's now worked out a cheaper way that gives the same curve to within the last digit of the computer's arithmetic.
+- **AEON: about 35% less work.** Its limiter diodes were calculated with two maths functions each step; one now does both jobs.
+- **HALO: 5-7% less.** The fixed parts of its circuit are set up once per sample instead of at every step of the solver.
+- **On a typical drive rig**, the share of one processor core went from about 10.5% to about 6.3% on the build machine (your PC will differ, but the saving should be in proportion). The average across all 54 factory rigs went from 5.8% to 3.8%.
+- **The same sound, checked:** every factory rig was rendered with the old and new versions and compared sample by sample. 53 of 54 are identical to the last bit; the one that isn't (B08 Germanium Split Fuzz, on HALO) differs by an amount 113 dB below the sound itself, far below anything you could hear.
+
+## 0.24.0
+
+- **Two finishes, OBSIDIAN and AURORA**, your choice, as PR7-G 0.60.0 has them.
+  - **OBSIDIAN** is the pearl black unit (Pearl Black renamed), and the default.
+  - **AURORA** is the pearl white unit with neon rings (Pearl White + Neon renamed).
+  - Both have black keys and knobs in neon pink-to-orange rings.
+  - **Pearl White, with chrome rings, is gone.** If you were on it, or never picked a finish, PR7-B opens in Obsidian. If you picked Aurora (White + Neon), it stays Aurora.
+  - SETTINGS > FINISH has just the two buttons.
+- **The rack opens hidden in every new window, every time**, so PR7-B starts small and clean. SHOW RACK, or clicking a block in the signal chain, opens it. It isn't remembered, and each window has its own: showing it in one doesn't change another.
+- **The expression pedal starts half way** instead of heel down.
+  - Nothing changes in the sound until you assign it: its target starts as OFF.
+  - On VOLUME, half way is -12 dB.
+  - Projects you've saved keep their own pedal position.
+
+## 0.23.0
+
+- **Pearl Black and Pearl White + Neon get black keys in neon rings**, your design, as PR7-G 0.59.0 has it.
+  - **Every key and knob is now black on all three finishes**, as on Pearl White. The pink-to-orange keys and knobs are gone.
+  - **The neon moves to the rings round them:**
+    - The bezels round the big keys (the four footswitches, and AMP, CABINET and RIG) carry the pink-to-red-to-orange gradient, lit along the top and darker at the front like the chrome they replace.
+    - So do the small keys' surrounds.
+    - Each knob's glowing ring runs through the gradient, a little brighter because it's a light.
+  - **The expression pedal's tread is black rubber**, with the gradient along its ribs.
+  - **The small keys' names** (UNDO, REDO, BYPASS, TUNER, MUTE, TAP) stay in the unit's ink beside the rings: white on Pearl Black, dark on Pearl White + Neon.
+  - **Pearl White doesn't change at all.** Compared pixel by pixel with 0.22.1, every view matches, apart from the TAP light blinking and MOD's moving wave. The FINISH description in SETTINGS now reads "pearl white with chrome rings, or pearl white or pearl black with neon pink-to-orange rings round the black keys and knobs".
+
 ## 0.22.1
 
 - **Much lighter on the CPU with the window open.** This is PR7-G 0.58.1's fix, brought to PR7-B. With the window open and nothing happening, PR7-B was using about **90% of a processor core** just to draw itself, whichever block was showing. That's what made a DAW's CPU meter jump as soon as the plugin was opened. The sound processing itself takes only about 0.3%.
