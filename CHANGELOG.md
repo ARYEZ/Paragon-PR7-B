@@ -2,6 +2,16 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.24.1
+
+An optimisation round, brought over from PR7-G 0.82.1: the drives and AEON take much less of your computer, and **the sound is the same**.
+
+- **OBSIDIAN about 30% less work, GOTHAM about 25%.** Both model their op-amps running out of headroom, and that curve was worked out with two slow power functions several times a sample (at 8x oversampling). It's now worked out a cheaper way that gives the same curve to within the last digit of the computer's arithmetic.
+- **AEON: about 35% less work.** Its limiter diodes were calculated with two maths functions each step; one now does both jobs.
+- **HALO: 5-7% less.** The fixed parts of its circuit are set up once per sample instead of at every step of the solver.
+- **On a typical drive rig**, the share of one processor core went from about 10.5% to about 6.3% on the build machine (your PC will differ, but the saving should be in proportion). The average across all 54 factory rigs went from 5.8% to 3.8%.
+- **The same sound, checked:** every factory rig was rendered with the old and new versions and compared sample by sample. 53 of 54 are identical to the last bit; the one that isn't (B08 Germanium Split Fuzz, on HALO) differs by an amount 113 dB below the sound itself, far below anything you could hear.
+
 ## 0.24.0
 
 - **Two finishes, OBSIDIAN and AURORA**, your choice, as PR7-G 0.60.0 has them.
