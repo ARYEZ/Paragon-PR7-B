@@ -2,6 +2,12 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.24.2
+
+- **AURORA is 25% less bright.** Full pearl white was too much to look at for long, almost dazzling. Now the whole unit is drawn at 75% of its old brightness: the chassis, the face, the panels, the rack unit and the expression pedal, shine and highlights included. Pure white becomes a soft light grey-pink, so it still reads as a white unit.
+  - The lettering, the neon rings, the keys, the knobs and the screens keep their own colours, so they stand out a little more against the softer pearl.
+  - OBSIDIAN is unchanged.
+
 ## 0.24.1
 
 An optimisation round, brought over from PR7-G 0.82.1: the drives and AEON take much less of your computer, and **the sound is the same**.
