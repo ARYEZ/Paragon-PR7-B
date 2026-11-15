@@ -44,7 +44,7 @@ public:
     };
     static void paintUnit (juce::Graphics&, juce::Rectangle<float> chassis, juce::Rectangle<float> face,
                            const std::function<void (juce::Graphics&)>& drawSatin, Shape,
-                           bool dim = true);   // Aurora's pearl 25% less bright (off: the caller dims it once, with what it draws over the face)
+                           bool dim = true);   // Aurora's pearl less bright, by Finish::auroraDimming (off: the caller dims it once, with what it draws over the face)
     // A section panel set down into the face (the main unit's slot and footswitch rows).
     static void paintSection (juce::Graphics&, juce::Rectangle<float> section, const std::function<void (juce::Graphics&)>& drawSatin);
 

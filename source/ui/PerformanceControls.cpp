@@ -437,7 +437,7 @@ namespace
         g.setColour (black ? juce::Colours::black.withAlpha (0.5f) : juce::Colour (0xff4a2034).withAlpha (0.18f));
         g.strokePath (seam, juce::PathStrokeType (1.5f));
         {
-            // Aurora's pearl 25% less bright, as the unit's (0.24.2): over the
+            // Aurora's pearl less bright (auroraDimming), as the unit's: over the
             // plate and the outer half of its bevel; the pads go on after.
             const auto halfBevel = fw * 0.006f;
             juce::Path pearlArea;

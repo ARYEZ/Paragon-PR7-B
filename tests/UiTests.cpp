@@ -315,11 +315,11 @@ TEST_CASE ("OBSIDIAN and AURORA recolour the unit's printing, and every open win
     CHECK (rigLevelColour (*first) == Finish::ink());   // left on Obsidian, the default
 }
 
-TEST_CASE ("AURORA's pearl is 25% less bright; OBSIDIAN is unchanged", "[ui]")
+TEST_CASE ("AURORA's pearl is 10% less bright; OBSIDIAN is unchanged", "[ui]")
 {
     // The unit's chassis and face drawn with and without the dimming: on
-    // Aurora every pixel of the pearl comes out at 75% (to within rounding),
-    // so pure white is about 191; on Obsidian the two are identical.
+    // Aurora every pixel of the pearl comes out at 90% (to within rounding),
+    // so pure white is about 230; on Obsidian the two are identical.
     const auto draw = [] (bool dim)
     {
         juce::Image image (juce::Image::ARGB, 400, 300, true, juce::SoftwareImageType());
@@ -344,12 +344,13 @@ TEST_CASE ("AURORA's pearl is 25% less bright; OBSIDIAN is unchanged", "[ui]")
                 continue;
             const auto before = bright.getPixelAt (x, y), after = dimmed.getPixelAt (x, y);
             for (const auto [b, a] : { std::pair { before.getRed(), after.getRed() }, { before.getGreen(), after.getGreen() }, { before.getBlue(), after.getBlue() } })
-                worst = juce::jmax (worst, std::abs ((int) a - juce::roundToInt (0.75f * (float) b)));
+                worst = juce::jmax (worst, std::abs ((int) a - juce::roundToInt ((1.0f - Finish::auroraDimming) * (float) b)));
             brightest = juce::jmax (brightest, (int) brightness (after));
         }
     CHECK (worst <= 1);
-    CHECK (brightest <= 192);
-    CHECK (brightest >= 180);   // still a white unit, not grey: the brightest pearl near 191
+    CHECK (Finish::auroraDimming == 0.10f);
+    CHECK (brightest <= 231);
+    CHECK (brightest >= 215);   // still a white unit, not grey: the brightest pearl near 230
 
     Finish::set (Finish::Type::obsidian, false);
     const auto blackPlain = draw (false), blackDimmed = draw (true);

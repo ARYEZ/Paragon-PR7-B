@@ -101,7 +101,7 @@ void PedalBody::paint (juce::Graphics& g)
     }
 
     // Aurora's pearl, all of it (rim, face, panels, insets, the pedal's bay),
-    // 25% less bright, in one go so no edge is darkened twice; the printing
+    // 10% less bright (auroraDimming), in one go so no edge is darkened twice; the printing
     // goes on after, in its own colours.
     {
         juce::Path unit;
@@ -258,7 +258,7 @@ void PedalBody::paintUnit (juce::Graphics& g, juce::Rectangle<float> chassis, ju
     }
 
     if (dim)
-        Finish::dimPearl (g, chassisPath);   // Aurora 25% less bright (0.24.2)
+        Finish::dimPearl (g, chassisPath);   // Aurora 10% less bright (auroraDimming)
 }
 
 void PedalBody::paintSection (juce::Graphics& g, juce::Rectangle<float> section, const std::function<void (juce::Graphics&)>& drawSatin)

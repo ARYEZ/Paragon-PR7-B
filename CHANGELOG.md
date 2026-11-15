@@ -2,6 +2,12 @@
 
 Each version's notes appear on its GitHub Release page.
 
+## 0.24.3
+
+- **AURORA is 10% less bright than the original, instead of 25%.** At 25% the pearl looked grey rather than white. Now it's drawn at 90% of its original brightness: still clearly a white pearl unit, without the full-white glare. Pure white becomes 230 out of 255.
+  - Chosen from mock-ups of 10%, 15% and 25% less, and a "soft pearl" option.
+  - As in 0.24.2, the lettering, neon rings, keys, knobs and screens keep their own colours. OBSIDIAN is unchanged.
+
 ## 0.24.2
 
 - **AURORA is 25% less bright.** Full pearl white was too much to look at for long, almost dazzling. Now the whole unit is drawn at 75% of its old brightness: the chassis, the face, the panels, the rack unit and the expression pedal, shine and highlights included. Pure white becomes a soft light grey-pink, so it still reads as a white unit.
